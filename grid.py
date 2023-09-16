@@ -3,6 +3,7 @@ from collections import namedtuple
 
 class Grid(NamedTuple):
     vertices
+    points
     edges
     triangles
     boudary_vertices
