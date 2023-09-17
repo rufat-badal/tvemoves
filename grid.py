@@ -12,3 +12,7 @@ class Grid(NamedTuple):
     dirichlet_edges
     neumann_vertices
     neumann_edges
+
+
+def square_grid_factory(num_horizontal_vertices, fix=None):
+    pass
