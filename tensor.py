@@ -87,6 +87,19 @@ class Matrix:
             raise IndexError("matrix index out of bounds")
         return self._data[i * self.shape[1] + j]
 
+    def __matmul__(self, other):
+        if self.shape[1] != other.shape[0]:
+            raise ValueError("matrix shapes do not match for multiplication")
+        return Matrix(
+            [
+                [
+                    sum(self[i, k] * other[k, j] for k in range(self.shape[1]))
+                    for j in range(self.shape[1])
+                ]
+                for i in range(self.shape[0])
+            ]
+        )
+
 
 M = Matrix([[1, 1, 1], [2, 2, 2], [3, 3, 3]])
 print(M)
@@ -96,3 +109,4 @@ print(N[0, 1])
 print(M + N)
 print(N - N)
 print(-N)
+print(M @ N)
