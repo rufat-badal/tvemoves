@@ -1,22 +1,21 @@
-from __future__ import annotations
 from math import prod
 
 
 class Vector:
-    def __init__(self, init_list: list[float]):
+    def __init__(self, init_list: list):
         self._data = init_list
-        self._length = len(init_list)
+        self.length = len(init_list)
 
-    def __str__(self):
+    def __repr__(self):
         return "Vector([" + ", ".join([str(x) for x in self._data]) + "])"
 
-    def __add__(self, other: Vector):
-        if self._length != other._length:
+    def __add__(self, other):
+        if self.length != other.length:
             raise ValueError("vectors must have the same length for addition")
         return Vector([x + y for (x, y) in zip(self._data, other._data)])
 
-    def __sub__(self, other: Vector):
-        if self._length != other._length:
+    def __sub__(self, other):
+        if self.length != other.length:
             raise ValueError("vectors must have the same length for subtraction")
         return Vector([x - y for (x, y) in zip(self._data, other._data)])
 
@@ -24,25 +23,47 @@ class Vector:
         return Vector([-x for x in self._data])
 
     def __getitem__(self, i):
-        if i < -self._length or i >= self._length:
-            raise (IndexError("vector index out of bounds"))
+        if i < -self.length or i >= self.length:
+            raise IndexError("vector index out of bounds")
         return self._data[i]
 
     def normsqr(self):
         return sum(x**2 for x in self._data)
 
     def dot(self, other):
-        if self._length != other._length:
+        if self.length != other.length:
             raise ValueError("vectors must have the same length for dot product")
         return sum(x * y for (x, y) in zip(self._data, other._data))
 
 
-v = Vector([1, 2, 3])
-w = Vector([1, 1, 1])
-print(v + w)
-print(v - w)
-print(-v)
-print(v[-3])
-print(w.normsqr())
-print(w)
-print(w.dot(w))
+class Matrix:
+    def __init__(self, init_list: list, shape=None):
+        if type(init_list[0]) is not list:
+            if shape is not None and shape[0] * shape[1] != len(init_list):
+                raise ValueError("shape is not compatible with the data provided")
+            if shape is None:
+                shape = (1, len(init_list))
+            self.shape = shape
+            self._data = init_list
+            return
+
+        # row major format
+        num_rows = len(init_list)
+        num_columns = len(init_list[0])
+        for row in init_list[1:]:
+            if len(row) != num_columns:
+                raise ValueError("rows must have all the same length")
+        self.shape = (num_rows, num_columns)
+        self._data = [x for row in init_list for x in row]
+
+    def rows(self):
+        return [
+            self._data[i : i + self.shape[1]]
+            for i in range(0, self.shape[0] * self.shape[1], self.shape[1])
+        ]
+
+
+M = Matrix([[1, 1, 1], [2, 2, 2]])
+print(M.rows())
+N = Matrix(list(range(1, 7)), (2, 3))
+print(N.rows())
