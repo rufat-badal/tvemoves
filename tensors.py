@@ -34,7 +34,7 @@ class Vector:
 
     def dot(self, other):
         if self.length != other.length:
-            raise ValueError("vectors must have the same length for dot product")
+            raise ValueError("vectors must have the same length for the dot product")
         return sum(x * y for (x, y) in zip(self._data, other._data))
 
 
@@ -119,8 +119,24 @@ class Matrix:
             for i in range(self.shape[0]):
                 prod *= self[i, p[i]]
             res += sign(p) * prod
-        
+
         return res
+
+    def normsqr(self):
+        return sum(x**2 for x in self._data)
+
+    def dot(self, other):
+        if self.shape != other.shape:
+            raise ValueError("matrices must have the same length for the dot product")
+        return sum(x * y for (x, y) in zip(self._data, other._data))
+
+    def __mul__(self, scaling):
+        return Matrix(
+            [[scaling * self[i, j] for j in self.shape[1]] for i in self.shape[0]]
+        )
+
+    def __rmul__(self, scaling):
+        return self.__mul__(scaling)
 
 
 def sign(p):
@@ -150,3 +166,5 @@ print(K.trace())
 print(N.det())
 L = Matrix([[1, 0, 0], [1, 1, 1], [1, 1, 0]])
 print(L.det())
+print(M.normsqr())
+print(M.dot(M))
