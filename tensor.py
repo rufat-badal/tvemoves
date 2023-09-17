@@ -100,6 +100,12 @@ class Matrix:
             ]
         )
 
+    @property
+    def T(self):
+        return Matrix(
+            [[self[i, j] for i in range(self.shape[0])] for j in range(self.shape[1])]
+        )
+
 
 M = Matrix([[1, 1, 1], [2, 2, 2], [3, 3, 3]])
 print(M)
@@ -110,3 +116,4 @@ print(M + N)
 print(N - N)
 print(-N)
 print(M @ N)
+print(M.T)
