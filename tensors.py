@@ -186,15 +186,5 @@ class Tensor3D:
         self._data = [x for submatrix in init_list for row in submatrix for x in row]
         self._unflattened = init_list
 
-
-A = Tensor3D(list(range(1, 25)), (2, 3, 4))
-print(A._unflattened)
-B = Tensor3D(
-    [
-        [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]],
-        [[13, 14, 15, 16], [17, 18, 19, 20], [21, 22, 23, 24]],
-    ]
-)
-print(B.shape)
-print(B._data)
-print(B._unflattened)
+    def normsqr(self):
+        return sum(x**2 for x in self._data)
