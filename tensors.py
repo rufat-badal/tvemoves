@@ -47,7 +47,7 @@ class Matrix:
                 shape = (1, len(init_list))
             self.shape = shape
             self._data = init_list
-            self.rows = [
+            self._unflattened = [
                 self._data[i : i + self.shape[1]]
                 for i in range(0, self.shape[0] * self.shape[1], self.shape[1])
             ]
@@ -61,10 +61,12 @@ class Matrix:
                 raise ValueError("rows must have all the same length")
         self.shape = (num_rows, num_columns)
         self._data = [x for row in init_list for x in row]
-        self.rows = init_list
+        self._unflattened = init_list
 
     def __repr__(self):
-        lines = ["[" + ", ".join([repr(x) for x in row]) + "]" for row in self.rows]
+        lines = [
+            "[" + ", ".join([repr(x) for x in row]) + "]" for row in self._unflattened
+        ]
         typeinfo = "Matrix(["
         data = (",\n" + len(typeinfo) * " ").join(lines)
         return typeinfo + data + ")]"
@@ -150,21 +152,49 @@ def sign(p):
     return 1 if num_misplaced % 2 == 0 else -1
 
 
-M = Matrix([[1, 1, 1], [2, 2, 2], [3, 3, 3]])
-print(M)
-N = Matrix(list(range(1, 10)), (3, 3))
-print(N)
-print(N[0, 1])
-print(M + N)
-print(N - N)
-print(-N)
-print(M @ N)
-print(M.T)
-K = Matrix(list(range(1, 9)), (2, 4))
-print(K)
-print(K.trace())
-print(N.det())
-L = Matrix([[1, 0, 0], [1, 1, 1], [1, 1, 0]])
-print(L.det())
-print(M.normsqr())
-print(M.dot(M))
+class Tensor3D:
+    def __init__(self, init_list: list, shape=None):
+        if type(init_list[0]) is not list:
+            if shape is not None and shape[0] * shape[1] * shape[2] != len(init_list):
+                raise ValueError("shape is not compatible with the data provided")
+            if shape is None:
+                shape = (1, 1, len(init_list))
+            self.shape = shape
+            self._data = init_list
+            self._unflattened = [
+                [
+                    self._data[i + j : i + j + self.shape[2]]
+                    for i in range(0, self.shape[1] * self.shape[2], self.shape[2])
+                ]
+                for j in range(
+                    0,
+                    self.shape[0] * self.shape[1] * self.shape[2],
+                    self.shape[1] * self.shape[2],
+                )
+            ]
+            return
+
+        if type(init_list[0][0]) is not list:
+            raise ValueError("incorrectly shaped initialization list provided")
+        self.shape = (len(init_list), len(init_list[0]), len(init_list[0][0]))
+        for submatrix in init_list:
+            if len(submatrix) != self.shape[1]:
+                raise ValueError("incorrectly shaped initialization list provided")
+            for row in submatrix:
+                if len(row) != self.shape[2]:
+                    raise ValueError("incorrectly shaped initialization list provided")
+        self._data = [x for submatrix in init_list for row in submatrix for x in row]
+        self._unflattened = init_list
+
+
+A = Tensor3D(list(range(1, 25)), (2, 3, 4))
+print(A._unflattened)
+B = Tensor3D(
+    [
+        [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]],
+        [[13, 14, 15, 16], [17, 18, 19, 20], [21, 22, 23, 24]],
+    ]
+)
+print(B.shape)
+print(B._data)
+print(B._unflattened)
