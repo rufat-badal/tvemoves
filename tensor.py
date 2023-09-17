@@ -45,6 +45,10 @@ class Matrix:
                 shape = (1, len(init_list))
             self.shape = shape
             self._data = init_list
+            self.rows = [
+                self._data[i : i + self.shape[1]]
+                for i in range(0, self.shape[0] * self.shape[1], self.shape[1])
+            ]
             return
 
         # row major format
@@ -55,15 +59,16 @@ class Matrix:
                 raise ValueError("rows must have all the same length")
         self.shape = (num_rows, num_columns)
         self._data = [x for row in init_list for x in row]
+        self.rows = init_list
 
-    def rows(self):
-        return [
-            self._data[i : i + self.shape[1]]
-            for i in range(0, self.shape[0] * self.shape[1], self.shape[1])
-        ]
+    def __repr__(self):
+        lines = ["[" + ", ".join([repr(x) for x in row]) + "]" for row in self.rows]
+        typeinfo = "Matrix(["
+        data = (",\n" + len(typeinfo) * " ").join(lines)
+        return typeinfo + data + ")]"
 
 
-M = Matrix([[1, 1, 1], [2, 2, 2]])
-print(M.rows())
-N = Matrix(list(range(1, 7)), (2, 3))
-print(N.rows())
+M = Matrix([[1, 1, 1], [2, 2, 2], [3, 3, 3]])
+print(M)
+N = Matrix(list(range(1, 10)), (3, 3))
+print(N)
