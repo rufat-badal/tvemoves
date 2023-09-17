@@ -23,7 +23,8 @@ class Vector:
         return Vector([-x for x in self._data])
 
     def __getitem__(self, i):
-        if i < -self.length or i >= self.length:
+        # do not allow negative indices
+        if i < 0 or i >= self.length:
             raise IndexError("vector index out of bounds")
         return self._data[i]
 
@@ -67,8 +68,31 @@ class Matrix:
         data = (",\n" + len(typeinfo) * " ").join(lines)
         return typeinfo + data + ")]"
 
+    def __add__(self, other):
+        if self.shape != other.shape:
+            raise ValueError("matrices must have the same shape for addition")
+        return Matrix([x + y for (x, y) in zip(self._data, other._data)], self.shape)
+
+    def __sub__(self, other):
+        if self.shape != other.shape:
+            raise ValueError("matrices must have the same shape for subtraction")
+        return Matrix([x - y for (x, y) in zip(self._data, other._data)], self.shape)
+
+    def __neg__(self):
+        return Matrix([-x for x in self._data], self.shape)
+
+    def __getitem__(self, index):
+        i, j = index
+        if i < 0 or i >= self.shape[0] or j < 0 or j >= self.shape[1]:
+            raise IndexError("matrix index out of bounds")
+        return self._data[i * self.shape[1] + j]
+
 
 M = Matrix([[1, 1, 1], [2, 2, 2], [3, 3, 3]])
 print(M)
 N = Matrix(list(range(1, 10)), (3, 3))
 print(N)
+print(N[0, 1])
+print(M + N)
+print(N - N)
+print(-N)
