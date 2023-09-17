@@ -1,4 +1,5 @@
 from math import prod
+from itertools import permutations
 
 
 class Vector:
@@ -109,6 +110,29 @@ class Matrix:
     def trace(self):
         return sum(self[i, i] for i in range(min(self.shape)))
 
+    def det(self):
+        if self.shape[0] != self.shape[1]:
+            raise ValueError("det not defined for nonsquare matrix")
+        res = 0
+        for p in permutations(range(self.shape[0])):
+            prod = 1
+            for i in range(self.shape[0]):
+                prod *= self[i, p[i]]
+            res += sign(p) * prod
+        
+        return res
+
+
+def sign(p):
+    # p must be a permutation of [0, 1, 2, ...]
+    num_misplaced = 0
+    for i, a in enumerate(p):
+        for b in p[i + 1 :]:
+            if b < a:
+                num_misplaced += 1
+
+    return 1 if num_misplaced % 2 == 0 else -1
+
 
 M = Matrix([[1, 1, 1], [2, 2, 2], [3, 3, 3]])
 print(M)
@@ -123,3 +147,6 @@ print(M.T)
 K = Matrix(list(range(1, 9)), (2, 4))
 print(K)
 print(K.trace())
+print(N.det())
+L = Matrix([[1, 0, 0], [1, 1, 1], [1, 1, 0]])
+print(L.det())
