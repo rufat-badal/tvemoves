@@ -106,6 +106,9 @@ class Matrix:
             [[self[i, j] for i in range(self.shape[0])] for j in range(self.shape[1])]
         )
 
+    def trace(self):
+        return sum(self[i, i] for i in range(min(self.shape)))
+
 
 M = Matrix([[1, 1, 1], [2, 2, 2], [3, 3, 3]])
 print(M)
@@ -117,3 +120,6 @@ print(N - N)
 print(-N)
 print(M @ N)
 print(M.T)
+K = Matrix(list(range(1, 9)), (2, 4))
+print(K)
+print(K.trace())
