@@ -29,11 +29,7 @@ class SquareEquilateralGrid(Grid):
             # (0, 1) -> num_horizontal_points, ...
             return j * num_horizontal_points + i
 
-        vertices = [
-            pair_to_vertex(i, j)
-            for j in range(num_horizontal_points)
-            for i in range(num_horizontal_points)
-        ]
+        vertices = list(range(num_horizontal_points * num_horizontal_points))
 
         horizontal_edges = [
             (pair_to_vertex(i, j), pair_to_vertex(i + 1, j))
