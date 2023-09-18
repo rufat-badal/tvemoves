@@ -15,7 +15,7 @@ class Grid:
         self.edges = edges
         self.triangles = triangles
         self.boundary_vertices = boundary_vertices
-        self.boundary_edge = boundary_edges
+        self.boundary_edges = boundary_edges
         self.dirichlet_vertices = dirichlet_vertices
         self.dirichlet_edges = dirichlet_edges
         self.neumann_vertices = neumann_vertices
