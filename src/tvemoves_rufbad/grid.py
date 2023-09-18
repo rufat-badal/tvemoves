@@ -28,8 +28,8 @@ def generate_square_grid(num_horizontal_points, fix=None):
     ]
     vertical_edges = [
         ((i, j), (i, j + 1))
-        for i in range(num_horizontal_points - 1)
-        for j in range(num_horizontal_points)
+        for i in range(num_horizontal_points)
+        for j in range(num_horizontal_points - 1)
     ]
     diagonal_edges = [
         ((i, j), (i + 1, j + 1))
@@ -156,5 +156,5 @@ def generate_square_grid(num_horizontal_points, fix=None):
     )
 
 
-grid = generate_square_grid(5)
+grid = generate_square_grid(3)
 print(grid)
