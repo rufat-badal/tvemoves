@@ -70,3 +70,14 @@ def test_matrix():
     assert A.normsqr() == approx(A.dot(A))
     assert np.array((s * A)._data) == approx(s * A_numpy)
     assert np.array((C * s)._data) == approx(C_numpy * s)
+
+
+def test_tensor3d():
+    T_shape = (100, 200, 50)
+    T_numpy = np.random.rand(*T_shape)
+    T_data = list(T_numpy)
+    T = Tensor3D(T_data)
+
+    assert T._data == T_data
+    assert T.shape == T_shape
+    assert T.normsqr() == approx(T_numpy.ravel().dot(T_numpy.ravel()))
