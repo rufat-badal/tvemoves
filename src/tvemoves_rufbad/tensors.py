@@ -4,19 +4,19 @@ from itertools import permutations
 
 class Vector:
     def __init__(self, data: list):
-        self.length = len(data)
+        self.shape = (len(data),)
         self._data = data
 
     def __repr__(self):
         return "Vector([" + ", ".join([str(x) for x in self._data]) + "])"
 
     def __add__(self, other: Vector):
-        if self.length != other.length:
+        if self.shape != other.shape:
             raise ValueError("vectors must have the same length for addition")
         return Vector([x + y for (x, y) in zip(self._data, other._data)])
 
     def __sub__(self, other: Vector):
-        if self.length != other.length:
+        if self.shape != other.shape:
             raise ValueError("vectors must have the same length for subtraction")
         return Vector([x - y for (x, y) in zip(self._data, other._data)])
 
@@ -25,15 +25,21 @@ class Vector:
 
     def __getitem__(self, i: int):
         # do not allow negative indices
-        if i < 0 or i >= self.length:
+        if i < 0 or i >= self.shape[0]:
             raise IndexError("vector index out of bounds")
         return self._data[i]
+
+    def __mul__(self, scaling):
+        return Vector([scaling * self[i] for i in range(self.shape[0])])
+
+    def __rmul__(self, scaling):
+        return self.__mul__(scaling)
 
     def normsqr(self):
         return sum(x**2 for x in self._data)
 
     def dot(self, other: Vector):
-        if self.length != other.length:
+        if self.shape != other.shape:
             raise ValueError("vectors must have the same length for the dot product")
         return sum(x * y for (x, y) in zip(self._data, other._data))
 
@@ -130,7 +136,10 @@ class Matrix:
 
     def __mul__(self, scaling):
         return Matrix(
-            [[scaling * self[i, j] for j in self.shape[1]] for i in self.shape[0]]
+            [
+                [scaling * self[i, j] for j in range(self.shape[1])]
+                for i in range(self.shape[0])
+            ]
         )
 
     def __rmul__(self, scaling):
