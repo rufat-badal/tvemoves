@@ -1,20 +1,21 @@
+from __future__ import annotations
 from itertools import permutations
 
 
 class Vector:
-    def __init__(self, init_list):
-        self._data = init_list
-        self.length = len(init_list)
+    def __init__(self, data: list):
+        self.length = len(data)
+        self._data = data
 
     def __repr__(self):
         return "Vector([" + ", ".join([str(x) for x in self._data]) + "])"
 
-    def __add__(self, other):
+    def __add__(self, other: Vector):
         if self.length != other.length:
             raise ValueError("vectors must have the same length for addition")
         return Vector([x + y for (x, y) in zip(self._data, other._data)])
 
-    def __sub__(self, other):
+    def __sub__(self, other: Vector):
         if self.length != other.length:
             raise ValueError("vectors must have the same length for subtraction")
         return Vector([x - y for (x, y) in zip(self._data, other._data)])
@@ -22,7 +23,7 @@ class Vector:
     def __neg__(self):
         return Vector([-x for x in self._data])
 
-    def __getitem__(self, i):
+    def __getitem__(self, i: int):
         # do not allow negative indices
         if i < 0 or i >= self.length:
             raise IndexError("vector index out of bounds")
@@ -31,50 +32,57 @@ class Vector:
     def normsqr(self):
         return sum(x**2 for x in self._data)
 
-    def dot(self, other):
+    def dot(self, other: Vector):
         if self.length != other.length:
             raise ValueError("vectors must have the same length for the dot product")
         return sum(x * y for (x, y) in zip(self._data, other._data))
 
 
 class Matrix:
-    def __init__(self, init_list):
+    def __init__(self, data: list[list]):
         # row major format
-        self.shape = (len(init_list), len(init_list[0]))
-        for row in init_list[1:]:
+        self.shape = (len(data), len(data[0]))
+        for row in data[1:]:
             if len(row) != self.shape[1]:
                 raise ValueError("incorrectly shaped initialization list provided")
-        self._data = [x for row in init_list for x in row]
-        self._unflattened = init_list
+        self._data = data
 
     def __repr__(self):
-        lines = [
-            "[" + ", ".join([repr(x) for x in row]) + "]" for row in self._unflattened
-        ]
+        lines = ["[" + ", ".join([repr(x) for x in row]) + "]" for row in self._data]
         typeinfo = "Matrix(["
         data = (",\n" + len(typeinfo) * " ").join(lines)
         return typeinfo + data + ")]"
 
-    def __add__(self, other):
+    def __add__(self, other: Matrix):
         if self.shape != other.shape:
             raise ValueError("matrices must have the same shape for addition")
-        return Matrix([x + y for (x, y) in zip(self._data, other._data)], self.shape)
+        return Matrix(
+            [
+                [x + y for (x, y) in zip(row, other_row)]
+                for (row, other_row) in zip(self._data, other._data)
+            ]
+        )
 
-    def __sub__(self, other):
+    def __sub__(self, other: Matrix):
         if self.shape != other.shape:
             raise ValueError("matrices must have the same shape for subtraction")
-        return Matrix([x - y for (x, y) in zip(self._data, other._data)], self.shape)
+        return Matrix(
+            [
+                [x - y for (x, y) in zip(row, other_row)]
+                for (row, other_row) in zip(self._data, other._data)
+            ]
+        )
 
     def __neg__(self):
-        return Matrix([-x for x in self._data], self.shape)
+        return Matrix([[-x for x in row] for row in self._data])
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: tuple[int, int]):
         i, j = index
         if i < 0 or i >= self.shape[0] or j < 0 or j >= self.shape[1]:
             raise IndexError("matrix index out of bounds")
-        return self._data[i * self.shape[1] + j]
+        return self._data[i][j]
 
-    def __matmul__(self, other):
+    def __matmul__(self, other: Matrix):
         if self.shape[1] != other.shape[0]:
             raise ValueError("matrix shapes do not match for multiplication")
         return Matrix(
@@ -109,12 +117,16 @@ class Matrix:
         return res
 
     def normsqr(self):
-        return sum(x**2 for x in self._data)
+        return sum(x**2 for row in self._data for x in row)
 
-    def dot(self, other):
+    def dot(self, other: Matrix):
         if self.shape != other.shape:
             raise ValueError("matrices must have the same length for the dot product")
-        return sum(x * y for (x, y) in zip(self._data, other._data))
+        return sum(
+            x * y
+            for (row, other_row) in zip(self._data, other._data)
+            for (x, y) in zip(row, other_row)
+        )
 
     def __mul__(self, scaling):
         return Matrix(
@@ -125,7 +137,7 @@ class Matrix:
         return self.__mul__(scaling)
 
 
-def sign(p):
+def sign(p: list[int]):
     # p must be a permutation of [0, 1, 2, ...]
     num_misplaced = 0
     for i, a in enumerate(p):
@@ -137,16 +149,15 @@ def sign(p):
 
 
 class Tensor3D:
-    def __init__(self, init_list):
-        self.shape = (len(init_list), len(init_list[0]), len(init_list[0][0]))
-        for submatrix in init_list:
+    def __init__(self, data: list[list[list]]):
+        self.shape = (len(data), len(data[0]), len(data[0][0]))
+        for submatrix in data:
             if len(submatrix) != self.shape[1]:
                 raise ValueError("incorrectly shaped initialization list provided")
             for row in submatrix:
                 if len(row) != self.shape[2]:
                     raise ValueError("incorrectly shaped initialization list provided")
-        self._data = [x for submatrix in init_list for row in submatrix for x in row]
-        self._unflattened = init_list
+        self._data = data
 
     def normsqr(self):
-        return sum(x**2 for x in self._data)
+        return sum(x**2 for submatrix in self._data for row in submatrix for x in row)
