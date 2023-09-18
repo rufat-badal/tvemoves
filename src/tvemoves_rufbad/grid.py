@@ -1,3 +1,6 @@
+from .tensors import Vector
+
+
 class Grid:
     def __init__(
         self,
@@ -187,5 +190,13 @@ class SquareEquilateralGrid(Grid):
             neumann_edges,
         )
 
+        self.num_horizontal_points = num_horizontal_points
+        self.grid_spacing = 1 / (num_horizontal_points - 1)
 
-G = SquareEquilateralGrid(10)
+    def coordinates(self, vertex: int):
+        return Vector(
+            [
+                vertex % self.num_horizontal_points * self.grid_spacing,
+                vertex // self.num_horizontal_points * self.grid_spacing,
+            ]
+        )
