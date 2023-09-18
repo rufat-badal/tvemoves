@@ -1,0 +1,30 @@
+[build-system]
+requires = [
+    "hatchling",
+    "Pyomo",
+]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+
+[project]
+name = "tvemoves_rufbad"
+version = "0.0.1"
+authors = [
+  { name="Rufat Badal", email="pypi.unfounded776@passmail.net" },
+]
+description = "Simulation of thermovisoelastic materials"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/rufat-badal/tvemoves"
+"Bug Tracker" = "https://github.com/rufat-badal/tvemoves/issues"

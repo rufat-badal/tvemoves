@@ -1,9 +1,8 @@
-from math import prod
 from itertools import permutations
 
 
 class Vector:
-    def __init__(self, init_list: list):
+    def __init__(self, init_list):
         self._data = init_list
         self.length = len(init_list)
 
@@ -39,27 +38,12 @@ class Vector:
 
 
 class Matrix:
-    def __init__(self, init_list: list, shape=None):
-        if type(init_list[0]) is not list:
-            if shape is not None and shape[0] * shape[1] != len(init_list):
-                raise ValueError("shape is not compatible with the data provided")
-            if shape is None:
-                shape = (1, len(init_list))
-            self.shape = shape
-            self._data = init_list
-            self._unflattened = [
-                self._data[i : i + self.shape[1]]
-                for i in range(0, self.shape[0] * self.shape[1], self.shape[1])
-            ]
-            return
-
+    def __init__(self, init_list):
         # row major format
-        num_rows = len(init_list)
-        num_columns = len(init_list[0])
+        self.shape = (len(init_list), len(init_list[0]))
         for row in init_list[1:]:
-            if len(row) != num_columns:
-                raise ValueError("rows must have all the same length")
-        self.shape = (num_rows, num_columns)
+            if len(row) != self.shape[1]:
+                raise ValueError("incorrectly shaped initialization list provided")
         self._data = [x for row in init_list for x in row]
         self._unflattened = init_list
 
@@ -153,29 +137,7 @@ def sign(p):
 
 
 class Tensor3D:
-    def __init__(self, init_list: list, shape=None):
-        if type(init_list[0]) is not list:
-            if shape is not None and shape[0] * shape[1] * shape[2] != len(init_list):
-                raise ValueError("shape is not compatible with the data provided")
-            if shape is None:
-                shape = (1, 1, len(init_list))
-            self.shape = shape
-            self._data = init_list
-            self._unflattened = [
-                [
-                    self._data[i + j : i + j + self.shape[2]]
-                    for i in range(0, self.shape[1] * self.shape[2], self.shape[2])
-                ]
-                for j in range(
-                    0,
-                    self.shape[0] * self.shape[1] * self.shape[2],
-                    self.shape[1] * self.shape[2],
-                )
-            ]
-            return
-
-        if type(init_list[0][0]) is not list:
-            raise ValueError("incorrectly shaped initialization list provided")
+    def __init__(self, init_list):
         self.shape = (len(init_list), len(init_list[0]), len(init_list[0][0]))
         for submatrix in init_list:
             if len(submatrix) != self.shape[1]:
