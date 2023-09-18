@@ -95,7 +95,7 @@ class Matrix:
             [
                 [
                     sum(self[i, k] * other[k, j] for k in range(self.shape[1]))
-                    for j in range(self.shape[1])
+                    for j in range(other.shape[1])
                 ]
                 for i in range(self.shape[0])
             ]
