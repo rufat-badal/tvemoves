@@ -13,6 +13,7 @@ class Grid:
         dirichlet_edges: list[tuple[int, int]],
         neumann_vertices: list[int],
         neumann_edges: list[tuple[int, int]],
+        initial_points: list[Vector],
     ):
         self.vertices = vertices
         self.edges = edges
@@ -23,6 +24,7 @@ class Grid:
         self.dirichlet_edges = dirichlet_edges
         self.neumann_vertices = neumann_vertices
         self.neumann_edges = neumann_edges
+        self.initial_points = initial_points
 
 
 class SquareEquilateralGrid(Grid):
@@ -178,6 +180,17 @@ class SquareEquilateralGrid(Grid):
             case _:
                 raise ValueError("invalid dirichlet condition provided")
 
+        grid_spacing = 1 / (num_horizontal_points - 1)
+        initial_points = [
+            Vector(
+                [
+                    v % num_horizontal_points * grid_spacing,
+                    v // num_horizontal_points * grid_spacing,
+                ]
+            )
+            for v in vertices
+        ]
+
         super().__init__(
             vertices,
             edges,
@@ -188,15 +201,7 @@ class SquareEquilateralGrid(Grid):
             dirichlet_edges,
             neumann_vertices,
             neumann_edges,
+            initial_points,
         )
 
-        self.num_horizontal_points = num_horizontal_points
-        self.grid_spacing = 1 / (num_horizontal_points - 1)
-
-    def coordinates(self, vertex: int):
-        return Vector(
-            [
-                vertex % self.num_horizontal_points * self.grid_spacing,
-                vertex // self.num_horizontal_points * self.grid_spacing,
-            ]
-        )
+        self.grid_spacing = grid_spacing

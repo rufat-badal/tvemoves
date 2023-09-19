@@ -14,25 +14,26 @@ def test_square_equilateral_grid():
 
     G = SquareEquilateralGrid(n)
     assert G.vertices == list(range(num_vertices))
-    assert all(
-        0 <= G.coordinates(v)[0] <= 1 and 0 <= G.coordinates(v)[1] <= 1
-        for v in G.vertices
-    )
+    assert all(0 <= p[0] <= 1 and 0 <= p[1] <= 1 for p in G.initial_points)
     assert len(G.edges) == num_edges
     assert len(G.edges) == len(set(G.edges))
     assert all(v in G.vertices and w in G.vertices for (v, w) in G.edges)
     assert all(
         (
-            G.coordinates(v)[0] == approx(G.coordinates(w)[0])
-            and abs(G.coordinates(v)[1] - G.coordinates(w)[1]) == approx(G.grid_spacing)
+            G.initial_points[v][0] == approx(G.initial_points[w][0])
+            and abs(G.initial_points[v][1] - G.initial_points[w][1])
+            == approx(G.grid_spacing)
         )
         or (
-            abs(G.coordinates(v)[0] - G.coordinates(w)[0]) == approx(G.grid_spacing)
-            and G.coordinates(v)[1] == approx(G.coordinates(w)[1])
+            abs(G.initial_points[v][0] - G.initial_points[w][0])
+            == approx(G.grid_spacing)
+            and G.initial_points[v][1] == approx(G.initial_points[w][1])
         )
         or (
-            abs(G.coordinates(v)[0] - G.coordinates(w)[0]) == approx(G.grid_spacing)
-            and abs(G.coordinates(v)[1] - G.coordinates(w)[1]) == approx(G.grid_spacing)
+            abs(G.initial_points[v][0] - G.initial_points[w][0])
+            == approx(G.grid_spacing)
+            and abs(G.initial_points[v][1] - G.initial_points[w][1])
+            == approx(G.grid_spacing)
         )
         for (v, w) in G.edges
     )
@@ -40,10 +41,10 @@ def test_square_equilateral_grid():
     assert len(G.triangles) == len(set(G.triangles))
     assert len(G.boundary_vertices) == num_boundary_vertices
     assert all(
-        G.coordinates(v)[0] == approx(0)
-        or G.coordinates(v)[0] == approx(1)
-        or G.coordinates(v)[1] == approx(0)
-        or G.coordinates(v)[1] == approx(1)
+        G.initial_points[v][0] == approx(0)
+        or G.initial_points[v][0] == approx(1)
+        or G.initial_points[v][1] == approx(0)
+        or G.initial_points[v][1] == approx(1)
         for v in G.boundary_vertices
     )
     assert len(G.boundary_edges) == num_boundary_edges
@@ -53,12 +54,14 @@ def test_square_equilateral_grid():
     )
     assert all(
         (
-            G.coordinates(v)[0] == approx(G.coordinates(w)[0])
-            and abs(G.coordinates(v)[1] - G.coordinates(w)[1]) == approx(G.grid_spacing)
+            G.initial_points[v][0] == approx(G.initial_points[w][0])
+            and abs(G.initial_points[v][1] - G.initial_points[w][1])
+            == approx(G.grid_spacing)
         )
         or (
-            abs(G.coordinates(v)[0] - G.coordinates(w)[0]) == approx(G.grid_spacing)
-            and G.coordinates(v)[1] == approx(G.coordinates(w)[1])
+            abs(G.initial_points[v][0] - G.initial_points[w][0])
+            == approx(G.grid_spacing)
+            and G.initial_points[v][1] == approx(G.initial_points[w][1])
         )
         for (v, w) in G.boundary_edges
     )
@@ -70,21 +73,21 @@ def test_square_equilateral_grid():
 
     G_lower_fixed = SquareEquilateralGrid(n, fix="lower")
     assert all(
-        G_lower_fixed.coordinates(v)[1] == approx(0)
+        G_lower_fixed.initial_points[v][1] == approx(0)
         for v in G_lower_fixed.dirichlet_vertices
     )
     G_right_fixed = SquareEquilateralGrid(n, fix="right")
     assert all(
-        G_right_fixed.coordinates(v)[0] == approx(1)
+        G_right_fixed.initial_points[v][0] == approx(1)
         for v in G_right_fixed.dirichlet_vertices
     )
     G_upper_fixed = SquareEquilateralGrid(n, fix="upper")
     assert all(
-        G_upper_fixed.coordinates(v)[1] == approx(1)
+        G_upper_fixed.initial_points[v][1] == approx(1)
         for v in G_upper_fixed.dirichlet_vertices
     )
     G_left_fixed = SquareEquilateralGrid(n, fix="left")
     assert all(
-        G_left_fixed.coordinates(v)[0] == approx(0)
+        G_left_fixed.initial_points[v][0] == approx(0)
         for v in G_left_fixed.dirichlet_vertices
     )
