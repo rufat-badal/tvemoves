@@ -49,6 +49,12 @@ class Vector:
     def __rtruediv__(self, divisor):
         return NotImplemented
 
+    def reshape(self, num_rows: int, num_cols: int):
+        # row major format
+        return Matrix(
+            [[self[i * num_cols + j] for j in range(num_cols)] for i in range(num_rows)]
+        )
+
 
 class Matrix:
     def __init__(self, data: list[list]):

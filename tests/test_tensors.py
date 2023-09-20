@@ -4,7 +4,9 @@ from pytest import approx
 
 
 def test_vector():
-    n = 1000
+    m = 100
+    k = 10
+    n = m * k
 
     v_numpy = np.random.rand(n)
     v_data = list(v_numpy)
@@ -26,6 +28,7 @@ def test_vector():
     assert np.array((s * v)._data) == approx(s * v_numpy)
     assert np.array((w * s)._data) == approx(w_numpy * s)
     assert np.array((v / d)._data) == approx(v_numpy / d)
+    assert np.array(v.reshape(m, k)._data) == approx(v_numpy.reshape(m, k))
 
 
 def test_matrix():
