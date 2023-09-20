@@ -1,4 +1,4 @@
-from .tensors import Vector
+from .tensors import Vector, Matrix
 
 
 class Grid:
@@ -205,3 +205,61 @@ class SquareEquilateralGrid(Grid):
         )
 
         self.grid_spacing = grid_spacing
+
+    def _generate_triangle_parameters(triangle: tuple[int, int, int]):
+        i, j, k = triangle
+        x, y, z = self.initial_points[i], self.initial_points[j], self.initial_points[k]
+        a = [
+            y[0] * z[1] - z[0] * y[1],
+            z[0] * x[1] - x[0] * z[1],
+            x[0] * y[1] - y[0] * x[1],
+        ]
+        b = [y[1] - z[1], z[1] - x[1], x[1] - y[1]]
+        c = [z[0] - y[0], x[0] - z[0], y[0] - x[0]]
+        delta = (a[1] + a[2] + a[3]) / 2
+
+        return b, c, delta
+
+    def gradient_transform(
+        self, triangle: tuple[int, int, int], barycentric_gradient: Vector
+    ):
+        b, c, delta = self._generate_triangle_parameters(triangle)
+        trafo_matrix = Matrix([[b[1], b[2], b[3]], [c[1], c[2], c[3]]]) / (2 * delta)
+        return trafo_matrix.dot(barycentric_gradient)
+
+    def hessian_transform(
+        self, triangle: tuple[int, int, int], barycentric_hessian: Matrix
+    ):
+        b, c, delta = self._generate_triangle_parameters(triangle)
+        trafo_matrix = Matrix(
+            [
+                [
+                    b[1] ** 2,
+                    b[2] ** 2,
+                    b[3] ** 2,
+                    2 * b[1] * b[2],
+                    2 * b[1] * b[3],
+                    2 * b[2] * b[3],
+                ],
+                [
+                    c[1] ** 2,
+                    c[2] ** 2,
+                    c[3] ** 2,
+                    2 * c[1] * c[2],
+                    2 * c[1] * c[3],
+                    2 * c[2] * c[3],
+                ],
+                [
+                    b[1] * c[1],
+                    b[2] * c[2],
+                    b[3] * c[3],
+                    b[1] * c[2] + b[2] * c[1],
+                    b[1] * c[3] + b[3] * c[1],
+                    b[2] * c[3] + b[3] * c[2],
+                ],
+            ]
+        ) / (4 * delta**2)
+        flat_hessian = trafo_matrix.dot(barycentric_hessian.flatten())
+        return Matrix(
+            [[flat_hessian[1], flat_hessian[3]], [flat_hessian[3], flat_hessian[2]]]
+        )
