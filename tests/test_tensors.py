@@ -13,6 +13,7 @@ def test_vector():
     w_data = list(w_numpy)
     w = Vector(w_data)
     s = np.random.rand()
+    d = np.random.rand() + 1
 
     assert v._data == v_data
     assert w._data == w_data
@@ -20,10 +21,11 @@ def test_vector():
     assert np.array((v - w)._data) == approx(v_numpy - w_numpy)
     assert np.array((-v)._data) == approx(-v_numpy)
     assert all(v[i] == v_numpy[i] for i in range(v.shape[0]))
-    assert np.array((s * v)._data) == approx(s * v_numpy)
-    assert np.array((w * s)._data) == approx(w_numpy * s)
     assert v.dot(w) == approx(v_numpy.dot(w_numpy))
     assert v.normsqr() == approx(v.dot(v))
+    assert np.array((s * v)._data) == approx(s * v_numpy)
+    assert np.array((w * s)._data) == approx(w_numpy * s)
+    assert np.array((v / d)._data) == approx(v_numpy / d)
 
 
 def test_matrix():
@@ -46,6 +48,7 @@ def test_matrix():
     D_data = list(D_numpy)
     D = Matrix(D_data)
     s = np.random.rand()
+    d = np.random.rand() + 1
 
     assert A._data == A_data
     assert A.shape == A_shape
@@ -70,6 +73,7 @@ def test_matrix():
     assert A.normsqr() == approx(A.dot(A))
     assert np.array((s * A)._data) == approx(s * A_numpy)
     assert np.array((C * s)._data) == approx(C_numpy * s)
+    assert np.array((C / d)._data) == approx(C_numpy / d)
 
 
 def test_tensor3d():

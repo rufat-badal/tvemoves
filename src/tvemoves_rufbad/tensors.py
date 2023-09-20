@@ -29,12 +29,6 @@ class Vector:
             raise IndexError("vector index out of bounds")
         return self._data[i]
 
-    def __mul__(self, scaling):
-        return Vector([scaling * self[i] for i in range(self.shape[0])])
-
-    def __rmul__(self, scaling):
-        return self.__mul__(scaling)
-
     def normsqr(self):
         return sum(x**2 for x in self._data)
 
@@ -42,6 +36,18 @@ class Vector:
         if self.shape != other.shape:
             raise ValueError("vectors must have the same length for the dot product")
         return sum(x * y for (x, y) in zip(self._data, other._data))
+
+    def __mul__(self, scaling):
+        return Vector([self[i] * scaling for i in range(self.shape[0])])
+
+    def __rmul__(self, scaling):
+        return self.__mul__(scaling)
+
+    def __truediv__(self, divisor):
+        return Vector([self[i] / divisor for i in range(self.shape[0])])
+
+    def __rtruediv__(self, divisor):
+        return NotImplemented
 
 
 class Matrix:
@@ -137,13 +143,24 @@ class Matrix:
     def __mul__(self, scaling):
         return Matrix(
             [
-                [scaling * self[i, j] for j in range(self.shape[1])]
+                [self[i, j] * scaling for j in range(self.shape[1])]
                 for i in range(self.shape[0])
             ]
         )
 
     def __rmul__(self, scaling):
         return self.__mul__(scaling)
+
+    def __truediv__(self, divisor):
+        return Matrix(
+            [
+                [self[i, j] / divisor for j in range(self.shape[1])]
+                for i in range(self.shape[0])
+            ]
+        )
+
+    def __rtruediv__(self, divisor):
+        return NotImplemented
 
 
 def sign(p: list[int]):
