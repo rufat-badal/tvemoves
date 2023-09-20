@@ -41,6 +41,9 @@ def test_matrix():
     A_numpy = np.random.rand(*A_shape)
     A_data = list(A_numpy)
     A = Matrix(A_data)
+    v_numpy = np.random.rand(A_shape[1])
+    v_data = list(v_numpy)
+    v = Vector(v_data)
     B_numpy = np.random.rand(*B_shape)
     B_data = list(B_numpy)
     B = Matrix(B_data)
@@ -78,6 +81,7 @@ def test_matrix():
     assert np.array((C * s)._data) == approx(C_numpy * s)
     assert np.array((C / d)._data) == approx(C_numpy / d)
     assert np.array(A.flatten()._data) == approx(A_numpy.flatten())
+    assert np.array(A.dot(v)._data) == approx(A_numpy.dot(v_numpy))
 
 
 def test_tensor3d():

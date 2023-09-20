@@ -174,6 +174,18 @@ class Matrix:
             [self[i, j] for i in range(self.shape[0]) for j in range(self.shape[1])]
         )
 
+    def dot(self, v: Vector):
+        if v.shape[0] != self.shape[1]:
+            raise ValueError(
+                "shape of matrix and vector do not match for the matrix-vector-product"
+            )
+        return Vector(
+            [
+                sum(self[i, j] * v[j] for j in range(self.shape[1]))
+                for i in range(self.shape[0])
+            ]
+        )
+
 
 def sign(p: list[int]):
     # p must be a permutation of [0, 1, 2, ...]
