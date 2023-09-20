@@ -4,16 +4,16 @@ from .tensors import Vector, Matrix
 class Grid:
     def __init__(
         self,
-        vertices: list[int],
-        edges: list[tuple[int, int]],
-        triangles: list[tuple[int, int, int]],
-        boundary_vertices: list[int],
-        boundary_edges: list[tuple[int, int]],
-        dirichlet_vertices: list[int],
-        dirichlet_edges: list[tuple[int, int]],
-        neumann_vertices: list[int],
-        neumann_edges: list[tuple[int, int]],
-        initial_points: list[Vector],
+        vertices,
+        edges,
+        triangles,
+        boundary_vertices,
+        boundary_edges,
+        dirichlet_vertices,
+        dirichlet_edges,
+        neumann_vertices,
+        neumann_edges,
+        initial_points,
     ):
         self.vertices = vertices
         self.edges = edges
@@ -28,8 +28,8 @@ class Grid:
 
 
 class SquareEquilateralGrid(Grid):
-    def __init__(self, num_horizontal_points: int, fix: str = "none"):
-        def pair_to_vertex(i: int, j: int):
+    def __init__(self, num_horizontal_points, fix=None):
+        def pair_to_vertex(i, j):
             # (0, 0) -> 0, (1, 0) -> 1, ..., (num_horizontal_points - 1, 0) -> num_horizontal_points -1,
             # (0, 1) -> num_horizontal_points, ...
             return j * num_horizontal_points + i
@@ -123,7 +123,7 @@ class SquareEquilateralGrid(Grid):
         )
 
         match fix:
-            case "none":
+            case None:
                 dirichlet_vertices = []
                 dirichlet_edges = []
                 neumann_vertices = boundary_vertices
@@ -206,7 +206,7 @@ class SquareEquilateralGrid(Grid):
 
         self.grid_spacing = grid_spacing
 
-    def _generate_triangle_parameters(self, triangle: tuple[int, int, int]):
+    def _generate_triangle_parameters(self, triangle):
         i, j, k = triangle
         x, y, z = self.initial_points[i], self.initial_points[j], self.initial_points[k]
         a = [
@@ -220,16 +220,12 @@ class SquareEquilateralGrid(Grid):
 
         return b, c, delta
 
-    def gradient_transform(
-        self, triangle: tuple[int, int, int], barycentric_gradient: Vector
-    ):
+    def gradient_transform(self, triangle, barycentric_gradient):
         b, c, delta = self._generate_triangle_parameters(triangle)
         trafo_matrix = Matrix([[b[1], b[2], b[3]], [c[1], c[2], c[3]]]) / (2 * delta)
         return trafo_matrix.dot(barycentric_gradient)
 
-    def hessian_transform(
-        self, triangle: tuple[int, int, int], barycentric_hessian: Matrix
-    ):
+    def hessian_transform(self, triangle, barycentric_hessian):
         b, c, delta = self._generate_triangle_parameters(triangle)
         trafo_matrix = Matrix(
             [

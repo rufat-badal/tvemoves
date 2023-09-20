@@ -3,19 +3,19 @@ from itertools import permutations
 
 
 class Vector:
-    def __init__(self, data: list):
+    def __init__(self, data):
         self.shape = (len(data),)
         self._data = data
 
     def __repr__(self):
         return "Vector([" + ", ".join([str(x) for x in self._data]) + "])"
 
-    def __add__(self, other: Vector):
+    def __add__(self, other):
         if self.shape != other.shape:
             raise ValueError("vectors must have the same length for addition")
         return Vector([x + y for (x, y) in zip(self._data, other._data)])
 
-    def __sub__(self, other: Vector):
+    def __sub__(self, other):
         if self.shape != other.shape:
             raise ValueError("vectors must have the same length for subtraction")
         return Vector([x - y for (x, y) in zip(self._data, other._data)])
@@ -23,7 +23,7 @@ class Vector:
     def __neg__(self):
         return Vector([-x for x in self._data])
 
-    def __getitem__(self, i: int):
+    def __getitem__(self, i):
         # do not allow negative indices
         if i < 0 or i >= self.shape[0]:
             raise IndexError("vector index out of bounds")
@@ -32,7 +32,7 @@ class Vector:
     def normsqr(self):
         return sum(x**2 for x in self._data)
 
-    def dot(self, other: Vector):
+    def dot(self, other):
         if self.shape != other.shape:
             raise ValueError("vectors must have the same length for the dot product")
         return sum(x * y for (x, y) in zip(self._data, other._data))
@@ -49,7 +49,7 @@ class Vector:
     def __rtruediv__(self, divisor):
         return NotImplemented
 
-    def reshape(self, num_rows: int, num_cols: int):
+    def reshape(self, num_rows, num_cols):
         # row major format
         return Matrix(
             [[self[i * num_cols + j] for j in range(num_cols)] for i in range(num_rows)]
@@ -57,7 +57,7 @@ class Vector:
 
 
 class Matrix:
-    def __init__(self, data: list[list]):
+    def __init__(self, data):
         # row major format
         self.shape = (len(data), len(data[0]))
         for row in data[1:]:
@@ -71,7 +71,7 @@ class Matrix:
         data = (",\n" + len(typeinfo) * " ").join(lines)
         return typeinfo + data + ")]"
 
-    def __add__(self, other: Matrix):
+    def __add__(self, other):
         if self.shape != other.shape:
             raise ValueError("matrices must have the same shape for addition")
         return Matrix(
@@ -81,7 +81,7 @@ class Matrix:
             ]
         )
 
-    def __sub__(self, other: Matrix):
+    def __sub__(self, other):
         if self.shape != other.shape:
             raise ValueError("matrices must have the same shape for subtraction")
         return Matrix(
@@ -94,13 +94,13 @@ class Matrix:
     def __neg__(self):
         return Matrix([[-x for x in row] for row in self._data])
 
-    def __getitem__(self, index: tuple[int, int]):
+    def __getitem__(self, index):
         i, j = index
         if i < 0 or i >= self.shape[0] or j < 0 or j >= self.shape[1]:
             raise IndexError("matrix index out of bounds")
         return self._data[i][j]
 
-    def __matmul__(self, other: Matrix):
+    def __matmul__(self, other):
         if self.shape[1] != other.shape[0]:
             raise ValueError("matrix shapes do not match for multiplication")
         return Matrix(
@@ -137,7 +137,7 @@ class Matrix:
     def normsqr(self):
         return sum(x**2 for row in self._data for x in row)
 
-    def scalar_product(self, other: Matrix):
+    def scalar_product(self, other):
         if self.shape != other.shape:
             raise ValueError("matrices must have the same length for the dot product")
         return sum(
@@ -174,7 +174,7 @@ class Matrix:
             [self[i, j] for i in range(self.shape[0]) for j in range(self.shape[1])]
         )
 
-    def dot(self, v: Vector):
+    def dot(self, v):
         if v.shape[0] != self.shape[1]:
             raise ValueError(
                 "shape of matrix and vector do not match for the matrix-vector-product"
@@ -187,7 +187,7 @@ class Matrix:
         )
 
 
-def sign(p: list[int]):
+def sign(p):
     # p must be a permutation of [0, 1, 2, ...]
     num_misplaced = 0
     for i, a in enumerate(p):
@@ -199,7 +199,7 @@ def sign(p: list[int]):
 
 
 class Tensor3D:
-    def __init__(self, data: list[list[list]]):
+    def __init__(self, data):
         self.shape = (len(data), len(data[0]), len(data[0][0]))
         for submatrix in data:
             if len(submatrix) != self.shape[1]:
