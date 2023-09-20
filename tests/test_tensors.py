@@ -77,6 +77,7 @@ def test_matrix():
     assert np.array((s * A)._data) == approx(s * A_numpy)
     assert np.array((C * s)._data) == approx(C_numpy * s)
     assert np.array((C / d)._data) == approx(C_numpy / d)
+    assert np.array(A.flatten()._data) == approx(A_numpy.flatten())
 
 
 def test_tensor3d():

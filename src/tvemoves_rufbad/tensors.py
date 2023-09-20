@@ -168,6 +168,12 @@ class Matrix:
     def __rtruediv__(self, divisor):
         return NotImplemented
 
+    def flatten(self):
+        # row major format
+        return Vector(
+            [self[i, j] for i in range(self.shape[0]) for j in range(self.shape[1])]
+        )
+
 
 def sign(p: list[int]):
     # p must be a permutation of [0, 1, 2, ...]
