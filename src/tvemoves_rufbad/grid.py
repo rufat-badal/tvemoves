@@ -206,7 +206,7 @@ class SquareEquilateralGrid(Grid):
 
         self.grid_spacing = grid_spacing
 
-    def _generate_triangle_parameters(triangle: tuple[int, int, int]):
+    def _generate_triangle_parameters(self, triangle: tuple[int, int, int]):
         i, j, k = triangle
         x, y, z = self.initial_points[i], self.initial_points[j], self.initial_points[k]
         a = [
