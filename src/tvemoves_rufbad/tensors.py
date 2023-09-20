@@ -137,7 +137,7 @@ class Matrix:
     def normsqr(self):
         return sum(x**2 for row in self._data for x in row)
 
-    def dot(self, other: Matrix):
+    def scalar_product(self, other: Matrix):
         if self.shape != other.shape:
             raise ValueError("matrices must have the same length for the dot product")
         return sum(
