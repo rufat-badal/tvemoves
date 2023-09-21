@@ -1,7 +1,7 @@
 from .tensors import Vector
 
 
-class P1Interpolator:
+class P1Interpolation:
     def __init__(self, grid, params):
         # params: single scalar value for each grid point
         if len(params) != len(grid.vertices):
@@ -30,8 +30,8 @@ class P1Interpolator:
 
 class P1Deformation:
     def __init__(self, x1_params, x2_params):
-        self.y1 = P1Interpolator(x1_params)
-        self.y2 = P1Interpolator(x2_params)
+        self.y1 = P1Interpolation(x1_params)
+        self.y2 = P1Interpolation(x2_params)
 
     def __call__(self, triangle, barycentric_coords):
         return Vector(
