@@ -155,7 +155,7 @@ class SquareEquilateralGrid:
                 raise ValueError("invalid dirichlet condition provided")
 
         self.grid_spacing = 1 / (num_horizontal_points - 1)
-        self.initial_points = [
+        self.initial_positions = [
             Vector(
                 [
                     v % num_horizontal_points * self.grid_spacing,
@@ -167,7 +167,11 @@ class SquareEquilateralGrid:
 
     def _generate_triangle_parameters(self, triangle):
         i, j, k = triangle
-        x, y, z = self.initial_points[i], self.initial_points[j], self.initial_points[k]
+        x, y, z = (
+            self.initial_positions[i],
+            self.initial_positions[j],
+            self.initial_positions[k],
+        )
         a = [
             y[0] * z[1] - z[0] * y[1],
             z[0] * x[1] - x[0] * z[1],
