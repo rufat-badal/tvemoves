@@ -28,9 +28,9 @@ def test_p1_interpolation():
         for _ in range(max_steps):
             num_horizontal_points *= 2
             grid = SquareEquilateralGrid(num_horizontal_points)
-            params = [f(*p) for p in grid.initial_points]
+            params = [f(*p) for p in grid.initial_positions]
             f_approx = P1Interpolation(grid, params)
-            p0 = grid.initial_points
+            p0 = grid.initial_positions
             evaluation_points = [
                 p0[i1] / 3 + p0[i2] / 3 + p0[i3] / 3 for (i1, i2, i3) in grid.triangles
             ]
