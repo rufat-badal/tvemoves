@@ -12,7 +12,7 @@ class P1Interpolation:
     def __call__(self, triangle, barycentric_coords):
         i1, i2, i3 = triangle
         t1, t2 = barycentric_coords
-        t3 = 1 - t2 - t3
+        t3 = 1 - t1 - t2
         return t1 * self._params[i1] + t2 * self._params[i2] + t3 * self._params[i3]
 
     def boundary(self, segment, t1):
