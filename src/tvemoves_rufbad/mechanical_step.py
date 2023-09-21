@@ -1,4 +1,5 @@
 import pyomo.environ as pyo
+from .interpolation import P1Deformation, P1Interpolation
 
 
 class MechanicalStep:
@@ -43,3 +44,7 @@ class MechanicalStep:
         for v in grid.dirichlet_vertices:
             m.y1[v].fix()
             m.y2[v].fix()
+
+        prev_deform = P1Deformation(grid, m.prev_y1, m.prev_y2)
+        deform = P1Deformation(grid, m.y1, m.y2)
+        prev_temp = P1Interpolation(grid, m.prev_theta)

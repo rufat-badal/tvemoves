@@ -3,7 +3,6 @@ from .tensors import Vector
 
 class P1Interpolation:
     def __init__(self, grid, params):
-        # params: single scalar value for each grid point
         if len(params) != len(grid.vertices):
             raise ValueError("number of params must equal to the number of vertices")
         self._grid = grid
@@ -29,9 +28,9 @@ class P1Interpolation:
 
 
 class P1Deformation:
-    def __init__(self, x1_params, x2_params):
-        self.y1 = P1Interpolation(x1_params)
-        self.y2 = P1Interpolation(x2_params)
+    def __init__(self, grid, y1_params, y2_params):
+        self.y1 = P1Interpolation(grid, y1_params)
+        self.y2 = P1Interpolation(grid, y2_params)
 
     def __call__(self, triangle, barycentric_coords):
         return Vector(
