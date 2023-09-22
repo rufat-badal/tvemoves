@@ -7,6 +7,10 @@ def affine(x, y):
     return x + y
 
 
+def gradient_affine(x, y):
+    return Vector([1, 1])
+
+
 def parabola(x, y):
     return (x - 1 / 2) ** 2 + (y - 1 / 2) ** 2
 
