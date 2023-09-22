@@ -230,3 +230,8 @@ class Tensor3D:
 
     def normsqr(self):
         return sum(x**2 for submatrix in self._data for row in submatrix for x in row)
+
+    def map(self, f):
+        return Tensor3D(
+            [[[f(x) for x in row] for row in submatrix] for submatrix in self._data]
+        )

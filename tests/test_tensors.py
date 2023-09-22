@@ -30,6 +30,10 @@ def test_vector():
     assert (v / d)._data == approx(v_numpy / d)
     assert v.reshape(m, k)._data == approx(v_numpy.reshape(m, k))
     assert v.vstack(w)._data == approx(np.vstack((v_numpy, w_numpy)))
+    assert v.map(lambda x: -x)._data == (-v)._data
+    square = lambda x: x**2
+    square_vectorized = np.vectorize(square)
+    assert v.map(square)._data == approx(square_vectorized(v_numpy))
 
 
 def test_matrix():
@@ -83,6 +87,10 @@ def test_matrix():
     assert (C / d)._data == approx(C_numpy / d)
     assert A.flatten()._data == approx(A_numpy.flatten())
     assert A.dot(v)._data == approx(A_numpy.dot(v_numpy))
+    assert A.map(lambda x: -x)._data == (-A)._data
+    square = lambda x: x**2
+    square_vectorized = np.vectorize(square)
+    assert A.map(square)._data == approx(square_vectorized(A_numpy))
 
 
 def test_tensor3d():
@@ -94,3 +102,6 @@ def test_tensor3d():
     assert T._data == T_data
     assert T.shape == T_shape
     assert T.normsqr() == approx(T_numpy.ravel().dot(T_numpy.ravel()))
+    square = lambda x: x**2
+    square_vectorized = np.vectorize(square)
+    assert T.map(square)._data == approx(square_vectorized(T_numpy))
