@@ -179,13 +179,13 @@ class SquareEquilateralGrid:
         ]
         b = [y[1] - z[1], z[1] - x[1], x[1] - y[1]]
         c = [z[0] - y[0], x[0] - z[0], y[0] - x[0]]
-        delta = (a[1] + a[2] + a[3]) / 2
+        delta = (a[0] + a[1] + a[2]) / 2
 
         return b, c, delta
 
     def gradient_transform(self, triangle, barycentric_gradient):
         b, c, delta = self._generate_triangle_parameters(triangle)
-        trafo_matrix = Matrix([[b[1], b[2], b[3]], [c[1], c[2], c[3]]]) / (2 * delta)
+        trafo_matrix = Matrix([[b[0], b[1], b[2]], [c[0], c[1], c[2]]]) / (2 * delta)
         return trafo_matrix.dot(barycentric_gradient)
 
     def hessian_transform(self, triangle, barycentric_hessian):
@@ -193,32 +193,32 @@ class SquareEquilateralGrid:
         trafo_matrix = Matrix(
             [
                 [
+                    b[0] ** 2,
                     b[1] ** 2,
                     b[2] ** 2,
-                    b[3] ** 2,
+                    2 * b[0] * b[1],
+                    2 * b[0] * b[2],
                     2 * b[1] * b[2],
-                    2 * b[1] * b[3],
-                    2 * b[2] * b[3],
                 ],
                 [
+                    c[0] ** 2,
                     c[1] ** 2,
                     c[2] ** 2,
-                    c[3] ** 2,
+                    2 * c[0] * c[1],
+                    2 * c[0] * c[2],
                     2 * c[1] * c[2],
-                    2 * c[1] * c[3],
-                    2 * c[2] * c[3],
                 ],
                 [
+                    b[0] * c[0],
                     b[1] * c[1],
                     b[2] * c[2],
-                    b[3] * c[3],
+                    b[0] * c[1] + b[1] * c[0],
+                    b[0] * c[2] + b[2] * c[0],
                     b[1] * c[2] + b[2] * c[1],
-                    b[1] * c[3] + b[3] * c[1],
-                    b[2] * c[3] + b[3] * c[2],
                 ],
             ]
         ) / (4 * delta**2)
         flat_hessian = trafo_matrix.dot(barycentric_hessian.flatten())
         return Matrix(
-            [[flat_hessian[1], flat_hessian[3]], [flat_hessian[3], flat_hessian[2]]]
+            [[flat_hessian[0], flat_hessian[2]], [flat_hessian[2], flat_hessian[1]]]
         )

@@ -24,7 +24,7 @@ class P1Interpolation:
         barycentric_gradient = Vector(
             [self._params[i1], self._params[i2], self._params[i3]]
         )
-        return self.grid.gradient_transform(triangle, barycentric_gradient)
+        return self._grid.gradient_transform(triangle, barycentric_gradient)
 
 
 class P1Deformation:
@@ -39,3 +39,6 @@ class P1Deformation:
                 self.y2(triangle, barycentric_coords),
             ]
         )
+
+    def strain(self, triangle):
+        return self.y1.gradient(triangle).vstack(self.y2.gradient(triangle))

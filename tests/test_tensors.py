@@ -19,17 +19,17 @@ def test_vector():
 
     assert v._data == v_data
     assert w._data == w_data
-    assert np.array((v + w)._data) == approx(v_numpy + w_numpy)
-    assert np.array((v - w)._data) == approx(v_numpy - w_numpy)
-    assert np.array((-v)._data) == approx(-v_numpy)
+    assert (v + w)._data == approx(v_numpy + w_numpy)
+    assert (v - w)._data == approx(v_numpy - w_numpy)
+    assert (-v)._data == approx(-v_numpy)
     assert all(v[i] == v_numpy[i] for i in range(v.shape[0]))
     assert v.dot(w) == approx(v_numpy.dot(w_numpy))
     assert v.normsqr() == approx(v.dot(v))
-    assert np.array((s * v)._data) == approx(s * v_numpy)
-    assert np.array((w * s)._data) == approx(w_numpy * s)
-    assert np.array((v / d)._data) == approx(v_numpy / d)
-    assert np.array(v.reshape(m, k)._data) == approx(v_numpy.reshape(m, k))
-    assert np.array(v.vstack(w)._data) == approx(np.vstack((v_numpy, w_numpy)))
+    assert (s * v)._data == approx(s * v_numpy)
+    assert (w * s)._data == approx(w_numpy * s)
+    assert (v / d)._data == approx(v_numpy / d)
+    assert v.reshape(m, k)._data == approx(v_numpy.reshape(m, k))
+    assert v.vstack(w)._data == approx(np.vstack((v_numpy, w_numpy)))
 
 
 def test_matrix():
@@ -65,24 +65,24 @@ def test_matrix():
     assert C.shape == C_shape
     assert D._data == D_data
     assert D.shape == D_shape
-    assert np.array((A + B)._data) == approx(A_numpy + B_numpy)
-    assert np.array((A - B)._data) == approx(A_numpy - B_numpy)
-    assert np.array((-A)._data) == approx(-A_numpy)
+    assert (A + B)._data == approx(A_numpy + B_numpy)
+    assert (A - B)._data == approx(A_numpy - B_numpy)
+    assert (-A)._data == approx(-A_numpy)
     assert all(
         A[i, j] == A_numpy[i, j] for i in range(A.shape[0]) for j in range(A.shape[1])
     )
     assert (A @ C).shape == AC_shape
-    assert np.array((A @ C)._data) == approx(A_numpy @ C_numpy)
-    assert np.array((A.transpose())._data) == approx(np.transpose(A_numpy))
+    assert (A @ C)._data == approx(A_numpy @ C_numpy)
+    assert A.transpose()._data == approx(np.transpose(A_numpy))
     assert A.trace() == approx(np.trace(A_numpy))
     assert D.det() == approx(np.linalg.det(D_numpy))
     assert A.scalar_product(B) == approx(A_numpy.ravel().dot(B_numpy.ravel()))
     assert A.normsqr() == approx(A.scalar_product(A))
-    assert np.array((s * A)._data) == approx(s * A_numpy)
-    assert np.array((C * s)._data) == approx(C_numpy * s)
-    assert np.array((C / d)._data) == approx(C_numpy / d)
-    assert np.array(A.flatten()._data) == approx(A_numpy.flatten())
-    assert np.array(A.dot(v)._data) == approx(A_numpy.dot(v_numpy))
+    assert (s * A)._data == approx(s * A_numpy)
+    assert (C * s)._data == approx(C_numpy * s)
+    assert (C / d)._data == approx(C_numpy / d)
+    assert A.flatten()._data == approx(A_numpy.flatten())
+    assert A.dot(v)._data == approx(A_numpy.dot(v_numpy))
 
 
 def test_tensor3d():
