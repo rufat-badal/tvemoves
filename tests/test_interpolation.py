@@ -1,6 +1,8 @@
 from tvemoves_rufbad.interpolation import P1Interpolation
 from tvemoves_rufbad.grid import SquareEquilateralGrid
 from tvemoves_rufbad.tensors import Vector
+import pyomo.environ as pyo
+from pytest import approx
 
 from math import sin, cos, pi
 
@@ -69,4 +71,28 @@ def test_p1_interpolation():
             (grad_value - grad_value_approx).normsqr()
             for (grad_value, grad_value_approx) in zip(grad_values, grad_values_approx)
         ) / len(grid.triangles)
+        print(mean_squared_grad_error)
         assert mean_squared_grad_error < grad_eps
+
+
+def test_p1_interpolation_with_pyomo_params():
+    grid = SquareEquilateralGrid(num_horizontal_points=50)
+
+    for f in functions:
+        params = [f(*p) for p in grid.initial_positions]
+        f_approx = P1Interpolation(grid, params)
+        values = [f_approx(triangle, (1 / 3, 1 / 3)) for triangle in grid.triangles]
+
+        model = pyo.ConcreteModel()
+        model.params = pyo.Param(
+            grid.vertices,
+            within=pyo.Reals,
+            initialize=params,
+            mutable=True,
+        )
+        f_approx_pyomo = P1Interpolation(grid, model.params)
+        values_pyomo = [
+            pyo.value(f_approx_pyomo(triangle, (1 / 3, 1 / 3)))
+            for triangle in grid.triangles
+        ]
+        assert values == approx(values_pyomo)
