@@ -1,9 +1,8 @@
-from tvemoves_rufbad.interpolation import P1Interpolation
+from tvemoves_rufbad.interpolation import P1Interpolation, P1Deformation
 from tvemoves_rufbad.grid import SquareEquilateralGrid
-from tvemoves_rufbad.tensors import Vector
+from tvemoves_rufbad.tensors import Vector, Matrix
 import pyomo.environ as pyo
 from pytest import approx
-
 from math import sin, cos, pi
 
 
@@ -38,6 +37,33 @@ def gradient_periodic(x, y):
 
 functions = [affine, parabola, periodic]
 gradients = [gradient_affine, gradient_parabola, gradient_periodic]
+
+
+def affine_deformation(x, y):
+    return Vector([2 * x, y])
+
+
+def affine_deformation_strain(x, y):
+    return Matrix([[2, 0], [0, 1]])
+
+
+def bend_deformation(x, y):
+    angle = pi / 2 * x
+    return (2 - y) * Vector([cos(angle), sin(angle)])
+
+
+def bend_deformation_strain(x, y):
+    angle = pi / 2 * x
+    return Matrix(
+        [
+            [-pi / 2 * (2 - y) * sin(angle), -cos(angle)],
+            [pi / 2 * (2 - y) * cos(angle), -sin(angle)],
+        ]
+    )
+
+
+deformations = [affine_deformation, bend_deformation]
+strains = [affine_deformation_strain, bend_deformation_strain]
 
 
 def test_p1_interpolation():
@@ -76,7 +102,7 @@ def test_p1_interpolation():
 
 
 def test_p1_interpolation_with_pyomo_params():
-    grid = SquareEquilateralGrid(num_horizontal_points=2)
+    grid = SquareEquilateralGrid(num_horizontal_points=50)
 
     for f in functions:
         params = [f(*p) for p in grid.initial_positions]
@@ -103,3 +129,44 @@ def test_p1_interpolation_with_pyomo_params():
             for triangle in grid.triangles
         ]
         assert grad_values == grad_values_pyomo
+
+
+def test_p1_deformation():
+    eps = 1e-6
+    grad_eps = 1e-3
+    grid = SquareEquilateralGrid(num_horizontal_points=100)
+    p0 = grid.initial_positions
+    evaluation_points = [
+        p0[i1] / 3 + p0[i2] / 3 + p0[i3] / 3 for (i1, i2, i3) in grid.triangles
+    ]
+
+    for deform, strain in zip(deformations, strains):
+        params_vectors = [deform(*p) for p in grid.initial_positions]
+        params = (
+            [v[0] for v in params_vectors],
+            [v[1] for v in params_vectors],
+        )
+        deform_approx = P1Deformation(grid, *params)
+
+        values = [deform(*p) for p in evaluation_points]
+        values_approx = [
+            deform_approx(triangle, (1 / 3, 1 / 3)).map(pyo.value)
+            for triangle in grid.triangles
+        ]
+        mean_squared_error = sum(
+            (value - value_approx).normsqr()
+            for (value, value_approx) in zip(values, values_approx)
+        ) / len(grid.triangles)
+        assert mean_squared_error < eps
+
+        strain_values = [strain(*p) for p in evaluation_points]
+        strain_values_approx = [
+            deform_approx.strain(triangle) for triangle in grid.triangles
+        ]
+        mean_squared_strain_error = sum(
+            (strain_value - strain_value_approx).normsqr()
+            for (strain_value, strain_value_approx) in zip(
+                strain_values, strain_values_approx
+            )
+        ) / len(grid.triangles)
+        assert mean_squared_strain_error < grad_eps
