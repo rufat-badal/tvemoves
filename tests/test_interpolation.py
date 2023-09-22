@@ -43,7 +43,7 @@ def affine_deformation(x, y):
     return Vector([2 * x, y])
 
 
-def affine_deformation_strain(x, y):
+def affine_strain(x, y):
     return Matrix([[2, 0], [0, 1]])
 
 
@@ -52,7 +52,7 @@ def bend_deformation(x, y):
     return (2 - y) * Vector([cos(angle), sin(angle)])
 
 
-def bend_deformation_strain(x, y):
+def bend_strain(x, y):
     angle = pi / 2 * x
     return Matrix(
         [
@@ -62,8 +62,16 @@ def bend_deformation_strain(x, y):
     )
 
 
-deformations = [affine_deformation, bend_deformation]
-strains = [affine_deformation_strain, bend_deformation_strain]
+def squeeze_deformation(x, y):
+    return Vector([x - 1 / 2, 1 / 2 * (4 * x**2 + 1) * (y - 1 / 2)])
+
+
+def squeeze_strain(x, y):
+    return Matrix([[1, 0], [4 * x * (y - 1 / 2), 1 / 2 * (4 * x**2 + 1)]])
+
+
+deformations = [affine_deformation, bend_deformation, squeeze_deformation]
+strains = [affine_strain, bend_strain, squeeze_strain]
 
 
 def test_p1_interpolation():
