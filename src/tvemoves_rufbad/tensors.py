@@ -113,8 +113,7 @@ class Matrix:
             ]
         )
 
-    @property
-    def T(self):
+    def transpose(self):
         return Matrix(
             [[self[i, j] for i in range(self.shape[0])] for j in range(self.shape[1])]
         )

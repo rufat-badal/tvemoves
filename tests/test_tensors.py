@@ -72,7 +72,7 @@ def test_matrix():
     )
     assert (A @ C).shape == AC_shape
     assert np.array((A @ C)._data) == approx(A_numpy @ C_numpy)
-    assert np.array((A.T)._data) == approx(np.transpose(A_numpy))
+    assert np.array((A.transpose())._data) == approx(np.transpose(A_numpy))
     assert A.trace() == approx(np.trace(A_numpy))
     assert D.det() == approx(np.linalg.det(D_numpy))
     assert A.scalar_product(B) == approx(A_numpy.ravel().dot(B_numpy.ravel()))
