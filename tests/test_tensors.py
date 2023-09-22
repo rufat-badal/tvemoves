@@ -29,6 +29,7 @@ def test_vector():
     assert np.array((w * s)._data) == approx(w_numpy * s)
     assert np.array((v / d)._data) == approx(v_numpy / d)
     assert np.array(v.reshape(m, k)._data) == approx(v_numpy.reshape(m, k))
+    assert np.array(v.vstack(w)._data) == approx(np.vstack((v_numpy, w_numpy)))
 
 
 def test_matrix():

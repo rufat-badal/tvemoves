@@ -55,6 +55,18 @@ class Vector:
             [[self[i * num_cols + j] for j in range(num_cols)] for i in range(num_rows)]
         )
 
+    def vstack(self, other):
+        if self.shape[0] != other.shape[0]:
+            raise ValueError(
+                "vectors must be of the same length to be stacked vertically"
+            )
+        return Matrix(
+            [
+                [self[i] for i in range(self.shape[0])],
+                [other[i] for i in range(other.shape[0])],
+            ]
+        )
+
 
 class Matrix:
     def __init__(self, data):
