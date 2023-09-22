@@ -7,35 +7,37 @@ class Vector:
         self.shape = (len(data),)
         self._data = data
 
-    def __repr__(self):
-        return "Vector([" + ", ".join([str(x) for x in self._data]) + "])"
-
-    def __add__(self, other):
-        if self.shape != other.shape:
-            raise ValueError("vectors must have the same length for addition")
-        return Vector([x + y for (x, y) in zip(self._data, other._data)])
-
-    def __sub__(self, other):
-        if self.shape != other.shape:
-            raise ValueError("vectors must have the same length for subtraction")
-        return Vector([x - y for (x, y) in zip(self._data, other._data)])
-
-    def __neg__(self):
-        return Vector([-x for x in self._data])
-
     def __getitem__(self, i):
         # do not allow negative indices
         if i < 0 or i >= self.shape[0]:
             raise IndexError("vector index out of bounds")
         return self._data[i]
 
+    def __repr__(self):
+        return (
+            "Vector([" + ", ".join([str(self[i]) for i in range(self.shape[0])]) + "])"
+        )
+
+    def __add__(self, other):
+        if self.shape != other.shape:
+            raise ValueError("vectors must have the same length for addition")
+        return Vector([self[i] + other[i] for i in range(self.shape[0])])
+
+    def __sub__(self, other):
+        if self.shape != other.shape:
+            raise ValueError("vectors must have the same length for subtraction")
+        return Vector([self[i] - other[i] for i in range(self.shape[0])])
+
+    def __neg__(self):
+        return Vector([-self[i] for i in range(self.shape[0])])
+
     def normsqr(self):
-        return sum(x**2 for x in self._data)
+        return sum(self[i] ** 2 for i in range(self.shape[0]))
 
     def dot(self, other):
         if self.shape != other.shape:
             raise ValueError("vectors must have the same length for the dot product")
-        return sum(x * y for (x, y) in zip(self._data, other._data))
+        return sum(self[i] * other[i] for i in range(self.shape[0]))
 
     def __mul__(self, scaling):
         return Vector([self[i] * scaling for i in range(self.shape[0])])
@@ -77,8 +79,17 @@ class Matrix:
                 raise ValueError("incorrectly shaped initialization list provided")
         self._data = data
 
+    def __getitem__(self, index):
+        i, j = index
+        if i < 0 or i >= self.shape[0] or j < 0 or j >= self.shape[1]:
+            raise IndexError("matrix index out of bounds")
+        return self._data[i][j]
+
     def __repr__(self):
-        lines = ["[" + ", ".join([repr(x) for x in row]) + "]" for row in self._data]
+        lines = [
+            "[" + ", ".join([repr(self[i, j]) for j in range(self.shape[1])]) + "]"
+            for i in range(self.shape[0])
+        ]
         typeinfo = "Matrix(["
         data = (",\n" + len(typeinfo) * " ").join(lines)
         return typeinfo + data + ")]"
@@ -88,8 +99,8 @@ class Matrix:
             raise ValueError("matrices must have the same shape for addition")
         return Matrix(
             [
-                [x + y for (x, y) in zip(row, other_row)]
-                for (row, other_row) in zip(self._data, other._data)
+                [self[i, j] + other[i, j] for j in range(self.shape[1])]
+                for i in range(self.shape[0])
             ]
         )
 
@@ -98,19 +109,15 @@ class Matrix:
             raise ValueError("matrices must have the same shape for subtraction")
         return Matrix(
             [
-                [x - y for (x, y) in zip(row, other_row)]
-                for (row, other_row) in zip(self._data, other._data)
+                [self[i, j] - other[i, j] for j in range(self.shape[1])]
+                for i in range(self.shape[0])
             ]
         )
 
     def __neg__(self):
-        return Matrix([[-x for x in row] for row in self._data])
-
-    def __getitem__(self, index):
-        i, j = index
-        if i < 0 or i >= self.shape[0] or j < 0 or j >= self.shape[1]:
-            raise IndexError("matrix index out of bounds")
-        return self._data[i][j]
+        return Matrix(
+            [[-self[i, j] for j in range(self.shape[1])] for i in range(self.shape[0])]
+        )
 
     def __matmul__(self, other):
         if self.shape[1] != other.shape[0]:
@@ -146,15 +153,17 @@ class Matrix:
         return res
 
     def normsqr(self):
-        return sum(x**2 for row in self._data for x in row)
+        return sum(
+            self[i, j] ** 2 for i in range(self.shape[0]) for j in range(self.shape[1])
+        )
 
     def scalar_product(self, other):
         if self.shape != other.shape:
             raise ValueError("matrices must have the same length for the dot product")
         return sum(
-            x * y
-            for (row, other_row) in zip(self._data, other._data)
-            for (x, y) in zip(row, other_row)
+            self[i, j] * other[i, j]
+            for i in range(self.shape[0])
+            for j in range(self.shape[1])
         )
 
     def __mul__(self, scaling):
