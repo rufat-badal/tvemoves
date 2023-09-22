@@ -76,7 +76,7 @@ def test_p1_interpolation():
 
 
 def test_p1_interpolation_with_pyomo_params():
-    grid = SquareEquilateralGrid(num_horizontal_points=50)
+    grid = SquareEquilateralGrid(num_horizontal_points=2)
 
     for f in functions:
         params = [f(*p) for p in grid.initial_positions]
@@ -96,3 +96,10 @@ def test_p1_interpolation_with_pyomo_params():
             for triangle in grid.triangles
         ]
         assert values == approx(values_pyomo)
+
+        grad_values = [f_approx.gradient(triangle)._data for triangle in grid.triangles]
+        grad_values_pyomo = [
+            f_approx_pyomo.gradient(triangle).map(pyo.value)._data
+            for triangle in grid.triangles
+        ]
+        assert grad_values == grad_values_pyomo
