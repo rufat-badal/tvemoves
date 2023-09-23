@@ -70,10 +70,8 @@ def test_integrator():
             approximation_converges = False
             while num_horizontal_points <= max_horizontal_points:
                 grid = SquareEquilateralGrid(num_horizontal_points)
-                integrand = generate_integrand(f, grid.initial_positions)
-                integrator = Integrator(
-                    quadrature, grid.triangles, grid.initial_positions
-                )
+                integrand = generate_integrand(f, grid.points)
+                integrator = Integrator(quadrature, grid.triangles, grid.points)
                 error = abs(integrator(integrand) - integral_value)
                 if error < EPS:
                     approximation_converges = True
@@ -86,24 +84,24 @@ def test_integrator():
 def test_integrator_with_pyomo_parameters():
     quadrature = DUNAVANT5
     grid = SquareEquilateralGrid(num_horizontal_points=30)
-    integrator = Integrator(quadrature, grid.triangles, grid.initial_positions)
+    integrator = Integrator(quadrature, grid.triangles, grid.points)
     for f in functions:
-        integrand = generate_integrand(f, grid.initial_positions)
+        integrand = generate_integrand(f, grid.points)
         model = pyo.ConcreteModel()
         model.initial_x1 = pyo.Param(
             grid.vertices,
             within=pyo.Reals,
-            initialize=[p[0] for p in grid.initial_positions],
+            initialize=[p[0] for p in grid.points],
             mutable=True,
         )
         model.initial_x2 = pyo.Param(
             grid.vertices,
             within=pyo.Reals,
-            initialize=[p[1] for p in grid.initial_positions],
+            initialize=[p[1] for p in grid.points],
             mutable=True,
         )
-        initial_positions_pyomo = [
+        points_pyomo = [
             Vector([model.initial_x1[i], model.initial_x2[i]]) for i in grid.vertices
         ]
-        integrand_pyomo = generate_integrand(f, initial_positions_pyomo)
+        integrand_pyomo = generate_integrand(f, points_pyomo)
         assert isclose(integrator(integrand), pyo.value(integrator(integrand_pyomo)))

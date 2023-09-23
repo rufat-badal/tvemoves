@@ -78,13 +78,13 @@ def test_p1_interpolation():
     eps = 1e-6
     grad_eps = 1e-2
     grid = SquareEquilateralGrid(num_horizontal_points=200)
-    p0 = grid.initial_positions
+    p0 = grid.points
     evaluation_points = [
         p0[i1] / 3 + p0[i2] / 3 + p0[i3] / 3 for (i1, i2, i3) in grid.triangles
     ]
 
     for f, grad_f in zip(functions, gradients):
-        params = [f(*p) for p in grid.initial_positions]
+        params = [f(*p) for p in grid.points]
         f_approx = P1Interpolation(grid, params)
 
         values = [f(*p) for p in evaluation_points]
@@ -113,7 +113,7 @@ def test_p1_interpolation_with_pyomo_params():
     grid = SquareEquilateralGrid(num_horizontal_points=50)
 
     for f in functions:
-        params = [f(*p) for p in grid.initial_positions]
+        params = [f(*p) for p in grid.points]
         f_approx = P1Interpolation(grid, params)
         values = [f_approx(triangle, (1 / 3, 1 / 3)) for triangle in grid.triangles]
 
@@ -143,13 +143,13 @@ def test_p1_deformation():
     eps = 1e-6
     grad_eps = 1e-3
     grid = SquareEquilateralGrid(num_horizontal_points=100)
-    p0 = grid.initial_positions
+    p0 = grid.points
     evaluation_points = [
         p0[i1] / 3 + p0[i2] / 3 + p0[i3] / 3 for (i1, i2, i3) in grid.triangles
     ]
 
     for deform, strain in zip(deformations, strains):
-        params_vectors = [deform(*p) for p in grid.initial_positions]
+        params_vectors = [deform(*p) for p in grid.points]
         params = (
             [v[0] for v in params_vectors],
             [v[1] for v in params_vectors],

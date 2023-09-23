@@ -11,13 +11,13 @@ class MechanicalStep:
         m.prev_y1 = pyo.Param(
             grid.vertices,
             within=pyo.Reals,
-            initialize=[p[0] for p in grid.initial_positions],
+            initialize=[p[0] for p in grid.points],
             mutable=True,
         )
         m.prev_y2 = pyo.Param(
             grid.vertices,
             within=pyo.Reals,
-            initialize=[p[1] for p in grid.initial_positions],
+            initialize=[p[1] for p in grid.points],
             mutable=True,
         )
         m.prev_theta = pyo.Param(
