@@ -71,7 +71,9 @@ def test_integrator():
             while num_horizontal_points <= max_horizontal_points:
                 grid = SquareEquilateralGrid(num_horizontal_points)
                 integrand = generate_integrand(f, grid.initial_positions)
-                integrator = Integrator(quadrature, grid)
+                integrator = Integrator(
+                    quadrature, grid.triangles, grid.initial_positions
+                )
                 error = abs(integrator(integrand) - integral_value)
                 if error < EPS:
                     approximation_converges = True
@@ -84,8 +86,8 @@ def test_integrator():
 def test_integrator_with_pyomo_parameters():
     quadrature = DUNAVANT5
     grid = SquareEquilateralGrid(num_horizontal_points=30)
-    integrator = Integrator(quadrature, grid)
-    for f, integral_value in zip(functions, integral_values):
+    integrator = Integrator(quadrature, grid.triangles, grid.initial_positions)
+    for f in functions:
         integrand = generate_integrand(f, grid.initial_positions)
         model = pyo.ConcreteModel()
         model.initial_x1 = pyo.Param(

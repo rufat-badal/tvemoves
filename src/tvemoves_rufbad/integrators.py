@@ -1,8 +1,7 @@
 class Integrator:
-    def __init__(self, quadrature, grid):
-        self._triangles = grid.triangles
+    def __init__(self, quadrature, triangles, triangle_points):
+        self._triangles = triangles
         self._quadrature = quadrature
-        triangle_points = grid.initial_positions
         first_sides = (
             triangle_points[j] - triangle_points[i] for (i, j, _) in self._triangles
         )
