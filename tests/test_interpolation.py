@@ -2,8 +2,8 @@ from tvemoves_rufbad.interpolation import P1Interpolation, P1Deformation
 from tvemoves_rufbad.grid import SquareEquilateralGrid
 from tvemoves_rufbad.tensors import Vector, Matrix
 import pyomo.environ as pyo
+from math import pi
 from pytest import approx
-from math import sin, cos, pi
 
 
 def affine(x, y):
@@ -23,14 +23,14 @@ def gradient_parabola(x, y):
 
 
 def periodic(x, y):
-    return sin(2 * pi * x) * cos(2 * pi * y)
+    return pyo.sin(2 * pi * x) * pyo.cos(2 * pi * y)
 
 
 def gradient_periodic(x, y):
     return Vector(
         [
-            2 * pi * cos(2 * pi * y) * cos(2 * pi * x),
-            -2 * pi * sin(2 * pi * x) * sin(2 * pi * y),
+            2 * pi * pyo.cos(2 * pi * y) * pyo.cos(2 * pi * x),
+            -2 * pi * pyo.sin(2 * pi * x) * pyo.sin(2 * pi * y),
         ]
     )
 
@@ -49,15 +49,15 @@ def affine_strain(x, y):
 
 def bend_deformation(x, y):
     angle = pi / 2 * x
-    return (2 - y) * Vector([cos(angle), sin(angle)])
+    return (2 - y) * Vector([pyo.cos(angle), pyo.sin(angle)])
 
 
 def bend_strain(x, y):
     angle = pi / 2 * x
     return Matrix(
         [
-            [-pi / 2 * (2 - y) * sin(angle), -cos(angle)],
-            [pi / 2 * (2 - y) * cos(angle), -sin(angle)],
+            [-pi / 2 * (2 - y) * pyo.sin(angle), -pyo.cos(angle)],
+            [pi / 2 * (2 - y) * pyo.cos(angle), -pyo.sin(angle)],
         ]
     )
 

@@ -1,4 +1,5 @@
 from tvemoves_rufbad.integrators import Integrator
+from tvemoves_rufbad.tensors import Vector
 from tvemoves_rufbad.grid import SquareEquilateralGrid
 from tvemoves_rufbad.quadrature_rules import (
     CENTROID,
@@ -8,7 +9,8 @@ from tvemoves_rufbad.quadrature_rules import (
     DUNAVANT4,
     DUNAVANT5,
 )
-from math import sin, cos, pi
+import pyomo.environ as pyo
+from math import pi, isclose
 
 TRIANGLE_QUADRATURE_RULES = [
     CENTROID,
@@ -37,7 +39,7 @@ INT_PARABOLA = 2 / 3
 
 
 def periodic(x, y):
-    return sin(2 * pi * x) * cos(2 * pi * y)
+    return pyo.sin(2 * pi * x) * pyo.cos(2 * pi * y)
 
 
 INT_PERIODIC = 0
@@ -77,3 +79,29 @@ def test_integrator():
                 num_horizontal_points *= 2
             print(error)
             assert approximation_converges
+
+
+def test_integrator_with_pyomo_parameters():
+    quadrature = DUNAVANT5
+    grid = SquareEquilateralGrid(num_horizontal_points=30)
+    integrator = Integrator(quadrature, grid)
+    for f, integral_value in zip(functions, integral_values):
+        integrand = generate_integrand(f, grid.initial_positions)
+        model = pyo.ConcreteModel()
+        model.initial_x1 = pyo.Param(
+            grid.vertices,
+            within=pyo.Reals,
+            initialize=[p[0] for p in grid.initial_positions],
+            mutable=True,
+        )
+        model.initial_x2 = pyo.Param(
+            grid.vertices,
+            within=pyo.Reals,
+            initialize=[p[1] for p in grid.initial_positions],
+            mutable=True,
+        )
+        initial_positions_pyomo = [
+            Vector([model.initial_x1[i], model.initial_x2[i]]) for i in grid.vertices
+        ]
+        integrand_pyomo = generate_integrand(f, initial_positions_pyomo)
+        assert isclose(integrator(integrand), pyo.value(integrator(integrand_pyomo)))
