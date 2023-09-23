@@ -29,8 +29,8 @@ class SquareEquilateralGrid:
 
         lower_triangles = [
             (
-                pair_to_vertex(i, j),
                 pair_to_vertex(i + 1, j),
+                pair_to_vertex(i, j),
                 pair_to_vertex(i + 1, j + 1),
             )
             for i in range(num_horizontal_points - 1)
@@ -38,9 +38,9 @@ class SquareEquilateralGrid:
         ]
         upper_triangles = [
             (
-                pair_to_vertex(i, j),
                 pair_to_vertex(i, j + 1),
                 pair_to_vertex(i + 1, j + 1),
+                pair_to_vertex(i, j),
             )
             for i in range(num_horizontal_points - 1)
             for j in range(num_horizontal_points - 1)
