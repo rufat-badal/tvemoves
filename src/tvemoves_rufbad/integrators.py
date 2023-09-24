@@ -1,22 +1,22 @@
+from .quadrature_rules import GaussQuadratureRule
+import pyomo.environ as pyo
+
+
 class Integrator:
-    def __init__(self, quadrature, triangles, triangle_points):
+    def __init__(self, quadrature, triangles, points):
         self._triangles = triangles
         self._quadrature = quadrature
-        first_sides = (
-            triangle_points[j] - triangle_points[i] for (i, j, _) in self._triangles
-        )
-        second_sides = (
-            triangle_points[k] - triangle_points[i] for (i, _, k) in self._triangles
-        )
+        first_sides = (points[j] - points[i] for (i, j, _) in self._triangles)
+        second_sides = (points[k] - points[i] for (i, _, k) in self._triangles)
         self._triangle_areas = [
             abs(first.vstack(second).det() / 2)
             for (first, second) in zip(first_sides, second_sides)
         ]
 
     def __call__(self, integrand):
-        # integrand(triangle, (b1, b2)) should return a float,
+        # integrand(triangle, (t1, t2)) should return a float,
         # where triangle is any triangle in self._triangles
-        # and (b1, b2, 1 - b1 - b2) are barycentric coordinates
+        # and (t1, t2, 1 - t1 - t2) are barycentric coordinates
         return sum(
             triangle_area
             * sum(
@@ -26,4 +26,27 @@ class Integrator:
                 )
             )
             for (triangle_area, triangle) in zip(self._triangle_areas, self._triangles)
+        )
+
+
+class BoundaryIntegrator:
+    def __init__(self, degree, edges, points):
+        self._edges = edges
+        self._quadrature = GaussQuadratureRule(degree)
+        self._edge_lengths = [
+            pyo.sqrt((points[i] - points[j]).normsqr()) for (i, j) in self._edges
+        ]
+
+    def __call__(self, integrand):
+        # integrand(edge, (t1, t2)) should return a float,
+        # where edge is any edge in self._edges and t is in [0, 1]
+        return sum(
+            edge_length
+            * sum(
+                weight * integrand(edge, point)
+                for (point, weight) in zip(
+                    self._quadrature.points, self._quadrature.weights
+                )
+            )
+            for (edge_length, edge) in zip(self._edge_lengths, self._edges)
         )

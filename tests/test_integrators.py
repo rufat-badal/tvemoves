@@ -1,4 +1,4 @@
-from tvemoves_rufbad.integrators import Integrator
+from tvemoves_rufbad.integrators import Integrator, BoundaryIntegrator
 from tvemoves_rufbad.tensors import Vector
 from tvemoves_rufbad.grid import SquareEquilateralGrid
 from tvemoves_rufbad.quadrature_rules import (
@@ -48,9 +48,9 @@ INT_PERIODIC = 0
 def generate_integrand(f, grid_points):
     def f_integrand(triangle, barycentric_coordinates):
         i1, i2, i3 = triangle
-        b1, b2 = barycentric_coordinates
-        b3 = 1 - b1 - b2
-        p = b1 * grid_points[i1] + b2 * grid_points[i2] + b3 * grid_points[i3]
+        t1, t2 = barycentric_coordinates
+        t3 = 1 - t1 - t2
+        p = t1 * grid_points[i1] + t2 * grid_points[i2] + t3 * grid_points[i3]
         return f(*p)
 
     return f_integrand
@@ -77,7 +77,6 @@ def test_integrator():
                     approximation_converges = True
                     break
                 num_horizontal_points *= 2
-            print(error)
             assert approximation_converges
 
 
@@ -105,3 +104,69 @@ def test_integrator_with_pyomo_parameters():
         ]
         integrand_pyomo = generate_integrand(f, points_pyomo)
         assert isclose(integrator(integrand), pyo.value(integrator(integrand_pyomo)))
+
+
+def generate_edges_in_unit_interval(num_edges):
+    segments = [(i, i + 1) for i in range(num_edges)]
+    # boundary integrator can only work with vectors
+    points = [Vector([i / num_edges, 0]) for i in range(num_edges + 1)]
+    return segments, points
+
+
+def generate_boundary_integrand(f, points):
+    # f must be a scalar function on the unit interval
+    def f_boundary(segment, t):
+        i1, i2 = segment
+        # only use first component (the second one is zero)
+        return f(t * points[i1][0] + (1 - t) * points[i2][0])
+
+    return f_boundary
+
+
+def constant_boundary(t):
+    return 1
+
+
+INT_CONST_BOUNDARY = 1
+
+
+def polynomial_boundary(t):
+    return 10000 * (t - 1 / 2) ** 8
+
+
+INT_POLYNOMIAL_BOUNDARY = 625 / 144
+
+
+def periodic_boundary(t):
+    return 100 * pyo.sin(pi * t)
+
+
+INT_PERIODIC_BOUNDARY = 200 / pi
+
+boundary_functions = [constant_boundary, polynomial_boundary, periodic_boundary]
+boundary_integral_values = [
+    INT_CONST_BOUNDARY,
+    INT_POLYNOMIAL_BOUNDARY,
+    INT_PERIODIC_BOUNDARY,
+]
+
+
+def test_boundary_integrator():
+    max_points = 512
+    for degree in range(2, 8):
+        for f, integral_value in zip(boundary_functions, boundary_integral_values):
+            num_points = 2
+            approximation_converges = False
+            while num_points <= max_points:
+                edges, points = generate_edges_in_unit_interval(
+                    num_edges=num_points - 1
+                )
+                integrand = generate_boundary_integrand(f, points)
+                integrator = BoundaryIntegrator(degree, edges, points)
+                error = abs(integrator(integrand) - integral_value)
+                if error < EPS:
+                    approximation_converges = True
+                    break
+                num_points *= 2
+            print(f"{num_points}: {error}")
+            assert approximation_converges
