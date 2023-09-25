@@ -40,5 +40,5 @@ class P1Deformation:
             ]
         )
 
-    def strain(self, triangle):
+    def strain(self, triangle, barycentric_coordinates=None):
         return self.y1.gradient(triangle).vstack(self.y2.gradient(triangle))

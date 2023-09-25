@@ -53,3 +53,9 @@ def antider_internal_energy_weight(theta):
 def symmetrized_strain_delta(prev_F, F):
     delta_F = F - prev_F
     return delta_F.transpose() @ prev_F + prev_F.transpose() @ delta_F
+
+
+def compose_to_integrand(outer, *inner):
+    return lambda triangle, barycentric_coordinates: outer(
+        *(f(triangle, barycentric_coordinates) for f in inner)
+    )
