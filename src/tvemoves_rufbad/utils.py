@@ -56,6 +56,4 @@ def symmetrized_strain_delta(prev_F, F):
 
 
 def compose_to_integrand(outer, *inner):
-    return lambda triangle, barycentric_coordinates: outer(
-        *(f(triangle, barycentric_coordinates) for f in inner)
-    )
+    return lambda *args: outer(*(f(*args) for f in inner))

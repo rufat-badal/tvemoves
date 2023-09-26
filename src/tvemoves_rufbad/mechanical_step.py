@@ -14,7 +14,7 @@ from .utils import (
 class MechanicalStep:
     def __init__(self, grid, initial_temperature, search_radius, shape_memory_scaling):
         self._grid = grid
-        self._model = pyo.ConcreteModel()
+        self._model = pyo.ConcreteModel("Mechanical Step")
         m = self._model
 
         m.prev_y1 = pyo.Param(
