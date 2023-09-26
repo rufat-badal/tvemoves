@@ -15,9 +15,15 @@ from .utils import (
 
 class MechanicalStep:
     def __init__(
-        self, grid, initial_temperature, search_radius, shape_memory_scaling, fps
+        self,
+        solver,
+        grid,
+        initial_temperature,
+        search_radius,
+        shape_memory_scaling,
+        fps,
     ):
-        self._grid = grid
+        self._solver = solver
         self._model = pyo.ConcreteModel("Mechanical Step")
         m = self._model
 
@@ -91,3 +97,6 @@ class MechanicalStep:
         m.dissipation = integrator_for_piecewise_constant(dissipation_integrand)
 
         m.objective = pyo.Objective(expr=m.total_elastic_energy + fps * m.dissipation)
+
+    def solve(self):
+        self._solver.solve(self._model)
