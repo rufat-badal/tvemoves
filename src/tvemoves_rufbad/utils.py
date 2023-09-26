@@ -6,7 +6,7 @@ def austenite_percentage(theta: float):
     return 1 - 1 / (1 + theta)
 
 
-def dissipation_potential(dot_C: Matrix):
+def dissipation_norm(dot_C: Matrix):
     return dot_C.normsqr() / 2
 
 

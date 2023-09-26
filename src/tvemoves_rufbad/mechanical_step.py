@@ -8,11 +8,15 @@ from .utils import (
     austenite_percentage,
     austenite_potential,
     compose_to_integrand,
+    dissipation_norm,
+    symmetrized_strain_delta,
 )
 
 
 class MechanicalStep:
-    def __init__(self, grid, initial_temperature, search_radius, shape_memory_scaling):
+    def __init__(
+        self, grid, initial_temperature, search_radius, shape_memory_scaling, fps
+    ):
         self._grid = grid
         self._model = pyo.ConcreteModel("Mechanical Step")
         m = self._model
@@ -66,6 +70,7 @@ class MechanicalStep:
         # total elastic energy
         scaling_matrix = Matrix([[1 / shape_memory_scaling, 0], [0, 1]])
         martensite_potential = generate_martensite_potential(scaling_matrix)
+
         martensite_percentage = lambda theta: 1 - austenite_percentage(theta)
         total_elastic_potential = lambda F, theta: (
             austenite_percentage(theta) * austenite_potential(F)
@@ -74,4 +79,15 @@ class MechanicalStep:
         total_elastic_integrand = compose_to_integrand(
             total_elastic_potential, deform.strain, prev_temp
         )
-        total_elastic_energy = integrator(total_elastic_integrand)
+        m.total_elastic_energy = integrator(total_elastic_integrand)
+
+        # dissipation
+        dissipation_potential = lambda prev_F, F: dissipation_norm(
+            symmetrized_strain_delta(prev_F, F)
+        )
+        dissipation_integrand = compose_to_integrand(
+            dissipation_potential, prev_deform.strain, deform.strain
+        )
+        m.dissipation = integrator_for_piecewise_constant(dissipation_integrand)
+
+        m.objective = pyo.Objective(expr=m.total_elastic_energy + fps * m.dissipation)
