@@ -1,4 +1,5 @@
 import pyomo.environ as pyo
+import numpy as np
 from .interpolation import P1Deformation, P1Interpolation
 from .quadrature_rules import DUNAVANT2, CENTROID
 from .tensors import Matrix
@@ -26,6 +27,7 @@ class MechanicalStep:
         self._solver = solver
         self._model = pyo.ConcreteModel("Mechanical Step")
         m = self._model
+        self._num_vertices = len(grid.vertices)
 
         m.prev_y1 = pyo.Param(
             grid.vertices,
@@ -100,3 +102,24 @@ class MechanicalStep:
 
     def solve(self):
         self._solver.solve(self._model)
+
+    def prev_y(self):
+        return np.array(
+            [
+                [self._model.prev_y1[i].value for i in range(self._num_vertices)],
+                [self._model.prev_y2[i].value for i in range(self._num_vertices)],
+            ]
+        )
+
+    def y(self):
+        return np.array(
+            [
+                [self._model.y1[i].value for i in range(self._num_vertices)],
+                [self._model.y2[i].value for i in range(self._num_vertices)],
+            ]
+        )
+
+    def prev_theta(self):
+        return np.array(
+            [self._model.prev_theta[i].value for i in range(self._num_vertices)]
+        )
