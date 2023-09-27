@@ -31,3 +31,4 @@ class Simulation:
         self.steps = [
             Step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
         ]
+        print(self.steps[-1])

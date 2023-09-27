@@ -106,16 +106,16 @@ class MechanicalStep:
     def prev_y(self):
         return np.array(
             [
-                [self._model.prev_y1[i].value for i in range(self._num_vertices)],
-                [self._model.prev_y2[i].value for i in range(self._num_vertices)],
+                [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
+                for i in range(self._num_vertices)
             ]
         )
 
     def y(self):
         return np.array(
             [
-                [self._model.y1[i].value for i in range(self._num_vertices)],
-                [self._model.y2[i].value for i in range(self._num_vertices)],
+                [self._model.y1[i].value, self._model.y2[i].value]
+                for i in range(self._num_vertices)
             ]
         )
 
