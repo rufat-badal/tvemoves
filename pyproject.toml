@@ -3,6 +3,7 @@ requires = [
     "hatchling",
     "Pyomo",
     "numpy",
+    "sympy"
 ]
 build-backend = "hatchling.build"
 
