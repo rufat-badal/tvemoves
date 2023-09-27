@@ -178,3 +178,14 @@ def test_p1_deformation():
             )
         ) / len(grid.triangles)
         assert mean_squared_strain_error < grad_eps
+
+
+grid = SquareEquilateralGrid(num_horizontal_points=2)
+triangle = grid.triangles[0]
+b, c, _ = grid.triangle_parameters(triangle)
+from tvemoves_rufbad.interpolation import jacobian_of_shape_function
+import numpy as np
+
+J = jacobian_of_shape_function(1 / 3, 1 / 3, 1 / 3, *b, *c)
+v = Matrix([[1], [1], [1]])
+print(J @ v)

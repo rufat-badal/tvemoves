@@ -1,4 +1,4 @@
-from .tensors import Vector
+from .tensors import Vector, Matrix
 import sympy as sp
 
 
@@ -106,4 +106,21 @@ N6 = (
     + (b[0] * b[1] + 5 / 2 * r[1, 0] * b[1] ** 2) * L2 * L3**2 * L1**2
     + (b[0] * b[2] + 5 / 2 * r[2, 0] * b[2] ** 2) * L3 * L2**2 * L1**2
 )
+
 shape_function_symbolic = [N1, N2, N3, N4, N5, N6]
+shape_function = sp.lambdify(L + b + c, shape_function_symbolic)
+
+jacobian_of_shape_function_symbolic = sp.Matrix(
+    [[sp.diff(shape_function_symbolic[i], L[j]) for j in range(3)] for i in range(6)]
+)
+jacobian_of_shape_function_lambdified = sp.lambdify(
+    L + b + c, jacobian_of_shape_function_symbolic
+)
+
+
+def jacobian_of_shape_function(L1, L2, L3, b1, b2, b3, c1, c2, c3):
+    return Matrix(
+        jacobian_of_shape_function_lambdified(
+            L1, L2, L3, b1, b2, b3, c1, c2, c3
+        ).tolist()
+    )

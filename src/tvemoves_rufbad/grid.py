@@ -165,7 +165,7 @@ class SquareEquilateralGrid:
             for v in self.vertices
         ]
 
-    def _generate_triangle_parameters(self, triangle):
+    def triangle_parameters(self, triangle):
         i, j, k = triangle
         x, y, z = (
             self.points[i],
@@ -184,12 +184,12 @@ class SquareEquilateralGrid:
         return b, c, delta
 
     def gradient_transform(self, triangle, barycentric_gradient):
-        b, c, delta = self._generate_triangle_parameters(triangle)
+        b, c, delta = self.triangle_parameters(triangle)
         trafo_matrix = Matrix([[b[0], b[1], b[2]], [c[0], c[1], c[2]]]) / (2 * delta)
         return trafo_matrix.dot(barycentric_gradient)
 
     def hessian_transform(self, triangle, barycentric_hessian):
-        b, c, delta = self._generate_triangle_parameters(triangle)
+        b, c, delta = self.triangle_parameters(triangle)
         trafo_matrix = Matrix(
             [
                 [
