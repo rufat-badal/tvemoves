@@ -1,4 +1,5 @@
 from .tensors import Vector, Matrix
+from dataclasses import dataclass
 
 
 class P1Interpolation:
@@ -42,3 +43,24 @@ class P1Deformation:
 
     def strain(self, triangle, barycentric_coordinates=None):
         return self.y1.gradient(triangle).vstack(self.y2.gradient(triangle))
+
+
+class C1Interpolation:
+    def __init__(self, grid, params):
+        self._grid = grid
+        # each param is a list of 6 floats corresponding to
+        # u, u_x, u_y, u_xx, u_xy, u_yy, where u denotes the function
+        # wish to interpolate
+        self._params = Vector(params)
+
+    def __call__(self, triangle, barycentric_coords):
+        i1, i2, i3 = triangle
+        L1, L2 = barycentric_coords
+        L3 = 1 - L1 - L2
+        Ns = [
+            grid.shape_function(L1, L2, L3, (i1, i2, i3)),
+            grid.shape_function(L2, L3, L1, (i2, i3, i1)),
+            grid.shape_function(L3, L1, L2, (i3, i1, i2)),
+        ]
+        ps = [self._params[i1], self._params[i2], self._params[i3]]
+        return sum(N.dot(p) for (N, p) in zip(Ns, ps))
