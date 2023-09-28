@@ -9,8 +9,6 @@ def test_square_equilateral_grid():
     num_triangles = 2 * (n - 1) * (n - 1)
     num_boundary_vertices = 4 * (n - 1)
     num_boundary_edges = 4 * (n - 1)
-    num_boundary_vertices_per_side = n
-    num_boundary_edges_per_side = n - 1
 
     G = SquareEquilateralGrid(n)
     assert G.vertices == list(range(num_vertices))
@@ -84,3 +82,8 @@ def test_square_equilateral_grid():
     assert all(
         G_left_fixed.points[v][0] == approx(0) for v in G_left_fixed.dirichlet_vertices
     )
+
+
+grid = SquareEquilateralGrid(num_horizontal_points=2)
+print(grid.shape_function(1 / 3, 1 / 3, 1 / 3, grid.triangles[0]))
+print(grid.shape_function_jacobian(1 / 3, 1 / 3, 1 / 3, grid.triangles[0]))

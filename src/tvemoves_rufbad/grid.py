@@ -1,4 +1,90 @@
 from .tensors import Vector, Matrix
+import sympy as sp
+
+# shape function and its derivatives
+L1, L2, L3 = sp.symbols("L1 L2 L3")
+L = [L1, L2, L3]
+b1, b2, b3 = sp.symbols("b1 b2 b3")
+b = [b1, b2, b3]
+c1, c2, c3 = sp.symbols("c1 c2 c3")
+c = [c1, c2, c3]
+r = sp.Matrix(
+    [
+        [-(b[i] * b[j] + c[i] * c[j]) / (b[i] ** 2 + c[i] ** 2) for j in range(3)]
+        for i in range(3)
+    ]
+)
+
+N1 = (
+    L1**5
+    + 5 * L1**4 * L2
+    + 5 * L1**4 * L3
+    + 10 * L1**3 * L2**2
+    + 10 * L1**3 * L3**2
+    + 20 * L1**3 * L2 * L3
+    + 30 * r[1, 0] * L1**2 * L2 * L3**2
+    + 30 * r[2, 0] * L1**2 * L3 * L2**2
+)
+N2 = (
+    c[2] * L1**4 * L2
+    - c[1] * L1**4 * L3
+    + 4 * c[2] * L1**3 * L2**2
+    - 4 * c[1] * L1**3 * L3**2
+    + 4 * (c[2] - c[1]) * L1**3 * L2 * L3
+    - (3 * c[0] + 15 * r[1, 0] * c[1]) * L1**2 * L2 * L3**2
+    + (3 * c[0] + 15 * r[2, 0] * c[2]) * L1**2 * L3 * L2**2
+)
+N3 = (
+    -b[2] * L1**4 * L2
+    + b[1] * L1**4 * L3
+    - 4 * b[2] * L1**3 * L2**2
+    + 4 * b[1] * L1**3 * L3**2
+    + 4 * (b[1] - b[2]) * L1**3 * L2 * L3
+    + (3 * b[0] + 15 * r[1, 0] * b[1]) * L1**2 * L2 * L3**2
+    - (3 * b[0] + 15 * r[2, 0] * b[2]) * L1**2 * L3 * L2**2
+)
+N4 = (
+    c[2] ** 2 / 2 * L1**3 * L2**2
+    + c[1] ** 2 / 2 * L1**3 * L3**2
+    - c[1] * c[2] * L1**3 * L2 * L3
+    + (c[0] * c[1] + 5 / 2 * r[1, 0] * c[1] ** 2) * L2 * L3**2 * L1**2
+    + (c[0] * c[2] + 5 / 2 * r[2, 0] * c[2] ** 2) * L3 * L2**2 * L1**2
+)
+N5 = (
+    -b[2] * c[2] * L1**3 * L2**2
+    - b[1] * c[1] * L1**3 * L3**2
+    + (b[1] * c[2] + b[2] * c[1]) * L1**3 * L2 * L3
+    - (b[0] * c[1] + b[1] * c[0] + 5 * r[1, 0] * b[1] * c[1]) * L2 * L3**2 * L1**2
+    - (b[0] * c[2] + b[2] * c[0] + 5 * r[2, 0] * b[2] * c[2]) * L3 * L2**2 * L1**2
+)
+N6 = (
+    b[2] ** 2 / 2 * L1**3 * L2**2
+    + b[1] ** 2 / 2 * L1**3 * L3**2
+    - b[1] * b[2] * L1**3 * L2 * L3
+    + (b[0] * b[1] + 5 / 2 * r[1, 0] * b[1] ** 2) * L2 * L3**2 * L1**2
+    + (b[0] * b[2] + 5 / 2 * r[2, 0] * b[2] ** 2) * L3 * L2**2 * L1**2
+)
+
+shape_function_symbolic = [N1, N2, N3, N4, N5, N6]
+shape_function_lambdified = sp.lambdify(L + b + c, shape_function_symbolic)
+
+
+def shape_function(L1, L2, L3, b1, b2, b3, c1, c2, c3):
+    return Vector(shape_function_lambdified(L1, L2, L3, b1, b2, b3, c1, c2, c3))
+
+
+shape_function_jacobian_symbolic = sp.Matrix(
+    [[sp.diff(shape_function_symbolic[i], L[j]) for j in range(3)] for i in range(6)]
+)
+shape_function_jacobian_lambdified = sp.lambdify(
+    L + b + c, shape_function_jacobian_symbolic
+)
+
+
+def shape_function_jacobian(L1, L2, L3, b1, b2, b3, c1, c2, c3):
+    return Matrix(
+        shape_function_jacobian_lambdified(L1, L2, L3, b1, b2, b3, c1, c2, c3).tolist()
+    )
 
 
 class SquareEquilateralGrid:
@@ -165,7 +251,7 @@ class SquareEquilateralGrid:
             for v in self.vertices
         ]
 
-    def triangle_parameters(self, triangle):
+    def _triangle_parameters(self, triangle):
         i, j, k = triangle
         x, y, z = (
             self.points[i],
@@ -184,12 +270,12 @@ class SquareEquilateralGrid:
         return b, c, delta
 
     def gradient_transform(self, triangle, barycentric_gradient):
-        b, c, delta = self.triangle_parameters(triangle)
+        b, c, delta = self._triangle_parameters(triangle)
         trafo_matrix = Matrix([[b[0], b[1], b[2]], [c[0], c[1], c[2]]]) / (2 * delta)
         return trafo_matrix.dot(barycentric_gradient)
 
     def hessian_transform(self, triangle, barycentric_hessian):
-        b, c, delta = self.triangle_parameters(triangle)
+        b, c, delta = self._triangle_parameters(triangle)
         trafo_matrix = Matrix(
             [
                 [
@@ -222,3 +308,11 @@ class SquareEquilateralGrid:
         return Matrix(
             [[flat_hessian[0], flat_hessian[2]], [flat_hessian[2], flat_hessian[1]]]
         )
+
+    def shape_function(self, L1, L2, L3, triangle):
+        b, c, _ = self._triangle_parameters(triangle)
+        return shape_function(L1, L2, L3, *b, *c)
+
+    def shape_function_jacobian(self, L1, L2, L3, triangle):
+        b, c, _ = self._triangle_parameters(triangle)
+        return shape_function_jacobian(L1, L2, L3, *b, *c)
