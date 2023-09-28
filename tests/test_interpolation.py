@@ -1,5 +1,5 @@
 from tvemoves_rufbad.interpolation import P1Interpolation, P1Deformation
-from tvemoves_rufbad.grid import SquareEquilateralGrid
+from tvemoves_rufbad.grid import generate_square_equilateral_grid
 from tvemoves_rufbad.tensors import Vector, Matrix
 import pyomo.environ as pyo
 from math import pi
@@ -77,7 +77,7 @@ strains = [affine_strain, bend_strain, squeeze_strain]
 def test_p1_interpolation():
     eps = 1e-6
     grad_eps = 1e-2
-    grid = SquareEquilateralGrid(num_horizontal_points=200)
+    grid = generate_square_equilateral_grid(num_horizontal_points=200)
     p0 = grid.points
     evaluation_points = [
         p0[i1] / 3 + p0[i2] / 3 + p0[i3] / 3 for (i1, i2, i3) in grid.triangles
@@ -110,7 +110,7 @@ def test_p1_interpolation():
 
 
 def test_p1_interpolation_with_pyomo_params():
-    grid = SquareEquilateralGrid(num_horizontal_points=50)
+    grid = generate_square_equilateral_grid(num_horizontal_points=50)
 
     for f in functions:
         params = [f(*p) for p in grid.points]
@@ -142,7 +142,7 @@ def test_p1_interpolation_with_pyomo_params():
 def test_p1_deformation():
     eps = 1e-6
     grad_eps = 1e-3
-    grid = SquareEquilateralGrid(num_horizontal_points=100)
+    grid = generate_square_equilateral_grid(num_horizontal_points=100)
     p0 = grid.points
     evaluation_points = [
         p0[i1] / 3 + p0[i2] / 3 + p0[i3] / 3 for (i1, i2, i3) in grid.triangles

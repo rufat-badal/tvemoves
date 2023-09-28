@@ -1,6 +1,6 @@
 from tvemoves_rufbad.integrators import Integrator, BoundaryIntegrator
 from tvemoves_rufbad.tensors import Vector
-from tvemoves_rufbad.grid import SquareEquilateralGrid
+from tvemoves_rufbad.grid import generate_square_equilateral_grid
 from tvemoves_rufbad.quadrature_rules import (
     CENTROID,
     VERTEX,
@@ -69,7 +69,7 @@ def test_integrator():
             num_horizontal_points = 2
             approximation_converges = False
             while num_horizontal_points <= max_horizontal_points:
-                grid = SquareEquilateralGrid(num_horizontal_points)
+                grid = generate_square_equilateral_grid(num_horizontal_points)
                 integrand = generate_integrand(f, grid.points)
                 integrator = Integrator(quadrature, grid.triangles, grid.points)
                 error = abs(integrator(integrand) - integral_value)
@@ -82,7 +82,7 @@ def test_integrator():
 
 def test_integrator_with_pyomo_parameters():
     quadrature = DUNAVANT5
-    grid = SquareEquilateralGrid(num_horizontal_points=30)
+    grid = generate_square_equilateral_grid(num_horizontal_points=30)
     integrator = Integrator(quadrature, grid.triangles, grid.points)
     for f in functions:
         integrand = generate_integrand(f, grid.points)

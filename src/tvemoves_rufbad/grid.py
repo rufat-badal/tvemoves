@@ -87,169 +87,30 @@ def shape_function_jacobian(L1, L2, L3, b1, b2, b3, c1, c2, c3):
     )
 
 
-class SquareEquilateralGrid:
-    def __init__(self, num_horizontal_points, fix=None):
-        def pair_to_vertex(i, j):
-            # (0, 0) -> 0, (1, 0) -> 1, ..., (num_horizontal_points - 1, 0) -> num_horizontal_points -1,
-            # (0, 1) -> num_horizontal_points, ...
-            return j * num_horizontal_points + i
-
-        self.vertices = list(range(num_horizontal_points * num_horizontal_points))
-
-        horizontal_edges = [
-            (pair_to_vertex(i, j), pair_to_vertex(i + 1, j))
-            for i in range(num_horizontal_points - 1)
-            for j in range(num_horizontal_points)
-        ]
-        vertical_edges = [
-            (pair_to_vertex(i, j), pair_to_vertex(i, j + 1))
-            for i in range(num_horizontal_points)
-            for j in range(num_horizontal_points - 1)
-        ]
-        diagonal_edges = [
-            (pair_to_vertex(i, j), pair_to_vertex(i + 1, j + 1))
-            for i in range(num_horizontal_points - 1)
-            for j in range(num_horizontal_points - 1)
-        ]
-        self.edges = horizontal_edges + vertical_edges + diagonal_edges
-
-        lower_triangles = [
-            (
-                pair_to_vertex(i + 1, j),
-                pair_to_vertex(i, j),
-                pair_to_vertex(i + 1, j + 1),
-            )
-            for i in range(num_horizontal_points - 1)
-            for j in range(num_horizontal_points - 1)
-        ]
-        upper_triangles = [
-            (
-                pair_to_vertex(i, j + 1),
-                pair_to_vertex(i + 1, j + 1),
-                pair_to_vertex(i, j),
-            )
-            for i in range(num_horizontal_points - 1)
-            for j in range(num_horizontal_points - 1)
-        ]
-        self.triangles = lower_triangles + upper_triangles
-
-        lower_boundary_vertices = set(
-            pair_to_vertex(i, 0) for i in range(num_horizontal_points)
-        )
-        lower_boundary_edges = [
-            (pair_to_vertex(i, 0), pair_to_vertex(i + 1, 0))
-            for i in range(num_horizontal_points - 1)
-        ]
-        right_boundary_vertices = set(
-            pair_to_vertex(num_horizontal_points - 1, i)
-            for i in range(num_horizontal_points)
-        )
-        right_boundary_edges = [
-            (
-                pair_to_vertex(num_horizontal_points - 1, i),
-                pair_to_vertex(num_horizontal_points - 1, i + 1),
-            )
-            for i in range(num_horizontal_points - 1)
-        ]
-        upper_boundary_vertices = set(
-            pair_to_vertex(i, num_horizontal_points - 1)
-            for i in range(num_horizontal_points)
-        )
-        upper_boundary_edges = [
-            (
-                pair_to_vertex(i, num_horizontal_points - 1),
-                pair_to_vertex(i + 1, num_horizontal_points - 1),
-            )
-            for i in range(num_horizontal_points - 1)
-        ]
-        left_boundary_vertices = set(
-            pair_to_vertex(0, i) for i in range(num_horizontal_points)
-        )
-        left_boundary_edges = [
-            (pair_to_vertex(0, i), pair_to_vertex(0, i + 1))
-            for i in range(num_horizontal_points - 1)
-        ]
-
-        self.boundary_vertices = list(
-            lower_boundary_vertices.union(right_boundary_vertices)
-            .union(upper_boundary_vertices)
-            .union(left_boundary_vertices)
-        )
-        self.boundary_edges = (
-            lower_boundary_edges
-            + right_boundary_edges
-            + upper_boundary_edges
-            + left_boundary_edges
-        )
-
-        match fix:
-            case None:
-                self.dirichlet_vertices = []
-                self.dirichlet_edges = []
-                self.neumann_vertices = self.boundary_vertices
-                self.neumann_edges = self.boundary_edges
-            case "all":
-                self.dirichlet_vertices = self.boundary_vertices
-                self.dirichlet_edges = self.boundary_edges
-                self.neumann_vertices = []
-                self.neumann_edges = []
-            case "lower":
-                self.dirichlet_vertices = list(lower_boundary_vertices)
-                self.dirichlet_edges = lower_boundary_edges
-                self.neumann_vertices = list(
-                    right_boundary_vertices.union(upper_boundary_vertices).union(
-                        left_boundary_vertices
-                    )
-                )
-                self.neumann_edges = (
-                    right_boundary_edges + upper_boundary_edges + left_boundary_edges
-                )
-            case "right":
-                self.dirichlet_vertices = list(right_boundary_vertices)
-                self.dirichlet_edges = right_boundary_edges
-                self.neumann_vertices = list(
-                    upper_boundary_vertices.union(left_boundary_vertices).union(
-                        lower_boundary_vertices
-                    )
-                )
-                self.neumann_edges = (
-                    upper_boundary_edges + left_boundary_edges + lower_boundary_edges
-                )
-            case "upper":
-                self.dirichlet_vertices = list(upper_boundary_vertices)
-                self.dirichlet_edges = upper_boundary_edges
-                self.neumann_vertices = list(
-                    left_boundary_vertices.union(lower_boundary_vertices).union(
-                        right_boundary_vertices
-                    )
-                )
-                self.neumann_edges = (
-                    left_boundary_edges + lower_boundary_edges + right_boundary_edges
-                )
-            case "left":
-                self.dirichlet_vertices = list(left_boundary_vertices)
-                self.dirichlet_edges = left_boundary_edges
-                self.neumann_vertices = list(
-                    lower_boundary_vertices.union(right_boundary_vertices).union(
-                        upper_boundary_vertices
-                    )
-                )
-                self.neumann_edges = (
-                    lower_boundary_edges + right_boundary_edges + upper_boundary_edges
-                )
-            case _:
-                raise ValueError("invalid dirichlet condition provided")
-
-        self.grid_spacing = 1 / (num_horizontal_points - 1)
-        self.points = [
-            Vector(
-                [
-                    v % num_horizontal_points * self.grid_spacing,
-                    v // num_horizontal_points * self.grid_spacing,
-                ]
-            )
-            for v in self.vertices
-        ]
+class Grid:
+    def __init__(
+        self,
+        vertices,
+        edges,
+        triangles,
+        boundary_vertices,
+        boundary_edges,
+        dirichlet_vertices,
+        dirichlet_edges,
+        neumann_vertices,
+        neumann_edges,
+        points,
+    ):
+        self.vertices = vertices
+        self.edges = edges
+        self.triangles = triangles
+        self.boundary_vertices = boundary_vertices
+        self.boundary_edges = boundary_edges
+        self.dirichlet_vertices = dirichlet_vertices
+        self.dirichlet_edges = dirichlet_edges
+        self.neumann_vertices = neumann_vertices
+        self.neumann_edges = neumann_edges
+        self.points = points
 
     def _triangle_parameters(self, triangle):
         i, j, k = triangle
@@ -316,3 +177,181 @@ class SquareEquilateralGrid:
     def shape_function_jacobian(self, L1, L2, L3, triangle):
         b, c, _ = self._triangle_parameters(triangle)
         return shape_function_jacobian(L1, L2, L3, *b, *c)
+
+
+def generate_square_equilateral_grid(num_horizontal_points, fix=None):
+    def pair_to_vertex(i, j):
+        # (0, 0) -> 0, (1, 0) -> 1, ...,
+        # (num_horizontal_points - 1, 0) -> num_horizontal_points -1,
+        # (0, 1) -> num_horizontal_points, ...
+        return j * num_horizontal_points + i
+
+    vertices = list(range(num_horizontal_points * num_horizontal_points))
+
+    horizontal_edges = [
+        (pair_to_vertex(i, j), pair_to_vertex(i + 1, j))
+        for i in range(num_horizontal_points - 1)
+        for j in range(num_horizontal_points)
+    ]
+    vertical_edges = [
+        (pair_to_vertex(i, j), pair_to_vertex(i, j + 1))
+        for i in range(num_horizontal_points)
+        for j in range(num_horizontal_points - 1)
+    ]
+    diagonal_edges = [
+        (pair_to_vertex(i, j), pair_to_vertex(i + 1, j + 1))
+        for i in range(num_horizontal_points - 1)
+        for j in range(num_horizontal_points - 1)
+    ]
+    edges = horizontal_edges + vertical_edges + diagonal_edges
+
+    lower_triangles = [
+        (
+            pair_to_vertex(i + 1, j),
+            pair_to_vertex(i, j),
+            pair_to_vertex(i + 1, j + 1),
+        )
+        for i in range(num_horizontal_points - 1)
+        for j in range(num_horizontal_points - 1)
+    ]
+    upper_triangles = [
+        (
+            pair_to_vertex(i, j + 1),
+            pair_to_vertex(i + 1, j + 1),
+            pair_to_vertex(i, j),
+        )
+        for i in range(num_horizontal_points - 1)
+        for j in range(num_horizontal_points - 1)
+    ]
+    triangles = lower_triangles + upper_triangles
+
+    lower_boundary_vertices = set(
+        pair_to_vertex(i, 0) for i in range(num_horizontal_points)
+    )
+    lower_boundary_edges = [
+        (pair_to_vertex(i, 0), pair_to_vertex(i + 1, 0))
+        for i in range(num_horizontal_points - 1)
+    ]
+    right_boundary_vertices = set(
+        pair_to_vertex(num_horizontal_points - 1, i)
+        for i in range(num_horizontal_points)
+    )
+    right_boundary_edges = [
+        (
+            pair_to_vertex(num_horizontal_points - 1, i),
+            pair_to_vertex(num_horizontal_points - 1, i + 1),
+        )
+        for i in range(num_horizontal_points - 1)
+    ]
+    upper_boundary_vertices = set(
+        pair_to_vertex(i, num_horizontal_points - 1)
+        for i in range(num_horizontal_points)
+    )
+    upper_boundary_edges = [
+        (
+            pair_to_vertex(i, num_horizontal_points - 1),
+            pair_to_vertex(i + 1, num_horizontal_points - 1),
+        )
+        for i in range(num_horizontal_points - 1)
+    ]
+    left_boundary_vertices = set(
+        pair_to_vertex(0, i) for i in range(num_horizontal_points)
+    )
+    left_boundary_edges = [
+        (pair_to_vertex(0, i), pair_to_vertex(0, i + 1))
+        for i in range(num_horizontal_points - 1)
+    ]
+
+    boundary_vertices = list(
+        lower_boundary_vertices.union(right_boundary_vertices)
+        .union(upper_boundary_vertices)
+        .union(left_boundary_vertices)
+    )
+    boundary_edges = (
+        lower_boundary_edges
+        + right_boundary_edges
+        + upper_boundary_edges
+        + left_boundary_edges
+    )
+
+    match fix:
+        case None:
+            dirichlet_vertices = []
+            dirichlet_edges = []
+            neumann_vertices = boundary_vertices
+            neumann_edges = boundary_edges
+        case "all":
+            dirichlet_vertices = boundary_vertices
+            dirichlet_edges = boundary_edges
+            neumann_vertices = []
+            neumann_edges = []
+        case "lower":
+            dirichlet_vertices = list(lower_boundary_vertices)
+            dirichlet_edges = lower_boundary_edges
+            neumann_vertices = list(
+                right_boundary_vertices.union(upper_boundary_vertices).union(
+                    left_boundary_vertices
+                )
+            )
+            neumann_edges = (
+                right_boundary_edges + upper_boundary_edges + left_boundary_edges
+            )
+        case "right":
+            dirichlet_vertices = list(right_boundary_vertices)
+            dirichlet_edges = right_boundary_edges
+            neumann_vertices = list(
+                upper_boundary_vertices.union(left_boundary_vertices).union(
+                    lower_boundary_vertices
+                )
+            )
+            neumann_edges = (
+                upper_boundary_edges + left_boundary_edges + lower_boundary_edges
+            )
+        case "upper":
+            dirichlet_vertices = list(upper_boundary_vertices)
+            dirichlet_edges = upper_boundary_edges
+            neumann_vertices = list(
+                left_boundary_vertices.union(lower_boundary_vertices).union(
+                    right_boundary_vertices
+                )
+            )
+            neumann_edges = (
+                left_boundary_edges + lower_boundary_edges + right_boundary_edges
+            )
+        case "left":
+            dirichlet_vertices = list(left_boundary_vertices)
+            dirichlet_edges = left_boundary_edges
+            neumann_vertices = list(
+                lower_boundary_vertices.union(right_boundary_vertices).union(
+                    upper_boundary_vertices
+                )
+            )
+            neumann_edges = (
+                lower_boundary_edges + right_boundary_edges + upper_boundary_edges
+            )
+        case _:
+            raise ValueError("invalid dirichlet condition provided")
+
+    grid_spacing = 1 / (num_horizontal_points - 1)
+    points = [
+        Vector(
+            [
+                v % num_horizontal_points * grid_spacing,
+                v // num_horizontal_points * grid_spacing,
+            ]
+        )
+        for v in vertices
+    ]
+
+    return Grid(
+        vertices,
+        edges,
+        triangles,
+        boundary_vertices,
+        boundary_edges,
+        dirichlet_vertices,
+        dirichlet_edges,
+        neumann_vertices,
+        neumann_edges,
+        points,
+    )
