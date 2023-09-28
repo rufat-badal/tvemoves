@@ -87,6 +87,31 @@ def shape_function_jacobian(L1, L2, L3, b1, b2, b3, c1, c2, c3):
     )
 
 
+shape_function_hessian_symbolic = sp.Array(
+    [
+        [
+            [sp.diff(shape_function_symbolic[i], L[j], L[k]) for k in range(3)]
+            for j in range(3)
+        ]
+        for i in range(6)
+    ]
+)
+shape_function_hessian_vectorized_symbolic = [
+    H[idx]
+    for H in shape_function_hessian_symbolic
+    for idx in [(0, 0), (1, 1), (2, 2), (0, 1), (0, 2), (1, 2)]
+]
+shape_function_hessian_vectorized_lambdified = sp.lambdify(
+    L + b + c, shape_function_hessian_vectorized_symbolic
+)
+
+
+def shape_function_hessian_vectorized(L1, L2, L3, b1, b2, b3, c1, c2, c3):
+    return Vector(
+        shape_function_hessian_vectorized_lambdified(L1, L2, L3, b1, b2, b3, c1, c2, c3)
+    )
+
+
 class Grid:
     def __init__(
         self,
@@ -177,6 +202,10 @@ class Grid:
     def shape_function_jacobian(self, L1, L2, L3, triangle):
         b, c, _ = self._triangle_parameters(triangle)
         return shape_function_jacobian(L1, L2, L3, *b, *c)
+
+    def shape_function_hessian_vectorized(self, L1, L2, L3, triangle):
+        b, c, _ = self._triangle_parameters(triangle)
+        return shape_function_hessian_vectorized(L1, L2, L3, *b, *c)
 
 
 def generate_square_equilateral_grid(num_horizontal_points, fix=None):

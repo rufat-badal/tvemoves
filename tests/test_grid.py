@@ -83,8 +83,3 @@ def test_square_equilateral_grid():
     assert all(
         G_left_fixed.points[v][0] == approx(0) for v in G_left_fixed.dirichlet_vertices
     )
-
-
-grid = generate_square_equilateral_grid(num_horizontal_points=2)
-print(grid.shape_function(1 / 3, 1 / 3, 1 / 3, grid.triangles[0]))
-print(grid.shape_function_jacobian(1 / 3, 1 / 3, 1 / 3, grid.triangles[0]))
