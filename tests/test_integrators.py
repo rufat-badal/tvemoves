@@ -25,29 +25,34 @@ from typing import Callable
 GAUSS_DEGREES = [1, 2, 3, 4, 5, 5, 7]
 
 
-def constant(x: float, y: float):
+def constant(x: float, y: float) -> float:
     return 1
 
 
 INT_CONSTANT = 1
 
 
-def parabola(x: float, y: float):
+def parabola(x: float, y: float) -> float:
     return x**2 + y**2
 
 
 INT_PARABOLA = 2 / 3
 
 
-def periodic(x: float, y: float):
+def periodic(x: float, y: float) -> float:
     return pyo.sin(2 * pi * x) * pyo.cos(2 * pi * y)
 
 
 INT_PERIODIC = 0
 
 
-def generate_integrand(f: Callable[[float, float], float], grid_points: list[Vector]):
-    def f_integrand(triangle, barycentric_coordinates):
+def generate_integrand(
+    f: Callable[[float, float], float], grid_points: list[Vector]
+) -> Callable[[tuple[int, int, int], tuple[float, float, float]], float]:
+    def f_integrand(
+        triangle: tuple[int, int, int],
+        barycentric_coordinates: tuple[float, float, float],
+    ) -> float:
         i1, i2, i3 = triangle
         t1, t2, t3 = barycentric_coordinates
         p = t1 * grid_points[i1] + t2 * grid_points[i2] + t3 * grid_points[i3]
@@ -62,7 +67,7 @@ integral_values = [INT_CONSTANT, INT_PARABOLA, INT_PERIODIC]
 EPS = 1e-5
 
 
-def test_integrator():
+def test_integrator() -> None:
     max_horizontal_points = 256
     for quadrature in TRIANGLE_QUADRATURE_RULES:
         for f, integral_value in zip(functions, integral_values):
@@ -80,7 +85,7 @@ def test_integrator():
             assert approximation_converges
 
 
-def test_integrator_with_pyomo_parameters():
+def test_integrator_with_pyomo_parameters() -> None:
     quadrature = DUNAVANT5
     grid = generate_square_equilateral_grid(num_horizontal_points=30)
     integrator = Integrator(quadrature, grid.triangles, grid.points)
@@ -106,16 +111,20 @@ def test_integrator_with_pyomo_parameters():
         assert isclose(integrator(integrand), pyo.value(integrator(integrand_pyomo)))
 
 
-def generate_edges_in_unit_interval(num_edges: int):
+def generate_edges_in_unit_interval(
+    num_edges: int,
+) -> tuple[list[tuple[int, int]], list[Vector]]:
     segments = [(i, i + 1) for i in range(num_edges)]
     # boundary integrator can only work with vectors
     points = [Vector([i / num_edges, 0]) for i in range(num_edges + 1)]
     return segments, points
 
 
-def generate_boundary_integrand(f: Callable[[float], float], points: list[Vector]):
+def generate_boundary_integrand(
+    f: Callable[[float], float], points: list[Vector]
+) -> Callable[[tuple[int, int], float], float]:
     # f must be a scalar function on the unit interval
-    def f_boundary(segment, t):
+    def f_boundary(segment: tuple[int, int], t: float) -> float:
         i1, i2 = segment
         # only use first component (the second one is zero)
         return f(t * points[i1][0] + (1 - t) * points[i2][0])
@@ -123,21 +132,21 @@ def generate_boundary_integrand(f: Callable[[float], float], points: list[Vector
     return f_boundary
 
 
-def constant_boundary(t: float):
+def constant_boundary(t: float) -> float:
     return 1
 
 
 INT_CONST_BOUNDARY = 1
 
 
-def polynomial_boundary(t: float):
+def polynomial_boundary(t: float) -> float:
     return 10000 * (t - 1 / 2) ** 8
 
 
 INT_POLYNOMIAL_BOUNDARY = 625 / 144
 
 
-def periodic_boundary(t: float):
+def periodic_boundary(t: float) -> float:
     return 100 * pyo.sin(pi * t)
 
 
@@ -151,7 +160,7 @@ boundary_integral_values = [
 ]
 
 
-def test_boundary_integrator():
+def test_boundary_integrator() -> None:
     max_points = 512
     for degree in range(2, 8):
         for f, integral_value in zip(boundary_functions, boundary_integral_values):
