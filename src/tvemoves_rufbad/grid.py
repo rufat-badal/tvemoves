@@ -196,22 +196,16 @@ class Grid:
         )
 
     def shape_function(self, triangle, barycentric_coordinates):
-        L1, L2 = barycentric_coordinates
-        L3 = 1 - L1 - L2
         b, c, _ = self._triangle_parameters(triangle)
-        return shape_function(L1, L2, L3, *b, *c)
+        return shape_function(*barycentric_coordinates, *b, *c)
 
     def shape_function_jacobian(self, triangle, barycentric_coordinates):
-        L1, L2 = barycentric_coordinates
-        L3 = 1 - L1 - L2
         b, c, _ = self._triangle_parameters(triangle)
-        return shape_function_jacobian(L1, L2, L3, *b, *c)
+        return shape_function_jacobian(*barycentric_coordinates, *b, *c)
 
     def shape_function_hessian_vectorized(self, triangle, barycentric_coordinates):
-        L1, L2 = barycentric_coordinates
-        L3 = 1 - L1 - L2
         b, c, _ = self._triangle_parameters(triangle)
-        return shape_function_hessian_vectorized(L1, L2, L3, *b, *c)
+        return shape_function_hessian_vectorized(*barycentric_coordinates, *b, *c)
 
 
 def generate_square_equilateral_grid(num_horizontal_points, fix=None):

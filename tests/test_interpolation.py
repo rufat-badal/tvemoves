@@ -121,7 +121,7 @@ def test_p1_interpolation():
 
         values = [f(*p) for p in evaluation_points]
         values_approx = [
-            f_approx(triangle, (1 / 3, 1 / 3)) for triangle in grid.triangles
+            f_approx(triangle, (1 / 3, 1 / 3, 1 / 3)) for triangle in grid.triangles
         ]
         mean_squared_error = sum(
             (value - value_approx) ** 2
@@ -147,7 +147,9 @@ def test_p1_interpolation_with_pyomo_params():
     for f in functions:
         params = [f(*p) for p in grid.points]
         f_approx = P1Interpolation(grid, params)
-        values = [f_approx(triangle, (1 / 3, 1 / 3)) for triangle in grid.triangles]
+        values = [
+            f_approx(triangle, (1 / 3, 1 / 3, 1 / 3)) for triangle in grid.triangles
+        ]
 
         model = pyo.ConcreteModel()
         model.params = pyo.Param(
@@ -158,7 +160,7 @@ def test_p1_interpolation_with_pyomo_params():
         )
         f_approx_pyomo = P1Interpolation(grid, model.params)
         values_pyomo = [
-            pyo.value(f_approx_pyomo(triangle, (1 / 3, 1 / 3)))
+            pyo.value(f_approx_pyomo(triangle, (1 / 3, 1 / 3, 1 / 3)))
             for triangle in grid.triangles
         ]
         assert values == approx(values_pyomo)
@@ -190,7 +192,7 @@ def test_p1_deformation():
 
         values = [deform(*p) for p in evaluation_points]
         values_approx = [
-            deform_approx(triangle, (1 / 3, 1 / 3)).map(pyo.value)
+            deform_approx(triangle, (1 / 3, 1 / 3, 1 / 3)).map(pyo.value)
             for triangle in grid.triangles
         ]
         mean_squared_error = sum(
@@ -218,7 +220,9 @@ def test_p1_interpolation_with_pyomo_params():
     for f in functions:
         params = [f(*p) for p in grid.points]
         f_approx = P1Interpolation(grid, params)
-        values = [f_approx(triangle, (1 / 3, 1 / 3)) for triangle in grid.triangles]
+        values = [
+            f_approx(triangle, (1 / 3, 1 / 3, 1 / 3)) for triangle in grid.triangles
+        ]
 
         model = pyo.ConcreteModel()
         model.params = pyo.Param(
@@ -229,7 +233,7 @@ def test_p1_interpolation_with_pyomo_params():
         )
         f_approx_pyomo = P1Interpolation(grid, model.params)
         values_pyomo = [
-            pyo.value(f_approx_pyomo(triangle, (1 / 3, 1 / 3)))
+            pyo.value(f_approx_pyomo(triangle, (1 / 3, 1 / 3, 1 / 3)))
             for triangle in grid.triangles
         ]
         assert values == approx(values_pyomo)
@@ -261,7 +265,7 @@ def test_p1_deformation():
 
         values = [deform(*p) for p in evaluation_points]
         values_approx = [
-            deform_approx(triangle, (1 / 3, 1 / 3)).map(pyo.value)
+            deform_approx(triangle, (1 / 3, 1 / 3, 1 / 3)).map(pyo.value)
             for triangle in grid.triangles
         ]
         mean_squared_error = sum(
@@ -306,7 +310,7 @@ def test_c1_interpolation():
 
         values = [f(*p) for p in evaluation_points]
         values_approx = [
-            f_approx(triangle, (1 / 3, 1 / 3)) for triangle in grid.triangles
+            f_approx(triangle, (1 / 3, 1 / 3, 1 / 3)) for triangle in grid.triangles
         ]
         mean_squared_error = sum(
             (value - value_approx) ** 2

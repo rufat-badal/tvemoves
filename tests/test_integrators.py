@@ -48,8 +48,7 @@ INT_PERIODIC = 0
 def generate_integrand(f, grid_points):
     def f_integrand(triangle, barycentric_coordinates):
         i1, i2, i3 = triangle
-        t1, t2 = barycentric_coordinates
-        t3 = 1 - t1 - t2
+        t1, t2, t3 = barycentric_coordinates
         p = t1 * grid_points[i1] + t2 * grid_points[i2] + t3 * grid_points[i3]
         return f(*p)
 

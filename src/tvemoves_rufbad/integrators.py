@@ -14,9 +14,9 @@ class Integrator:
         ]
 
     def __call__(self, integrand):
-        # integrand(triangle, (t1, t2)) should return a float,
+        # integrand(triangle, (t1, t2, t3)) should return a float,
         # where triangle is any triangle in self._triangles
-        # and (t1, t2, 1 - t1 - t2) are barycentric coordinates
+        # and (t1, t2, t3) are barycentric coordinates
         return sum(
             triangle_area
             * sum(
@@ -38,7 +38,7 @@ class BoundaryIntegrator:
         ]
 
     def __call__(self, integrand):
-        # integrand(edge, (t1, t2)) should return a float,
+        # integrand(edge, t) should return a float,
         # where edge is any edge in self._edges and t is in [0, 1]
         return sum(
             edge_length

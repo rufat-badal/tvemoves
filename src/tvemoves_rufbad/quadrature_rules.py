@@ -13,7 +13,7 @@ class TriangleQuadratureRule:
         if not isclose(sum(w for w in weights), 1):
             raise ValueError("weights must sum up to 1")
 
-        self.points = points
+        self.points = [(p[0], p[1], 1 - p[0] - p[1]) for p in points]
         self.weights = weights
 
 
