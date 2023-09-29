@@ -286,7 +286,7 @@ def test_p1_deformation():
 def test_c1_interpolation():
     eps = 1e-6
     grad_eps = 1e-2
-    grid = generate_square_equilateral_grid(num_horizontal_points=2)
+    grid = generate_square_equilateral_grid(num_horizontal_points=7)
     p0 = grid.points
     evaluation_points = [
         p0[i1] / 3 + p0[i2] / 3 + p0[i3] / 3 for (i1, i2, i3) in grid.triangles
@@ -302,7 +302,14 @@ def test_c1_interpolation():
                 f_at_grid_points, grad_f_at_grid_points, hessian_f_at_grid_points
             )
         ]
-        print(params[0])
+        f_approx = C1Interpolation(grid, params)
 
-
-test_c1_interpolation()
+        values = [f(*p) for p in evaluation_points]
+        values_approx = [
+            f_approx(triangle, (1 / 3, 1 / 3)) for triangle in grid.triangles
+        ]
+        mean_squared_error = sum(
+            (value - value_approx) ** 2
+            for (value, value_approx) in zip(values, values_approx)
+        ) / len(grid.triangles)
+        assert mean_squared_error < eps
