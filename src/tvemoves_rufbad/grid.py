@@ -195,15 +195,21 @@ class Grid:
             [[flat_hessian[0], flat_hessian[2]], [flat_hessian[2], flat_hessian[1]]]
         )
 
-    def shape_function(self, L1, L2, L3, triangle):
+    def shape_function(self, triangle, barycentric_coordinates):
+        L1, L2 = barycentric_coordinates
+        L3 = 1 - L1 - L2
         b, c, _ = self._triangle_parameters(triangle)
         return shape_function(L1, L2, L3, *b, *c)
 
-    def shape_function_jacobian(self, L1, L2, L3, triangle):
+    def shape_function_jacobian(self, triangle, barycentric_coordinates):
+        L1, L2 = barycentric_coordinates
+        L3 = 1 - L1 - L2
         b, c, _ = self._triangle_parameters(triangle)
         return shape_function_jacobian(L1, L2, L3, *b, *c)
 
-    def shape_function_hessian_vectorized(self, L1, L2, L3, triangle):
+    def shape_function_hessian_vectorized(self, triangle, barycentric_coordinates):
+        L1, L2 = barycentric_coordinates
+        L3 = 1 - L1 - L2
         b, c, _ = self._triangle_parameters(triangle)
         return shape_function_hessian_vectorized(L1, L2, L3, *b, *c)
 
