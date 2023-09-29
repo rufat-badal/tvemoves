@@ -20,32 +20,33 @@ TRIANGLE_QUADRATURE_RULES = [
     DUNAVANT4,
     DUNAVANT5,
 ]
+from typing import Callable
 
 GAUSS_DEGREES = [1, 2, 3, 4, 5, 5, 7]
 
 
-def constant(x, y):
+def constant(x: float, y: float):
     return 1
 
 
 INT_CONSTANT = 1
 
 
-def parabola(x, y):
+def parabola(x: float, y: float):
     return x**2 + y**2
 
 
 INT_PARABOLA = 2 / 3
 
 
-def periodic(x, y):
+def periodic(x: float, y: float):
     return pyo.sin(2 * pi * x) * pyo.cos(2 * pi * y)
 
 
 INT_PERIODIC = 0
 
 
-def generate_integrand(f, grid_points):
+def generate_integrand(f: Callable[[float, float], float], grid_points: list[Vector]):
     def f_integrand(triangle, barycentric_coordinates):
         i1, i2, i3 = triangle
         t1, t2, t3 = barycentric_coordinates
@@ -105,14 +106,14 @@ def test_integrator_with_pyomo_parameters():
         assert isclose(integrator(integrand), pyo.value(integrator(integrand_pyomo)))
 
 
-def generate_edges_in_unit_interval(num_edges):
+def generate_edges_in_unit_interval(num_edges: int):
     segments = [(i, i + 1) for i in range(num_edges)]
     # boundary integrator can only work with vectors
     points = [Vector([i / num_edges, 0]) for i in range(num_edges + 1)]
     return segments, points
 
 
-def generate_boundary_integrand(f, points):
+def generate_boundary_integrand(f: Callable[[float], float], points: list[Vector]):
     # f must be a scalar function on the unit interval
     def f_boundary(segment, t):
         i1, i2 = segment
@@ -122,21 +123,21 @@ def generate_boundary_integrand(f, points):
     return f_boundary
 
 
-def constant_boundary(t):
+def constant_boundary(t: float):
     return 1
 
 
 INT_CONST_BOUNDARY = 1
 
 
-def polynomial_boundary(t):
+def polynomial_boundary(t: float):
     return 10000 * (t - 1 / 2) ** 8
 
 
 INT_POLYNOMIAL_BOUNDARY = 625 / 144
 
 
-def periodic_boundary(t):
+def periodic_boundary(t: float):
     return 100 * pyo.sin(pi * t)
 
 
