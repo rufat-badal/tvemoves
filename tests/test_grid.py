@@ -2,7 +2,7 @@ from tvemoves_rufbad.grid import generate_square_equilateral_grid
 from pytest import approx
 
 
-def test_square_equilateral_grid():
+def test_square_equilateral_grid() -> None:
     n = 50
     num_vertices = n * n
     num_edges = 2 * n * (n - 1) + (n - 1) * (n - 1)

@@ -80,7 +80,7 @@ def shape_function(
     c1: float,
     c2: float,
     c3: float,
-):
+) -> Vector:
     return Vector(shape_function_lambdified(L1, L2, L3, b1, b2, b3, c1, c2, c3))
 
 
@@ -102,7 +102,7 @@ def shape_function_jacobian(
     c1: float,
     c2: float,
     c3: float,
-):
+) -> Matrix:
     return Matrix(
         shape_function_jacobian_lambdified(L1, L2, L3, b1, b2, b3, c1, c2, c3).tolist()
     )
@@ -137,7 +137,7 @@ def shape_function_hessian_vectorized(
     c1: float,
     c2: float,
     c3: float,
-):
+) -> Vector:
     return Vector(
         shape_function_hessian_vectorized_lambdified(L1, L2, L3, b1, b2, b3, c1, c2, c3)
     )
@@ -156,7 +156,9 @@ class Grid:
     neumann_edges: list[tuple[int, int]]
     points: list[Vector]
 
-    def _triangle_parameters(self, triangle: tuple[int, int, int]):
+    def _triangle_parameters(
+        self, triangle: tuple[int, int, int]
+    ) -> tuple[list[float], list[float], float]:
         i, j, k = triangle
         x, y, z = (
             self.points[i],
@@ -178,7 +180,7 @@ class Grid:
         self,
         triangle: tuple[int, int, int],
         barycentric_gradient: Vector,
-    ):
+    ) -> Vector:
         b, c, delta = self._triangle_parameters(triangle)
         trafo_matrix = Matrix([[b[0], b[1], b[2]], [c[0], c[1], c[2]]]) / (2 * delta)
         return trafo_matrix.dot(barycentric_gradient)
@@ -187,7 +189,7 @@ class Grid:
         self,
         triangle: tuple[int, int, int],
         barycentric_hessian: Matrix,
-    ):
+    ) -> Matrix:
         b, c, delta = self._triangle_parameters(triangle)
         trafo_matrix = Matrix(
             [
@@ -226,7 +228,7 @@ class Grid:
         self,
         triangle: tuple[int, int, int],
         barycentric_coordinates: tuple[float, float, float],
-    ):
+    ) -> Vector:
         b, c, _ = self._triangle_parameters(triangle)
         return shape_function(*barycentric_coordinates, *b, *c)
 
@@ -234,7 +236,7 @@ class Grid:
         self,
         triangle: tuple[int, int, int],
         barycentric_coordinates: tuple[float, float, float],
-    ):
+    ) -> Matrix:
         b, c, _ = self._triangle_parameters(triangle)
         return shape_function_jacobian(*barycentric_coordinates, *b, *c)
 
@@ -242,12 +244,14 @@ class Grid:
         self,
         triangle: tuple[int, int, int],
         barycentric_coordinates: tuple[float, float, float],
-    ):
+    ) -> Vector:
         b, c, _ = self._triangle_parameters(triangle)
         return shape_function_hessian_vectorized(*barycentric_coordinates, *b, *c)
 
 
-def generate_square_equilateral_grid(num_horizontal_points: int, fix: str = "none"):
+def generate_square_equilateral_grid(
+    num_horizontal_points: int, fix: str = "none"
+) -> Grid:
     def pair_to_vertex(i, j):
         # (0, 0) -> 0, (1, 0) -> 1, ...,
         # (num_horizontal_points - 1, 0) -> num_horizontal_points -1,
