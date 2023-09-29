@@ -1,4 +1,5 @@
 import pyomo.environ as pyo
+from .grid import Grid
 from .mechanical_step import MechanicalStep
 from dataclasses import dataclass
 import numpy.typing as npt
@@ -19,7 +20,12 @@ class Step:
 
 class Simulation:
     def __init__(
-        self, grid, initial_temperature, search_radius, shape_memory_scaling, fps
+        self,
+        grid: Grid,
+        initial_temperature: float,
+        search_radius: float,
+        shape_memory_scaling: float,
+        fps: int,
     ):
         self._solver = pyo.SolverFactory("ipopt")
         self._mechanical_step = MechanicalStep(
@@ -34,4 +40,3 @@ class Simulation:
         self.steps = [
             Step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
         ]
-        print(self.steps[-1])

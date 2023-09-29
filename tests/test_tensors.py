@@ -3,7 +3,7 @@ import numpy as np
 from pytest import approx
 
 
-def test_vector():
+def test_vector() -> None:
     m = 100
     k = 10
     n = m * k
@@ -36,7 +36,7 @@ def test_vector():
     assert v.map(square)._data == approx(square_vectorized(v_numpy))
 
 
-def test_matrix():
+def test_matrix() -> None:
     A_shape = (100, 200)
     B_shape = A_shape
     C_shape = (200, 50)
@@ -93,7 +93,7 @@ def test_matrix():
     assert A.map(square)._data == approx(square_vectorized(A_numpy))
 
 
-def test_tensor3d():
+def test_tensor3d() -> None:
     T_shape = (100, 200, 50)
     T_numpy = np.random.rand(*T_shape)
     T_data = list(T_numpy)

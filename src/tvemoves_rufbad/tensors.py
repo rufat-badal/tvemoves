@@ -1,5 +1,6 @@
 from __future__ import annotations
 from itertools import permutations
+from typing import Callable
 
 
 def sign(p):
@@ -14,11 +15,11 @@ def sign(p):
 
 
 class Vector:
-    def __init__(self, data):
+    def __init__(self, data: list):
         self.shape = (len(data),)
         self._data = data
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             "Vector([" + ", ".join([str(self[i]) for i in range(self.shape[0])]) + "])"
         )
@@ -29,15 +30,15 @@ class Vector:
             raise IndexError("vector index out of bounds")
         return self._data[i]
 
-    def __neg__(self):
+    def __neg__(self) -> Vector:
         return Vector([-x for x in self._data])
 
-    def __add__(self, other):
+    def __add__(self, other: Vector) -> Vector:
         if self.shape != other.shape:
             raise ValueError("vectors must have the same length for addition")
         return Vector([x + y for x, y in zip(self._data, other._data)])
 
-    def __sub__(self, other):
+    def __sub__(self, other: Vector) -> Vector:
         if self.shape != other.shape:
             raise ValueError("vectors must have the same length for subtraction")
         return Vector([x - y for x, y in zip(self._data, other._data)])
@@ -45,24 +46,24 @@ class Vector:
     def normsqr(self):
         return sum(x**2 for x in self._data)
 
-    def dot(self, other):
+    def dot(self, other: Vector):
         if self.shape != other.shape:
             raise ValueError("vectors must have the same length for the dot product")
         return sum(x * y for (x, y) in zip(self._data, other._data))
 
-    def __mul__(self, scaling):
+    def __mul__(self, scaling) -> Vector:
         return Vector([x * scaling for x in self._data])
 
-    def __rmul__(self, scaling):
+    def __rmul__(self, scaling) -> Vector:
         return self.__mul__(scaling)
 
-    def __truediv__(self, divisor):
+    def __truediv__(self, divisor) -> Vector:
         return Vector([x / divisor for x in self._data])
 
     def __rtruediv__(self, divisor):
         return NotImplemented
 
-    def reshape(self, num_rows, num_cols):
+    def reshape(self, num_rows: int, num_cols: int) -> Matrix:
         # row major format
         return Matrix(
             [
@@ -71,7 +72,7 @@ class Vector:
             ]
         )
 
-    def vstack(self, other):
+    def vstack(self, other: Vector) -> Matrix:
         if self.shape[0] != other.shape[0]:
             raise ValueError(
                 "vectors must be of the same length to be stacked vertically"
@@ -83,12 +84,12 @@ class Vector:
             ]
         )
 
-    def map(self, f):
+    def map(self, f: Callable) -> Vector:
         return Vector([f(x) for x in self._data])
 
 
 class Matrix:
-    def __init__(self, data):
+    def __init__(self, data: list[list]):
         # row major format
         self.shape = (len(data), len(data[0]))
         for row in data[1:]:
@@ -105,16 +106,16 @@ class Matrix:
         data = (",\n" + len(typeinfo) * " ").join(lines)
         return typeinfo + data + ")]"
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: tuple[int, int]):
         i, j = index
         if i < 0 or i >= self.shape[0] or j < 0 or j >= self.shape[1]:
             raise IndexError("matrix index out of bounds")
         return self._data[i][j]
 
-    def __neg__(self):
+    def __neg__(self) -> Matrix:
         return Matrix([[-x for x in row] for row in self._data])
 
-    def __add__(self, other):
+    def __add__(self, other: Matrix) -> Matrix:
         if self.shape != other.shape:
             raise ValueError("matrices must have the same shape for addition")
         return Matrix(
@@ -124,7 +125,7 @@ class Matrix:
             ]
         )
 
-    def __sub__(self, other):
+    def __sub__(self, other: Matrix) -> Matrix:
         if self.shape != other.shape:
             raise ValueError("matrices must have the same shape for subtraction")
         return Matrix(
@@ -134,7 +135,7 @@ class Matrix:
             ]
         )
 
-    def __matmul__(self, other):
+    def __matmul__(self, other: Matrix) -> Matrix:
         if self.shape[1] != other.shape[0]:
             raise ValueError("matrix shapes do not match for multiplication")
         return Matrix(
@@ -150,7 +151,7 @@ class Matrix:
             ]
         )
 
-    def transpose(self):
+    def transpose(self) -> Matrix:
         return Matrix(
             [
                 [self._data[i][j] for i in range(self.shape[0])]
@@ -185,23 +186,23 @@ class Matrix:
             for (x, y) in zip(row, other_row)
         )
 
-    def __mul__(self, scaling):
+    def __mul__(self, scaling) -> Matrix:
         return Matrix([[x * scaling for x in row] for row in self._data])
 
-    def __rmul__(self, scaling):
+    def __rmul__(self, scaling) -> Matrix:
         return self.__mul__(scaling)
 
-    def __truediv__(self, divisor):
+    def __truediv__(self, divisor) -> Matrix:
         return Matrix([[x / divisor for x in row] for row in self._data])
 
     def __rtruediv__(self, divisor):
         return NotImplemented
 
-    def flatten(self):
+    def flatten(self) -> Vector:
         # row major format
         return Vector([x for row in self._data for x in row])
 
-    def dot(self, v):
+    def dot(self, v) -> Vector:
         if v.shape[0] != self.shape[1]:
             raise ValueError(
                 "shape of matrix and vector do not match for the matrix-vector-product"
@@ -213,12 +214,12 @@ class Matrix:
             ]
         )
 
-    def map(self, f):
+    def map(self, f: Callable) -> Matrix:
         return Matrix([[f(x) for x in row] for row in self._data])
 
 
 class Tensor3D:
-    def __init__(self, data):
+    def __init__(self, data: list[list[list]]):
         self.shape = (len(data), len(data[0]), len(data[0][0]))
         for submatrix in data:
             if len(submatrix) != self.shape[1]:
@@ -231,7 +232,7 @@ class Tensor3D:
     def normsqr(self):
         return sum(x**2 for submatrix in self._data for row in submatrix for x in row)
 
-    def map(self, f):
+    def map(self, f: Callable) -> Tensor3D:
         return Tensor3D(
             [[[f(x) for x in row] for row in submatrix] for submatrix in self._data]
         )

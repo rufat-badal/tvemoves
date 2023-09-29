@@ -2,7 +2,7 @@ from .tensors import Matrix
 import pyomo.environ as pyo
 
 
-def austenite_percentage(theta: float):
+def austenite_percentage(theta):
     return 1 - 1 / (1 + theta)
 
 

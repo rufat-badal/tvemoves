@@ -3,7 +3,7 @@ from numpy.polynomial.legendre import leggauss
 
 
 class TriangleQuadratureRule:
-    def __init__(self, points, weights):
+    def __init__(self, points: list[tuple[float, float]], weights: list[float]):
         for p in points:
             x, y = p
             if x < 0 or y < 0 or x + y > 1:
@@ -67,7 +67,7 @@ DUNAVANT5 = TriangleQuadratureRule(
 
 
 class GaussQuadratureRule:
-    def __init__(self, degree):
+    def __init__(self, degree: int):
         # points are in the interval [-1, 1]
         points, weights = leggauss(degree)
         # transform the points and weights to the unit interval [0, 1]

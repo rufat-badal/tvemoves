@@ -4,6 +4,7 @@ from .interpolation import P1Deformation, P1Interpolation
 from .quadrature_rules import DUNAVANT2, CENTROID
 from .tensors import Matrix
 from .integrators import Integrator
+from .grid import Grid
 from .utils import (
     generate_martensite_potential,
     austenite_percentage,
@@ -12,17 +13,19 @@ from .utils import (
     dissipation_norm,
     symmetrized_strain_delta,
 )
+import numpy.typing as npt
+import numpy as np
 
 
 class MechanicalStep:
     def __init__(
         self,
         solver,
-        grid,
-        initial_temperature,
-        search_radius,
-        shape_memory_scaling,
-        fps,
+        grid: Grid,
+        initial_temperature: float,
+        search_radius: float,
+        shape_memory_scaling: float,
+        fps: int,
     ):
         self._solver = solver
         self._model = pyo.ConcreteModel("Mechanical Step")
@@ -100,10 +103,10 @@ class MechanicalStep:
 
         m.objective = pyo.Objective(expr=m.total_elastic_energy + fps * m.dissipation)
 
-    def solve(self):
+    def solve(self) -> None:
         self._solver.solve(self._model)
 
-    def prev_y(self):
+    def prev_y(self) -> npt.NDArray[np.float64]:
         return np.array(
             [
                 [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
@@ -111,7 +114,7 @@ class MechanicalStep:
             ]
         )
 
-    def y(self):
+    def y(self) -> npt.NDArray[np.float64]:
         return np.array(
             [
                 [self._model.y1[i].value, self._model.y2[i].value]
@@ -119,7 +122,7 @@ class MechanicalStep:
             ]
         )
 
-    def prev_theta(self):
+    def prev_theta(self) -> npt.NDArray[np.float64]:
         return np.array(
             [self._model.prev_theta[i].value for i in range(self._num_vertices)]
         )
