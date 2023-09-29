@@ -1,11 +1,14 @@
 import pyomo.environ as pyo
 from .mechanical_step import MechanicalStep
+from dataclasses import dataclass
+import numpy.typing as npt
+import numpy as np
 
 
+@dataclass(frozen=True)
 class Step:
-    def __init__(self, y, theta):
-        self.y = y
-        self.theta = theta
+    y: npt.NDArray[np.float64]
+    theta: npt.NDArray[np.float64]
 
     def __repr__(self):
         return f"Step(y={repr(self.y)}, theta={repr(self.theta)})"
