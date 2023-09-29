@@ -1,5 +1,6 @@
 from .tensors import Vector, Matrix
 import sympy as sp
+from dataclasses import dataclass
 
 # shape function and its derivatives
 L1, L2, L3 = sp.symbols("L1 L2 L3")
@@ -69,7 +70,17 @@ shape_function_symbolic = [N1, N2, N3, N4, N5, N6]
 shape_function_lambdified = sp.lambdify(L + b + c, shape_function_symbolic)
 
 
-def shape_function(L1, L2, L3, b1, b2, b3, c1, c2, c3):
+def shape_function(
+    L1: float,
+    L2: float,
+    L3: float,
+    b1: float,
+    b2: float,
+    b3: float,
+    c1: float,
+    c2: float,
+    c3: float,
+):
     return Vector(shape_function_lambdified(L1, L2, L3, b1, b2, b3, c1, c2, c3))
 
 
@@ -81,7 +92,17 @@ shape_function_jacobian_lambdified = sp.lambdify(
 )
 
 
-def shape_function_jacobian(L1, L2, L3, b1, b2, b3, c1, c2, c3):
+def shape_function_jacobian(
+    L1: float,
+    L2: float,
+    L3: float,
+    b1: float,
+    b2: float,
+    b3: float,
+    c1: float,
+    c2: float,
+    c3: float,
+):
     return Matrix(
         shape_function_jacobian_lambdified(L1, L2, L3, b1, b2, b3, c1, c2, c3).tolist()
     )
@@ -106,38 +127,36 @@ shape_function_hessian_vectorized_lambdified = sp.lambdify(
 )
 
 
-def shape_function_hessian_vectorized(L1, L2, L3, b1, b2, b3, c1, c2, c3):
+def shape_function_hessian_vectorized(
+    L1: float,
+    L2: float,
+    L3: float,
+    b1: float,
+    b2: float,
+    b3: float,
+    c1: float,
+    c2: float,
+    c3: float,
+):
     return Vector(
         shape_function_hessian_vectorized_lambdified(L1, L2, L3, b1, b2, b3, c1, c2, c3)
     )
 
 
+@dataclass(frozen=True)
 class Grid:
-    def __init__(
-        self,
-        vertices,
-        edges,
-        triangles,
-        boundary_vertices,
-        boundary_edges,
-        dirichlet_vertices,
-        dirichlet_edges,
-        neumann_vertices,
-        neumann_edges,
-        points,
-    ):
-        self.vertices = vertices
-        self.edges = edges
-        self.triangles = triangles
-        self.boundary_vertices = boundary_vertices
-        self.boundary_edges = boundary_edges
-        self.dirichlet_vertices = dirichlet_vertices
-        self.dirichlet_edges = dirichlet_edges
-        self.neumann_vertices = neumann_vertices
-        self.neumann_edges = neumann_edges
-        self.points = points
+    vertices: list[int]
+    edges: list[tuple[int, int]]
+    triangles: list[tuple[int, int, int]]
+    boundary_vertices: list[int]
+    boundary_edges: list[tuple[int, int]]
+    dirichlet_vertices: list[int]
+    dirichlet_edges: list[tuple[int, int]]
+    neumann_vertices: list[int]
+    neumann_edges: list[tuple[int, int]]
+    points: list[Vector]
 
-    def _triangle_parameters(self, triangle):
+    def _triangle_parameters(self, triangle: tuple[int, int, int]):
         i, j, k = triangle
         x, y, z = (
             self.points[i],
@@ -155,12 +174,20 @@ class Grid:
 
         return b, c, delta
 
-    def gradient_transform(self, triangle, barycentric_gradient):
+    def gradient_transform(
+        self,
+        triangle: tuple[int, int, int],
+        barycentric_gradient: Vector,
+    ):
         b, c, delta = self._triangle_parameters(triangle)
         trafo_matrix = Matrix([[b[0], b[1], b[2]], [c[0], c[1], c[2]]]) / (2 * delta)
         return trafo_matrix.dot(barycentric_gradient)
 
-    def hessian_transform(self, triangle, barycentric_hessian):
+    def hessian_transform(
+        self,
+        triangle: tuple[int, int, int],
+        barycentric_hessian: Matrix,
+    ):
         b, c, delta = self._triangle_parameters(triangle)
         trafo_matrix = Matrix(
             [
@@ -195,20 +222,32 @@ class Grid:
             [[flat_hessian[0], flat_hessian[2]], [flat_hessian[2], flat_hessian[1]]]
         )
 
-    def shape_function(self, triangle, barycentric_coordinates):
+    def shape_function(
+        self,
+        triangle: tuple[int, int, int],
+        barycentric_coordinates: tuple[float, float, float],
+    ):
         b, c, _ = self._triangle_parameters(triangle)
         return shape_function(*barycentric_coordinates, *b, *c)
 
-    def shape_function_jacobian(self, triangle, barycentric_coordinates):
+    def shape_function_jacobian(
+        self,
+        triangle: tuple[int, int, int],
+        barycentric_coordinates: tuple[float, float, float],
+    ):
         b, c, _ = self._triangle_parameters(triangle)
         return shape_function_jacobian(*barycentric_coordinates, *b, *c)
 
-    def shape_function_hessian_vectorized(self, triangle, barycentric_coordinates):
+    def shape_function_hessian_vectorized(
+        self,
+        triangle: tuple[int, int, int],
+        barycentric_coordinates: tuple[float, float, float],
+    ):
         b, c, _ = self._triangle_parameters(triangle)
         return shape_function_hessian_vectorized(*barycentric_coordinates, *b, *c)
 
 
-def generate_square_equilateral_grid(num_horizontal_points, fix=None):
+def generate_square_equilateral_grid(num_horizontal_points: int, fix: str = "none"):
     def pair_to_vertex(i, j):
         # (0, 0) -> 0, (1, 0) -> 1, ...,
         # (num_horizontal_points - 1, 0) -> num_horizontal_points -1,
@@ -304,7 +343,7 @@ def generate_square_equilateral_grid(num_horizontal_points, fix=None):
     )
 
     match fix:
-        case None:
+        case "none":
             dirichlet_vertices = []
             dirichlet_edges = []
             neumann_vertices = boundary_vertices
