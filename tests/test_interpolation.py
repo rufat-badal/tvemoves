@@ -116,10 +116,10 @@ def test_p1_interpolation() -> None:
     ]
 
     for f, grad_f in zip(functions, gradients):
-        params = [f(*p) for p in grid.points]
+        params = [f(p[0], p[1]) for p in grid.points]
         f_approx = P1Interpolation(grid, params)
 
-        values = [f(*p) for p in evaluation_points]
+        values = [f(p[0], p[1]) for p in evaluation_points]
         values_approx = [
             f_approx(triangle, (1 / 3, 1 / 3, 1 / 3)) for triangle in grid.triangles
         ]
@@ -129,7 +129,7 @@ def test_p1_interpolation() -> None:
         ) / len(grid.triangles)
         assert mean_squared_error < eps
 
-        grad_values = [grad_f(*p) for p in evaluation_points]
+        grad_values = [grad_f(p[0], p[1]) for p in evaluation_points]
         grad_values_approx = [
             f_approx.gradient(triangle) for triangle in grid.triangles
         ]
@@ -145,7 +145,7 @@ def test_p1_interpolation_with_pyomo_params() -> None:
     grid = generate_square_equilateral_grid(num_horizontal_points=50)
 
     for f in functions:
-        params = [f(*p) for p in grid.points]
+        params = [f(p[0], p[1]) for p in grid.points]
         f_approx = P1Interpolation(grid, params)
         values = [
             f_approx(triangle, (1 / 3, 1 / 3, 1 / 3)) for triangle in grid.triangles
@@ -183,14 +183,14 @@ def test_p1_deformation() -> None:
     ]
 
     for deform, strain in zip(deformations, strains):
-        params_vectors = [deform(*p) for p in grid.points]
+        params_vectors = [deform(p[0], p[1]) for p in grid.points]
         params = (
             [v[0] for v in params_vectors],
             [v[1] for v in params_vectors],
         )
         deform_approx = P1Deformation(grid, *params)
 
-        values = [deform(*p) for p in evaluation_points]
+        values = [deform(p[0], p[1]) for p in evaluation_points]
         values_approx = [
             deform_approx(triangle, (1 / 3, 1 / 3, 1 / 3)).map(pyo.value)
             for triangle in grid.triangles
@@ -201,7 +201,7 @@ def test_p1_deformation() -> None:
         ) / len(grid.triangles)
         assert mean_squared_error < eps
 
-        strain_values = [strain(*p) for p in evaluation_points]
+        strain_values = [strain(p[0], p[1]) for p in evaluation_points]
         strain_values_approx = [
             deform_approx.strain(triangle) for triangle in grid.triangles
         ]
@@ -224,9 +224,9 @@ def test_c1_interpolation() -> None:
     ]
 
     for f, grad_f, hessian_f in zip(functions, gradients, hessians):
-        f_at_grid_points = [f(*p) for p in grid.points]
-        grad_f_at_grid_points = [grad_f(*p) for p in grid.points]
-        hessian_f_at_grid_points = [hessian_f(*p) for p in grid.points]
+        f_at_grid_points = [f(p[0], p[1]) for p in grid.points]
+        grad_f_at_grid_points = [grad_f(p[0], p[1]) for p in grid.points]
+        hessian_f_at_grid_points = [hessian_f(p[0], p[1]) for p in grid.points]
         params = [
             [f, G[0], G[1], H[0, 0], H[0, 1], H[1, 1]]
             for (f, G, H) in zip(
@@ -235,7 +235,7 @@ def test_c1_interpolation() -> None:
         ]
         f_approx = C1Interpolation(grid, params)
 
-        values = [f(*p) for p in evaluation_points]
+        values = [f(p[0], p[1]) for p in evaluation_points]
         values_approx = [
             f_approx(triangle, (1 / 3, 1 / 3, 1 / 3)) for triangle in grid.triangles
         ]

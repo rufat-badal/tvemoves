@@ -56,7 +56,7 @@ def generate_integrand(
         i1, i2, i3 = triangle
         t1, t2, t3 = barycentric_coordinates
         p = t1 * grid_points[i1] + t2 * grid_points[i2] + t3 * grid_points[i3]
-        return f(*p)
+        return f(p[0], p[1])
 
     return f_integrand
 
