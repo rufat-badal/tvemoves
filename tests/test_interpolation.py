@@ -215,7 +215,7 @@ def test_p1_deformation() -> None:
 
 def test_c1_interpolation() -> None:
     eps = 1e-6
-    grad_eps = 1e-3
+    grad_eps = 1e-4
     grid = generate_square_equilateral_grid(num_horizontal_points=8)
     p0 = grid.points
     evaluation_points = [
