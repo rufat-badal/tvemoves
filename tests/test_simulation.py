@@ -7,3 +7,6 @@ def test_simulation() -> None:
     simulation = Simulation(
         grid, initial_temperature=0.1, search_radius=10, shape_memory_scaling=2, fps=3
     )
+
+
+test_simulation()

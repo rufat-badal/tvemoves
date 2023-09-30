@@ -1,6 +1,11 @@
 from tvemoves_rufbad.integrators import Integrator, BoundaryIntegrator
 from tvemoves_rufbad.tensors import Vector
-from tvemoves_rufbad.grid import generate_square_equilateral_grid
+from tvemoves_rufbad.grid import (
+    generate_square_equilateral_grid,
+    Triangle,
+    Edge,
+    BarycentricCoords,
+)
 from tvemoves_rufbad.quadrature_rules import (
     CENTROID,
     VERTEX,
@@ -48,10 +53,10 @@ INT_PERIODIC = 0
 
 def generate_integrand(
     f: Callable[[float, float], float], grid_points: list[Vector]
-) -> Callable[[tuple[int, int, int], tuple[float, float, float]], float]:
+) -> Callable[[Triangle, BarycentricCoords], float]:
     def f_integrand(
-        triangle: tuple[int, int, int],
-        barycentric_coordinates: tuple[float, float, float],
+        triangle: Triangle,
+        barycentric_coordinates: BarycentricCoords,
     ) -> float:
         i1, i2, i3 = triangle
         t1, t2, t3 = barycentric_coordinates
@@ -122,9 +127,9 @@ def generate_edges_in_unit_interval(
 
 def generate_boundary_integrand(
     f: Callable[[float], float], points: list[Vector]
-) -> Callable[[tuple[int, int], float], float]:
+) -> Callable[[Edge, float], float]:
     # f must be a scalar function on the unit interval
-    def f_boundary(segment: tuple[int, int], t: float) -> float:
+    def f_boundary(segment: Edge, t: float) -> float:
         i1, i2 = segment
         # only use first component (the second one is zero)
         return f(t * points[i1][0] + (1 - t) * points[i2][0])

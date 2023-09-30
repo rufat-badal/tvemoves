@@ -2,13 +2,14 @@ from .quadrature_rules import GaussQuadratureRule, TriangleQuadratureRule
 from .tensors import Vector
 import pyomo.environ as pyo
 from typing import Callable
+from .grid import Triangle, Edge, BarycentricCoords
 
 
 class Integrator:
     def __init__(
         self,
         quadrature: TriangleQuadratureRule,
-        triangles: list[tuple[int, int, int]],
+        triangles: list[Triangle],
         points: list[Vector],
     ):
         self._triangles = triangles
@@ -22,7 +23,7 @@ class Integrator:
 
     def __call__(
         self,
-        integrand: Callable[[tuple[int, int, int], tuple[float, float, float]], float],
+        integrand: Callable[[Triangle, BarycentricCoords], float],
     ):
         return sum(
             triangle_area
@@ -37,7 +38,7 @@ class Integrator:
 
 
 class BoundaryIntegrator:
-    def __init__(self, degree, edges, points):
+    def __init__(self, degree: int, edges: list[Edge], points: list[Vector]):
         self._edges = edges
         self._quadrature = GaussQuadratureRule(degree)
         self._edge_lengths = [
@@ -46,7 +47,7 @@ class BoundaryIntegrator:
 
     def __call__(
         self,
-        integrand: Callable[[tuple[int, int], float], float],
+        integrand: Callable[[Edge, float], float],
     ):
         # integrand(edge, t) should return a float,
         # where edge is any edge in self._edges and t is in [0, 1]
