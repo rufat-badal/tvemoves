@@ -182,5 +182,4 @@ def test_boundary_integrator() -> None:
                     approximation_converges = True
                     break
                 num_points *= 2
-            print(f"{num_points}: {error}")
             assert approximation_converges

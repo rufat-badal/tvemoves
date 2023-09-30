@@ -137,7 +137,6 @@ def test_p1_interpolation() -> None:
             (grad_value - grad_value_approx).normsqr()
             for (grad_value, grad_value_approx) in zip(grad_values, grad_values_approx)
         ) / len(grid.triangles)
-        print(mean_squared_grad_error)
         assert mean_squared_grad_error < grad_eps
 
 
@@ -216,7 +215,8 @@ def test_p1_deformation() -> None:
 
 def test_c1_interpolation() -> None:
     eps = 1e-6
-    grid = generate_square_equilateral_grid(num_horizontal_points=7)
+    grad_eps = 1e-3
+    grid = generate_square_equilateral_grid(num_horizontal_points=8)
     p0 = grid.points
     evaluation_points = [
         p0[i1] / 3 + p0[i2] / 3 + p0[i3] / 3 for (i1, i2, i3) in grid.triangles
@@ -243,3 +243,14 @@ def test_c1_interpolation() -> None:
             for (value, value_approx) in zip(values, values_approx)
         ) / len(grid.triangles)
         assert mean_squared_error < eps
+
+        grad_values = [grad_f(p[0], p[1]) for p in evaluation_points]
+        grad_values_approx = [
+            f_approx.gradient(triangle, (1 / 3, 1 / 3, 1 / 3))
+            for triangle in grid.triangles
+        ]
+        mean_squared_grad_error = sum(
+            (grad_value - grad_value_approx).normsqr()
+            for (grad_value, grad_value_approx) in zip(grad_values, grad_values_approx)
+        ) / len(grid.triangles)
+        assert mean_squared_grad_error < grad_eps

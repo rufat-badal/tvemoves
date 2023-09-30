@@ -73,3 +73,37 @@ class C1Interpolation:
         ]
         ps = [self._params[i1], self._params[i2], self._params[i3]]
         return sum(N.dot(p) for (N, p) in zip(Ns, ps))
+
+    def _barycentric_gradient(
+        self, triangle: Triangle, barycentric_coordinates: BarycentricCoords
+    ) -> Matrix:
+        i1, i2, i3 = triangle
+        L1, L2, L3 = barycentric_coordinates
+
+        gradient1 = (
+            self._grid.shape_function_jacobian((i1, i2, i3), (L1, L2, L3))
+            .transpose()
+            .dot(self._params[i1])
+        )
+        gradient2 = (
+            (
+                self._grid.shape_function_jacobian((i2, i3, i1), (L2, L3, L1))
+                @ Matrix([[0, 1, 0], [0, 0, 1], [1, 0, 0]])
+            )
+            .transpose()
+            .dot(self._params[i2])
+        )
+        gradient3 = (
+            (
+                self._grid.shape_function_jacobian((i3, i1, i2), (L3, L1, L2))
+                @ Matrix([[0, 0, 1], [1, 0, 0], [0, 1, 0]])
+            )
+            .transpose()
+            .dot(self._params[i3])
+        )
+        return gradient1 + gradient2 + gradient3
+
+    def gradient(self, triangle: Triangle, barycentric_coordinates: BarycentricCoords):
+        return self._grid.gradient_transform(
+            triangle, self._barycentric_gradient(triangle, barycentric_coordinates)
+        )
