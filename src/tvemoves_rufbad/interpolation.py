@@ -76,7 +76,7 @@ class C1Interpolation:
 
     def _barycentric_gradient(
         self, triangle: Triangle, barycentric_coordinates: BarycentricCoords
-    ) -> Matrix:
+    ) -> Vector:
         i1, i2, i3 = triangle
         L1, L2, L3 = barycentric_coordinates
 
