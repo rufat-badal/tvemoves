@@ -154,3 +154,11 @@ class C1Interpolation:
             .dot(self._params[i3])
         )
         return hessian1 + hessian2 + hessian3
+
+    def hessian(
+        self, triangle: Triangle, barycentric_coordinates: BarycentricCoords
+    ) -> Matrix:
+        return self._grid.hessian_transform(
+            triangle,
+            self._barycentric_hessian_vectorized(triangle, barycentric_coordinates),
+        )

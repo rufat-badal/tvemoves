@@ -196,7 +196,7 @@ class Grid:
     def hessian_transform(
         self,
         triangle: Triangle,
-        barycentric_hessian: Matrix,
+        barycentric_hessian_vectorized: Vector,
     ) -> Matrix:
         b, c, delta = self._triangle_parameters(triangle)
         trafo_matrix = Matrix(
@@ -227,7 +227,7 @@ class Grid:
                 ],
             ]
         ) / (4 * delta**2)
-        flat_hessian = trafo_matrix.dot(barycentric_hessian.flatten())
+        flat_hessian = trafo_matrix.dot(barycentric_hessian_vectorized)
         return Matrix(
             [[flat_hessian[0], flat_hessian[2]], [flat_hessian[2], flat_hessian[1]]]
         )
