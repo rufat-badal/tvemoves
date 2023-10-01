@@ -107,3 +107,50 @@ class C1Interpolation:
         return self._grid.gradient_transform(
             triangle, self._barycentric_gradient(triangle, barycentric_coordinates)
         )
+
+    def _barycentric_hessian_vectorized(
+        self, triangle: Triangle, barycentric_coordinates: BarycentricCoords
+    ) -> Vector:
+        i1, i2, i3 = triangle
+        L1, L2, L3 = barycentric_coordinates
+
+        hessian1 = (
+            self._grid.shape_function_hessian_vectorized((i1, i2, i3), (L1, L2, L3))
+            .transpose()
+            .dot(self._params[i1])
+        )
+        hessian2 = (
+            (
+                self._grid.shape_function_hessian_vectorized((i2, i3, i1), (L2, L3, L1))
+                @ Matrix(
+                    [
+                        [0, 1, 0, 0, 0, 0],
+                        [0, 0, 1, 0, 0, 0],
+                        [1, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 1],
+                        [0, 0, 0, 1, 0, 0],
+                        [0, 0, 0, 0, 1, 0],
+                    ]
+                )
+            )
+            .transpose()
+            .dot(self._params[i2])
+        )
+        hessian3 = (
+            (
+                self._grid.shape_function_hessian_vectorized((i3, i1, i2), (L3, L1, L2))
+                @ Matrix(
+                    [
+                        [0, 0, 1, 0, 0, 0],
+                        [1, 0, 0, 0, 0, 0],
+                        [0, 1, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 1, 0],
+                        [0, 0, 0, 0, 0, 1],
+                        [0, 0, 0, 1, 0, 0],
+                    ]
+                )
+            )
+            .transpose()
+            .dot(self._params[i3])
+        )
+        return hessian1 + hessian2 + hessian3

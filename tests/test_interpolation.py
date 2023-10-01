@@ -312,3 +312,12 @@ def test_c1_interpolation_5th_order() -> None:
         for (grad_value, grad_value_approx) in zip(grad_values, grad_values_approx)
     ) / len(grid.triangles)
     assert mean_squared_grad_error < eps
+
+    print(
+        f_approx._barycentric_hessian_vectorized(
+            grid.triangles[0], (1 / 3, 1 / 3, 1 / 3)
+        )
+    )
+
+
+test_c1_interpolation_5th_order()

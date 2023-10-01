@@ -117,11 +117,12 @@ shape_function_hessian_symbolic = sp.Array(
         for i in range(6)
     ]
 )
-shape_function_hessian_vectorized_symbolic = [
-    H[idx]
-    for H in shape_function_hessian_symbolic
-    for idx in [(0, 0), (1, 1), (2, 2), (0, 1), (0, 2), (1, 2)]
-]
+shape_function_hessian_vectorized_symbolic = sp.Matrix(
+    [
+        [H[0, 0], H[1, 1], H[2, 2], H[0, 1], H[0, 2], H[1, 2]]
+        for H in shape_function_hessian_symbolic
+    ]
+)
 shape_function_hessian_vectorized_lambdified = sp.lambdify(
     L + b + c, shape_function_hessian_vectorized_symbolic
 )
@@ -137,9 +138,11 @@ def shape_function_hessian_vectorized(
     c1: float,
     c2: float,
     c3: float,
-) -> Vector:
-    return Vector(
-        shape_function_hessian_vectorized_lambdified(L1, L2, L3, b1, b2, b3, c1, c2, c3)
+) -> Matrix:
+    return Matrix(
+        shape_function_hessian_vectorized_lambdified(
+            L1, L2, L3, b1, b2, b3, c1, c2, c3
+        ).tolist()
     )
 
 
