@@ -261,6 +261,19 @@ class Tensor3D:
         data = (",\n" + len(typeinfo) * " ").join(matrices_representations)
         return typeinfo + data + ")]"
 
+    def __getitem__(self, index: tuple[int, int, int]):
+        i, j, k = index
+        if (
+            i < 0
+            or i >= self.shape[0]
+            or j < 0
+            or j >= self.shape[1]
+            or k < 0
+            or k >= self.shape[2]
+        ):
+            raise IndexError("tensor index out of bounds")
+        return self._data[i][j][k]
+
     def normsqr(self):
         return sum(x**2 for submatrix in self._data for row in submatrix for x in row)
 
