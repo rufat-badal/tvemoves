@@ -274,6 +274,37 @@ class Tensor3D:
             raise IndexError("tensor index out of bounds")
         return self._data[i][j][k]
 
+    def __neg__(self) -> Tensor3D:
+        return Tensor3D(
+            [[[-x for x in row] for row in matrix] for matrix in self._data]
+        )
+
+    def __add__(self, other: Tensor3D) -> Tensor3D:
+        if self.shape != other.shape:
+            raise ValueError("tensors must have the same shape for addition")
+        return Tensor3D(
+            [
+                [
+                    [x + y for (x, y) in zip(row, other_row)]
+                    for (row, other_row) in zip(matrix, other_matrix)
+                ]
+                for (matrix, other_matrix) in zip(self._data, other._data)
+            ]
+        )
+
+    def __sub__(self, other: Tensor3D) -> Tensor3D:
+        if self.shape != other.shape:
+            raise ValueError("tensors must have the same shape for addition")
+        return Tensor3D(
+            [
+                [
+                    [x - y for (x, y) in zip(row, other_row)]
+                    for (row, other_row) in zip(matrix, other_matrix)
+                ]
+                for (matrix, other_matrix) in zip(self._data, other._data)
+            ]
+        )
+
     def normsqr(self):
         return sum(x**2 for submatrix in self._data for row in submatrix for x in row)
 
