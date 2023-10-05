@@ -80,6 +80,10 @@ def affine_strain(x: float, y: float) -> Matrix:
     return Matrix([[2, 0], [0, 1]])
 
 
+def affine_hyper_strain(x: float, y: float) -> Tensor3D:
+    return Tensor3D([[[0, 0], [0, 0]], [[0, 0], [0, 0]]])
+
+
 def bend_deformation(x: float, y: float) -> Vector:
     angle = pi / 2 * x
     return (2 - y) * Vector([pyo.cos(angle), pyo.sin(angle)])
@@ -95,6 +99,22 @@ def bend_strain(x: float, y: float) -> Matrix:
     )
 
 
+def bend_hyper_strain(x: float, y: float) -> Tensor3D:
+    angle = pi / 2 * x
+    return Tensor3D(
+        [
+            [
+                [-(pi**2) / 4 * (2 - y) * pyo.cos(angle), pi / 2 * pyo.sin(angle)],
+                [pi / 2 * pyo.sin(angle), 0],
+            ],
+            [
+                [-(pi**2) / 4 * (2 - y) * pyo.sin(angle), -pi / 2 * pyo.cos(angle)],
+                [-pi / 2 * pyo.cos(angle), 0],
+            ],
+        ]
+    )
+
+
 def squeeze_deformation(x: float, y: float) -> Vector:
     return Vector([x - 1 / 2, 1 / 2 * (4 * x**2 + 1) * (y - 1 / 2)])
 
@@ -103,8 +123,13 @@ def squeeze_strain(x: float, y: float) -> Matrix:
     return Matrix([[1, 0], [4 * x * (y - 1 / 2), 1 / 2 * (4 * x**2 + 1)]])
 
 
+def squeeze_hyper_strain(x: float, y: float) -> Tensor3D:
+    return Tensor3D([[[0, 0], [0, 0]], [[4 * (y - 1 / 2), 4 * x], [4 * x, 0]]])
+
+
 deformations = [affine_deformation, bend_deformation, squeeze_deformation]
 strains = [affine_strain, bend_strain, squeeze_strain]
+hyper_strains = [affine_hyper_strain, bend_hyper_strain, squeeze_hyper_strain]
 
 
 def test_p1_interpolation() -> None:
@@ -315,36 +340,8 @@ def test_c1_interpolation_5th_order() -> None:
     assert mean_squared_grad_error < eps
 
 
-def affine_hyper_strain(x: float, y: float) -> Tensor3D:
-    return Tensor3D([[[0, 0], [0, 0]], [[0, 0], [0, 0]]])
-
-
-def bend_hyper_strain(x: float, y: float) -> Tensor3D:
-    angle = pi / 2 * x
-    return Tensor3D(
-        [
-            [
-                [-(pi**2) / 4 * pyo.cos(angle), pi / 2 * pyo.sin(angle)],
-                [pi / 2 * pyo.sin(angle), 0],
-            ],
-            [
-                [-(pi**2) / 4 * pyo.sin(angle), -pi / 2 * pyo.cos(angle)],
-                [-pi / 2 * pyo.cos(angle), 0],
-            ],
-        ]
-    )
-
-
-def squeeze_hyper_strain(x: float, y: float) -> Tensor3D:
-    return Tensor3D([[[0, 0], [0, 0]], [[4 * (y - 1 / 2), 4 * x], [4 * x, 0]]])
-
-
-hyper_strains = [affine_hyper_strain, bend_hyper_strain, squeeze_hyper_strain]
-
-
 def test_c1_deformation() -> None:
     eps = 1e-6
-    grad_eps = 1e-3
     grid = generate_square_equilateral_grid(num_horizontal_points=7)
     p0 = grid.points
     evaluation_points = [
@@ -395,4 +392,17 @@ def test_c1_deformation() -> None:
                 strain_values, strain_values_approx
             )
         ) / len(grid.triangles)
-        assert mean_squared_strain_error < grad_eps
+        assert mean_squared_strain_error < eps
+
+        hyper_strain_values = [hyper_strain(p[0], p[1]) for p in evaluation_points]
+        hyper_strain_values_approx = [
+            deform_approx.hyper_strain(triangle, (1 / 3, 1 / 3, 1 / 3))
+            for triangle in grid.triangles
+        ]
+        mean_squared_hyper_strain_error = sum(
+            (hyper_strain_value - hyper_strain_value_approx).normsqr()
+            for (hyper_strain_value, hyper_strain_value_approx) in zip(
+                hyper_strain_values, hyper_strain_values_approx
+            )
+        ) / len(grid.triangles)
+        assert mean_squared_hyper_strain_error < eps
