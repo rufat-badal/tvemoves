@@ -2,9 +2,10 @@ from tvemoves_rufbad.interpolation import (
     P1Interpolation,
     P1Deformation,
     C1Interpolation,
+    C1Deformation,
 )
 from tvemoves_rufbad.grid import generate_square_equilateral_grid
-from tvemoves_rufbad.tensors import Vector, Matrix
+from tvemoves_rufbad.tensors import Vector, Matrix, Tensor3D
 import pyomo.environ as pyo
 from math import pi
 from pytest import approx
@@ -312,3 +313,86 @@ def test_c1_interpolation_5th_order() -> None:
         for (grad_value, grad_value_approx) in zip(grad_values, grad_values_approx)
     ) / len(grid.triangles)
     assert mean_squared_grad_error < eps
+
+
+def affine_hyper_strain(x: float, y: float) -> Tensor3D:
+    return Tensor3D([[[0, 0], [0, 0]], [[0, 0], [0, 0]]])
+
+
+def bend_hyper_strain(x: float, y: float) -> Tensor3D:
+    angle = pi / 2 * x
+    return Tensor3D(
+        [
+            [
+                [-(pi**2) / 4 * pyo.cos(angle), pi / 2 * pyo.sin(angle)],
+                [pi / 2 * pyo.sin(angle), 0],
+            ],
+            [
+                [-(pi**2) / 4 * pyo.sin(angle), -pi / 2 * pyo.cos(angle)],
+                [-pi / 2 * pyo.cos(angle), 0],
+            ],
+        ]
+    )
+
+
+def squeeze_hyper_strain(x: float, y: float) -> Tensor3D:
+    return Tensor3D([[[0, 0], [0, 0]], [[4 * (y - 1 / 2), 4 * x], [4 * x, 0]]])
+
+
+hyper_strains = [affine_hyper_strain, bend_hyper_strain, squeeze_hyper_strain]
+
+
+def test_c1_deformation() -> None:
+    eps = 1e-6
+    grad_eps = 1e-3
+    grid = generate_square_equilateral_grid(num_horizontal_points=7)
+    p0 = grid.points
+    evaluation_points = [
+        p0[i1] / 3 + p0[i2] / 3 + p0[i3] / 3 for (i1, i2, i3) in grid.triangles
+    ]
+
+    for deform, strain, hyper_strain in zip(deformations, strains, hyper_strains):
+        deforms_at_grid_points = [deform(p[0], p[1]) for p in grid.points]
+        strains_at_grid_points = [strain(p[0], p[1]) for p in grid.points]
+        hyper_strains_at_grid_points = [hyper_strain(p[0], p[1]) for p in grid.points]
+        params1 = [
+            [y[0], G[0, 0], G[0, 1], H[0, 0, 0], H[0, 0, 1], H[0, 1, 1]]
+            for (y, G, H) in zip(
+                deforms_at_grid_points,
+                strains_at_grid_points,
+                hyper_strains_at_grid_points,
+            )
+        ]
+        params2 = [
+            [y[1], G[1, 0], G[1, 1], H[1, 0, 0], H[1, 0, 1], H[1, 1, 1]]
+            for (y, G, H) in zip(
+                deforms_at_grid_points,
+                strains_at_grid_points,
+                hyper_strains_at_grid_points,
+            )
+        ]
+        deform_approx = C1Deformation(grid, params1, params2)
+
+        values = [deform(p[0], p[1]) for p in evaluation_points]
+        values_approx = [
+            deform_approx(triangle, (1 / 3, 1 / 3, 1 / 3)).map(pyo.value)
+            for triangle in grid.triangles
+        ]
+        mean_squared_error = sum(
+            (value - value_approx).normsqr()
+            for (value, value_approx) in zip(values, values_approx)
+        ) / len(grid.triangles)
+        assert mean_squared_error < eps
+
+        strain_values = [strain(p[0], p[1]) for p in evaluation_points]
+        strain_values_approx = [
+            deform_approx.strain(triangle, (1 / 3, 1 / 3, 1 / 3))
+            for triangle in grid.triangles
+        ]
+        mean_squared_strain_error = sum(
+            (strain_value - strain_value_approx).normsqr()
+            for (strain_value, strain_value_approx) in zip(
+                strain_values, strain_values_approx
+            )
+        ) / len(grid.triangles)
+        assert mean_squared_strain_error < grad_eps
