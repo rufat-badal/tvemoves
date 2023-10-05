@@ -21,7 +21,9 @@ class Vector:
 
     def __repr__(self) -> str:
         return (
-            "Vector([" + ", ".join([str(self[i]) for i in range(self.shape[0])]) + "])"
+            "Vector(["
+            + ", ".join([str(self._data[i]) for i in range(self.shape[0])])
+            + "])"
         )
 
     def __getitem__(self, i):
@@ -99,7 +101,9 @@ class Matrix:
 
     def __repr__(self):
         lines = [
-            "[" + ", ".join([repr(self[i, j]) for j in range(self.shape[1])]) + "]"
+            "["
+            + ", ".join([repr(self._data[i][j]) for j in range(self.shape[1])])
+            + "]"
             for i in range(self.shape[0])
         ]
         typeinfo = "Matrix(["
@@ -217,6 +221,18 @@ class Matrix:
     def map(self, f: Callable) -> Matrix:
         return Matrix([[f(x) for x in row] for row in self._data])
 
+    def vstack(self, other: Matrix) -> Tensor3D:
+        if self.shape[0] != other.shape[0]:
+            raise ValueError(
+                "matrices must be of the same length to be stacked vertically"
+            )
+        return Tensor3D(
+            [
+                self._data,
+                other._data,
+            ]
+        )
+
 
 class Tensor3D:
     def __init__(self, data: list[list[list]]):
@@ -228,6 +244,22 @@ class Tensor3D:
                 if len(row) != self.shape[2]:
                     raise ValueError("incorrectly shaped initialization list provided")
         self._data = data
+
+    def __repr__(self):
+        typeinfo = "Tensor3D(["
+        matrices_representations = []
+        for i in range(self.shape[0]):
+            matrix_rows = [
+                "["
+                + ", ".join([repr(self._data[i][j][k]) for k in range(self.shape[2])])
+                + "]"
+                for j in range(self.shape[1])
+            ]
+            matrices_representations.append(
+                "[" + (",\n " + len(typeinfo) * " ").join(matrix_rows) + "]"
+            )
+        data = (",\n" + len(typeinfo) * " ").join(matrices_representations)
+        return typeinfo + data + ")]"
 
     def normsqr(self):
         return sum(x**2 for submatrix in self._data for row in submatrix for x in row)
