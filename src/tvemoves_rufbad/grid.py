@@ -252,7 +252,7 @@ class Grid:
         self,
         triangle: Triangle,
         barycentric_coordinates: BarycentricCoords,
-    ) -> Vector:
+    ) -> Matrix:
         b, c, _ = self._triangle_parameters(triangle)
         return shape_function_hessian_vectorized(*barycentric_coordinates, *b, *c)
 
