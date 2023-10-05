@@ -1,4 +1,4 @@
-from .tensors import Vector, Matrix
+from .tensors import Vector, Matrix, Tensor3D
 from .grid import Grid, Triangle, BarycentricCoords, Edge
 
 
@@ -22,7 +22,7 @@ class P1Interpolation:
         i1, i2 = segment
         return t * self._params[i1] + (1 - t) * self._params[i2]
 
-    def gradient(self, triangle: Triangle, barycentric_coordinates=None):
+    def gradient(self, triangle: Triangle, barycentric_coordinates=None) -> Vector:
         i1, i2, i3 = triangle
         barycentric_gradient = Vector(
             [self._params[i1], self._params[i2], self._params[i3]]
@@ -39,7 +39,7 @@ class P1Deformation:
         self,
         triangle: Triangle,
         barycentric_coords: BarycentricCoords,
-    ):
+    ) -> Vector:
         return Vector(
             [
                 self.y1(triangle, barycentric_coords),
@@ -47,7 +47,7 @@ class P1Deformation:
             ]
         )
 
-    def strain(self, triangle: Triangle, barycentric_coordinates=None):
+    def strain(self, triangle: Triangle, barycentric_coordinates=None) -> Matrix:
         return self.y1.gradient(triangle).vstack(self.y2.gradient(triangle))
 
 
@@ -103,7 +103,9 @@ class C1Interpolation:
         )
         return gradient1 + gradient2 + gradient3
 
-    def gradient(self, triangle: Triangle, barycentric_coordinates: BarycentricCoords):
+    def gradient(
+        self, triangle: Triangle, barycentric_coordinates: BarycentricCoords
+    ) -> Vector:
         return self._grid.gradient_transform(
             triangle, self._barycentric_gradient(triangle, barycentric_coordinates)
         )
@@ -162,3 +164,35 @@ class C1Interpolation:
             triangle,
             self._barycentric_hessian_vectorized(triangle, barycentric_coordinates),
         )
+
+
+class C1Deformation:
+    def __init__(self, grid, y1_params: list[list], y2_params: list[list]):
+        self.y1 = C1Interpolation(grid, y1_params)
+        self.y2 = C1Interpolation(grid, y2_params)
+
+    def __call__(
+        self,
+        triangle: Triangle,
+        barycentric_coords: BarycentricCoords,
+    ) -> Vector:
+        return Vector(
+            [
+                self.y1(triangle, barycentric_coords),
+                self.y2(triangle, barycentric_coords),
+            ]
+        )
+
+    def strain(
+        self, triangle: Triangle, barycentric_coordinates: BarycentricCoords
+    ) -> Matrix:
+        return self.y1.gradient(triangle, barycentric_coordinates).vstack(
+            self.y2.gradient(triangle, barycentric_coordinates)
+        )
+
+    def hyper_strain(
+        self, triangle: Triangle, barycentric_coordinates: BarycentricCoords
+    ) -> Tensor3D:
+        hessian_y1 = self.y1.hessian(triangle, barycentric_coordinates)
+        hessian_y2 = self.y2.hessian(triangle, barycentric_coordinates)
+        return hessian_y1.vstack(hessian_y2)
