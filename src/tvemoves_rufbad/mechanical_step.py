@@ -126,3 +126,113 @@ class MechanicalStep:
         return np.array(
             [self._model.prev_theta[i].value for i in range(self._num_vertices)]
         )
+
+
+class MechanicalStepRegularized:
+    def __init__(
+        self,
+        solver,
+        grid: Grid,
+        initial_temperature: float,
+        search_radius: float,
+        shape_memory_scaling: float,
+        fps: int,
+    ):
+        self._solver = solver
+        self._model = pyo.ConcreteModel("Mechanical Step with Regularization")
+        m = self._model
+        m._vertices = pyo.RangeSet(len(grid.vertices))
+        m._deformation_indices = m._vertices * pyo.RangeSet(6)
+
+        initial_y1_params = [[p[0], 1, 0, 0, 0, 0] for p in grid.points]
+        initial_y2_params = [[p[1], 0, 1, 0, 0, 0] for p in grid.points]
+
+        m.prev_y1 = pyo.Param(
+            m._deformation_indices,
+            within=pyo.Reals,
+            initialize=lambda model, i, j: initial_y1_params[i - 1][j - 1],
+            mutable=True,
+        )
+        m.prev_y2 = pyo.Param(
+            m._deformation_indices,
+            within=pyo.Reals,
+            initialize=lambda model, i, j: initial_y2_params[i - 1][j - 1],
+            mutable=True,
+        )
+
+        m.y1 = pyo.Var(m._deformation_indices, within=pyo.Reals)
+        m.y2 = pyo.Var(m._deformation_indices, within=pyo.Reals)
+
+        for i in m._deformation_indices:
+            m.y1[i] = m.prev_y1[i]
+            m.y1[i].bounds = (
+                m.prev_y1[i] - search_radius,
+                m.prev_y1[i] + search_radius,
+            )
+            m.y2[i] = m.prev_y2[i]
+            m.y2[i].bounds = (
+                m.prev_y2[i] - search_radius,
+                m.prev_y2[i] + search_radius,
+            )
+
+        for v in grid.dirichlet_vertices:
+            m.y1[v + 1, 1].fix()
+            m.y2[v + 1, 1].fix()
+
+    #     integrator = Integrator(DUNAVANT2, grid.triangles, grid.points)
+    #     integrator_for_piecewise_constant = Integrator(
+    #         CENTROID, grid.triangles, grid.points
+    #     )
+
+    #     prev_deform = P1Deformation(grid, m.prev_y1, m.prev_y2)
+    #     deform = P1Deformation(grid, m.y1, m.y2)
+    #     prev_temp = P1Interpolation(grid, m.prev_theta)
+
+    #     # total elastic energy
+    #     scaling_matrix = Matrix([[1 / shape_memory_scaling, 0], [0, 1]])
+    #     martensite_potential = generate_martensite_potential(scaling_matrix)
+
+    #     martensite_percentage = lambda theta: 1 - austenite_percentage(theta)
+    #     total_elastic_potential = lambda F, theta: (
+    #         austenite_percentage(theta) * austenite_potential(F)
+    #         + martensite_percentage(theta) * martensite_potential(F)
+    #     )
+    #     total_elastic_integrand = compose_to_integrand(
+    #         total_elastic_potential, deform.strain, prev_temp
+    #     )
+    #     m.total_elastic_energy = integrator(total_elastic_integrand)
+
+    #     # dissipation
+    #     dissipation_potential = lambda prev_F, F: dissipation_norm(
+    #         symmetrized_strain_delta(prev_F, F)
+    #     )
+    #     dissipation_integrand = compose_to_integrand(
+    #         dissipation_potential, prev_deform.strain, deform.strain
+    #     )
+    #     m.dissipation = integrator_for_piecewise_constant(dissipation_integrand)
+
+    #     m.objective = pyo.Objective(expr=m.total_elastic_energy + fps * m.dissipation)
+
+    # def solve(self) -> None:
+    #     self._solver.solve(self._model)
+
+    # def prev_y(self) -> npt.NDArray[np.float64]:
+    #     return np.array(
+    #         [
+    #             [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
+    #             for i in range(self._num_vertices)
+    #         ]
+    #     )
+
+    # def y(self) -> npt.NDArray[np.float64]:
+    #     return np.array(
+    #         [
+    #             [self._model.y1[i].value, self._model.y2[i].value]
+    #             for i in range(self._num_vertices)
+    #         ]
+    #     )
+
+    # def prev_theta(self) -> npt.NDArray[np.float64]:
+    #     return np.array(
+    #         [self._model.prev_theta[i].value for i in range(self._num_vertices)]
+    #     )
