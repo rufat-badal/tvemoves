@@ -66,9 +66,6 @@ N6 = (
 )
 
 shape_function_symbolic = [N1, N2, N3, N4, N5, N6]
-shape_function_segment_symbolic = [
-    Ni.subs(L1, t).subs(L2, 1 - t).subs(L3, 0) for Ni in shape_function_symbolic
-]
 
 shape_function_lambdified = sp.lambdify(L + b + c, shape_function_symbolic)
 
@@ -85,15 +82,6 @@ def shape_function(
     c3: float,
 ) -> Vector:
     return Vector(shape_function_lambdified(L1, L2, L3, b1, b2, b3, c1, c2, c3))
-
-
-shape_function_segment_lambdified = sp.lambdify(
-    [t, b3, c3], shape_function_segment_symbolic
-)
-
-
-def shape_function_segment(t: float, b3: float, c3: float) -> Vector:
-    return Vector(shape_function_segment_lambdified(t, b3, c3))
 
 
 shape_function_jacobian_symbolic = sp.Matrix(
