@@ -10,7 +10,7 @@ from .shape_function import (
 
 Edge = tuple[int, int]
 Triangle = tuple[int, int, int]
-BarycentricCoords = tuple[float, float, float]
+AreaCoords = tuple[float, float, float]
 
 
 @dataclass(frozen=True)
@@ -49,16 +49,16 @@ class Grid:
     def gradient_transform(
         self,
         triangle: Triangle,
-        barycentric_gradient: Vector,
+        area_gradient: Vector,
     ) -> Vector:
         b, c, delta = self._triangle_parameters(triangle)
         trafo_matrix = Matrix([[b[0], b[1], b[2]], [c[0], c[1], c[2]]]) / (2 * delta)
-        return trafo_matrix.dot(barycentric_gradient)
+        return trafo_matrix.dot(area_gradient)
 
     def hessian_transform(
         self,
         triangle: Triangle,
-        barycentric_hessian_vectorized: Vector,
+        area_hessian_vectorized: Vector,
     ) -> Matrix:
         b, c, delta = self._triangle_parameters(triangle)
         trafo_matrix = Matrix(
@@ -89,7 +89,7 @@ class Grid:
                 ],
             ]
         ) / (4 * delta**2)
-        flat_hessian = trafo_matrix.dot(barycentric_hessian_vectorized)
+        flat_hessian = trafo_matrix.dot(area_hessian_vectorized)
         return Matrix(
             [[flat_hessian[0], flat_hessian[2]], [flat_hessian[2], flat_hessian[1]]]
         )
@@ -97,26 +97,26 @@ class Grid:
     def shape_function(
         self,
         triangle: Triangle,
-        barycentric_coordinates: BarycentricCoords,
+        area_coordinates: AreaCoords,
     ) -> Vector:
         b, c, _ = self._triangle_parameters(triangle)
-        return shape_function(*barycentric_coordinates, *b, *c)
+        return shape_function(*area_coordinates, *b, *c)
 
     def shape_function_jacobian(
         self,
         triangle: Triangle,
-        barycentric_coordinates: BarycentricCoords,
+        area_coordinates: AreaCoords,
     ) -> Matrix:
         b, c, _ = self._triangle_parameters(triangle)
-        return shape_function_jacobian(*barycentric_coordinates, *b, *c)
+        return shape_function_jacobian(*area_coordinates, *b, *c)
 
     def shape_function_hessian_vectorized(
         self,
         triangle: Triangle,
-        barycentric_coordinates: BarycentricCoords,
+        area_coordinates: AreaCoords,
     ) -> Matrix:
         b, c, _ = self._triangle_parameters(triangle)
-        return shape_function_hessian_vectorized(*barycentric_coordinates, *b, *c)
+        return shape_function_hessian_vectorized(*area_coordinates, *b, *c)
 
 
 def generate_square_equilateral_grid(

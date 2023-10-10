@@ -2,7 +2,7 @@ from .quadrature_rules import GaussQuadratureRule, TriangleQuadratureRule
 from .tensors import Vector
 import pyomo.environ as pyo
 from typing import Callable
-from .grid import Triangle, Edge, BarycentricCoords
+from .grid import Triangle, Edge, AreaCoords
 
 
 class Integrator:
@@ -23,7 +23,7 @@ class Integrator:
 
     def __call__(
         self,
-        integrand: Callable[[Triangle, BarycentricCoords], float],
+        integrand: Callable[[Triangle, AreaCoords], float],
     ):
         return sum(
             triangle_area
