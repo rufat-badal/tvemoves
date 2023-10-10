@@ -145,3 +145,28 @@ def shape_function_hessian_vectorized(
             L1, L2, L3, b1, b2, b3, c1, c2, c3
         ).tolist()
     )
+
+
+L1_t = sp.symbols("L1_t")
+shape_function_on_segment_left_symbolic = [
+    Ni.subs(L1, L1_t).subs(L2, 1 - L1_t).subs(L3, 0) for Ni in shape_function_symbolic
+]
+shape_function_on_segment_left_lambdified = sp.lambdify(
+    [L1_t, b3, c3], shape_function_on_segment_left_symbolic
+)
+
+
+def shape_function_on_segment_left(L1_on_segment: float, b3: float, c3: float):
+    return shape_function_on_segment_left_lambdified(L1_on_segment, b3, c3)
+
+
+shape_function_on_segment_right_symbolic = [
+    Ni.subs(L1, 1 - L1_t).subs(L2, 0).subs(L3, L1_t) for Ni in shape_function_symbolic
+]
+shape_function_on_segment_right_lambdified = sp.lambdify(
+    [L1_t, b2, c2], shape_function_on_segment_right_symbolic
+)
+
+
+def shape_function_on_segment_right(L1_on_segment: float, b2: float, c2: float):
+    return shape_function_on_segment_right_lambdified(L1_on_segment, b2, c2)
