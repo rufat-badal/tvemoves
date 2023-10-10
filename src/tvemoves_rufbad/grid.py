@@ -4,7 +4,6 @@ from .shape_function import (
     shape_function,
     shape_function_jacobian,
     shape_function_hessian_vectorized,
-    shape_function_segment,
 )
 
 
