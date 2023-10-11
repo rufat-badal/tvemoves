@@ -1,5 +1,6 @@
 from tvemoves_rufbad.grid import generate_square_equilateral_grid
 from pytest import approx
+from tests.test_interpolation import generate_random_barycentric_coordinates
 
 
 def test_square_equilateral_grid() -> None:
@@ -83,3 +84,13 @@ def test_square_equilateral_grid() -> None:
     assert all(
         G_left_fixed.points[v][0] == approx(0) for v in G_left_fixed.dirichlet_vertices
     )
+
+
+# def test_area_coordinates() -> None:
+#     G = generate_square_equilateral_grid(num_horizontal_points=50)
+#     barycentric_coordinates = generate_random_barycentric_coordinates(len(G.triangles))
+#     area_coordinates = [
+#         G._area_coordinates(w, triangle)
+#         for (w, triangle) in zip(barycentric_coordinates, G.triangles)
+#     ]
+#     assert all(sum(a) == approx(1) for a in area_coordinates)
