@@ -69,7 +69,56 @@ def generate_integrand(
 functions = [constant, parabola, periodic]
 integral_values = [INT_CONSTANT, INT_PARABOLA, INT_PERIODIC]
 
+
+def constant_boundary(t: float) -> float:
+    return 1
+
+
+INT_CONST_BOUNDARY = 1
+
+
+def polynomial_boundary(t: float) -> float:
+    return 10000 * (t - 1 / 2) ** 8
+
+
+INT_POLYNOMIAL_BOUNDARY = 625 / 144
+
+
+def periodic_boundary(t: float) -> float:
+    return 100 * pyo.sin(pi * t)
+
+
+INT_PERIODIC_BOUNDARY = 200 / pi
+
+boundary_functions = [constant_boundary, polynomial_boundary, periodic_boundary]
+boundary_integral_values = [
+    INT_CONST_BOUNDARY,
+    INT_POLYNOMIAL_BOUNDARY,
+    INT_PERIODIC_BOUNDARY,
+]
+
 EPS = 1e-5
+
+
+def generate_edges_in_unit_interval(
+    num_edges: int,
+) -> tuple[list[tuple[int, int]], list[Vector]]:
+    segments = [(i, i + 1) for i in range(num_edges)]
+    # boundary integrator can only work with vectors
+    points = [Vector([i / num_edges, 0]) for i in range(num_edges + 1)]
+    return segments, points
+
+
+def generate_boundary_integrand(
+    f: Callable[[float], float], points: list[Vector]
+) -> Callable[[Edge, float], float]:
+    # f must be a scalar function on the unit interval
+    def f_boundary(segment: Edge, t: float) -> float:
+        i1, i2 = segment
+        # only use first component (the second one is zero)
+        return f(t * points[i1][0] + (1 - t) * points[i2][0])
+
+    return f_boundary
 
 
 def test_integrator() -> None:
@@ -114,55 +163,6 @@ def test_integrator_with_pyomo_parameters() -> None:
         ]
         integrand_pyomo = generate_integrand(f, points_pyomo)
         assert isclose(integrator(integrand), pyo.value(integrator(integrand_pyomo)))
-
-
-def generate_edges_in_unit_interval(
-    num_edges: int,
-) -> tuple[list[tuple[int, int]], list[Vector]]:
-    segments = [(i, i + 1) for i in range(num_edges)]
-    # boundary integrator can only work with vectors
-    points = [Vector([i / num_edges, 0]) for i in range(num_edges + 1)]
-    return segments, points
-
-
-def generate_boundary_integrand(
-    f: Callable[[float], float], points: list[Vector]
-) -> Callable[[Edge, float], float]:
-    # f must be a scalar function on the unit interval
-    def f_boundary(segment: Edge, t: float) -> float:
-        i1, i2 = segment
-        # only use first component (the second one is zero)
-        return f(t * points[i1][0] + (1 - t) * points[i2][0])
-
-    return f_boundary
-
-
-def constant_boundary(t: float) -> float:
-    return 1
-
-
-INT_CONST_BOUNDARY = 1
-
-
-def polynomial_boundary(t: float) -> float:
-    return 10000 * (t - 1 / 2) ** 8
-
-
-INT_POLYNOMIAL_BOUNDARY = 625 / 144
-
-
-def periodic_boundary(t: float) -> float:
-    return 100 * pyo.sin(pi * t)
-
-
-INT_PERIODIC_BOUNDARY = 200 / pi
-
-boundary_functions = [constant_boundary, polynomial_boundary, periodic_boundary]
-boundary_integral_values = [
-    INT_CONST_BOUNDARY,
-    INT_POLYNOMIAL_BOUNDARY,
-    INT_PERIODIC_BOUNDARY,
-]
 
 
 def test_boundary_integrator() -> None:
