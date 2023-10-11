@@ -4,7 +4,7 @@ from tvemoves_rufbad.grid import (
     generate_square_equilateral_grid,
     Triangle,
     Edge,
-    AreaCoords,
+    BarycentricCoordinates,
 )
 from tvemoves_rufbad.quadrature_rules import (
     CENTROID,
@@ -53,13 +53,13 @@ INT_PERIODIC = 0
 
 def generate_integrand(
     f: Callable[[float, float], float], grid_points: list[Vector]
-) -> Callable[[Triangle, AreaCoords], float]:
+) -> Callable[[Triangle, BarycentricCoordinates], float]:
     def f_integrand(
         triangle: Triangle,
-        area_coordinates: AreaCoords,
+        barycentric_coordinates: BarycentricCoordinates,
     ) -> float:
         i1, i2, i3 = triangle
-        t1, t2, t3 = area_coordinates
+        t1, t2, t3 = barycentric_coordinates
         p = t1 * grid_points[i1] + t2 * grid_points[i2] + t3 * grid_points[i3]
         return f(p[0], p[1])
 

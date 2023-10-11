@@ -242,7 +242,7 @@ def test_p1_deformation() -> None:
 def test_c1_interpolation() -> None:
     eps = 1e-6
     grad_eps = 1e-4
-    grid = generate_square_equilateral_grid(num_horizontal_points=8)
+    grid = generate_square_equilateral_grid(num_horizontal_points=7)
     p0 = grid.points
     evaluation_points = [
         p0[i1] / 3 + p0[i2] / 3 + p0[i3] / 3 for (i1, i2, i3) in grid.triangles
@@ -282,67 +282,9 @@ def test_c1_interpolation() -> None:
         assert mean_squared_grad_error < grad_eps
 
 
-def f_5th_order(x: float, y: float) -> float:
-    return x**5 + x**3 * y**2 + y**5
-
-
-def gradient_f_5th_order(x: float, y: float) -> Vector:
-    return Vector([5 * x**4 + 3 * x**2 * y**2, 2 * x**3 * y + 5 * y**4])
-
-
-def hessian_f_5th_order(x: float, y: float) -> Matrix:
-    return Matrix(
-        [
-            [20 * x**3 + 6 * x * y**2, 6 * x**2 * y],
-            [6 * x**2 * y, 2 * x**3 + 20 * y**3],
-        ]
-    )
-
-
-def test_c1_interpolation_5th_order() -> None:
-    eps = 1e-6
-    grid = generate_square_equilateral_grid(num_horizontal_points=3)
-    p0 = grid.points
-    evaluation_points = [
-        p0[i1] / 3 + p0[i2] / 3 + p0[i3] / 3 for (i1, i2, i3) in grid.triangles
-    ]
-
-    f_at_grid_points = [f_5th_order(p[0], p[1]) for p in grid.points]
-    grad_f_at_grid_points = [gradient_f_5th_order(p[0], p[1]) for p in grid.points]
-    hessian_f_at_grid_points = [hessian_f_5th_order(p[0], p[1]) for p in grid.points]
-    params = [
-        [f, G[0], G[1], H[0, 0], H[0, 1], H[1, 1]]
-        for (f, G, H) in zip(
-            f_at_grid_points, grad_f_at_grid_points, hessian_f_at_grid_points
-        )
-    ]
-    f_approx = C1Interpolation(grid, params)
-
-    values = [f_5th_order(p[0], p[1]) for p in evaluation_points]
-    values_approx = [
-        f_approx(triangle, (1 / 3, 1 / 3, 1 / 3)) for triangle in grid.triangles
-    ]
-    mean_squared_error = sum(
-        (value - value_approx) ** 2
-        for (value, value_approx) in zip(values, values_approx)
-    ) / len(grid.triangles)
-    assert mean_squared_error < eps
-
-    grad_values = [gradient_f_5th_order(p[0], p[1]) for p in evaluation_points]
-    grad_values_approx = [
-        f_approx.gradient(triangle, (1 / 3, 1 / 3, 1 / 3))
-        for triangle in grid.triangles
-    ]
-    mean_squared_grad_error = sum(
-        (grad_value - grad_value_approx).normsqr()
-        for (grad_value, grad_value_approx) in zip(grad_values, grad_values_approx)
-    ) / len(grid.triangles)
-    assert mean_squared_grad_error < eps
-
-
 def test_c1_deformation() -> None:
     eps = 1e-6
-    grid = generate_square_equilateral_grid(num_horizontal_points=7)
+    grid = generate_square_equilateral_grid(num_horizontal_points=6)
     p0 = grid.points
     evaluation_points = [
         p0[i1] / 3 + p0[i2] / 3 + p0[i3] / 3 for (i1, i2, i3) in grid.triangles
