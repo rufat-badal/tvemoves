@@ -171,6 +171,13 @@ class C1Interpolation:
             self._area_hessian_vectorized(triangle, barycentric_coordinates),
         )
 
+    def on_edge(self, edge: Edge, t: float):
+        i, j = edge
+        p, q = self._params[i], self._params[j]
+        return self._grid.shape_function_on_edge_left(edge, t).dot(
+            p
+        ) + self._grid.shape_function_on_edge_right(edge, t).dot(q)
+
 
 class C1Deformation:
     def __init__(self, grid, y1_params: list[list], y2_params: list[list]):
@@ -202,3 +209,6 @@ class C1Deformation:
         hessian_y1 = self.y1.hessian(triangle, barycentric_coordinates)
         hessian_y2 = self.y2.hessian(triangle, barycentric_coordinates)
         return hessian_y1.stack(hessian_y2)
+
+    def on_edge(self, edge: Edge, t: float) -> Vector:
+        return Vector([self.y1.on_edge(edge, t), self.y2.on_edge(edge, t)])

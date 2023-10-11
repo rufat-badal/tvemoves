@@ -157,7 +157,7 @@ shape_function_on_edge_left_lambdified = sp.lambdify(
 
 
 def shape_function_on_edge_left(L1_on_edge: float, b3: float, c3: float):
-    return shape_function_on_edge_left_lambdified(L1_on_edge, b3, c3)
+    return Vector(shape_function_on_edge_left_lambdified(L1_on_edge, b3, c3))
 
 
 shape_function_on_edge_right_symbolic = [
@@ -169,4 +169,4 @@ shape_function_on_edge_right_lambdified = sp.lambdify(
 
 
 def shape_function_on_edge_right(L1_on_edge: float, b2: float, c2: float):
-    return shape_function_on_edge_right_lambdified(L1_on_edge, b2, c2)
+    return Vector(shape_function_on_edge_right_lambdified(L1_on_edge, b2, c2))

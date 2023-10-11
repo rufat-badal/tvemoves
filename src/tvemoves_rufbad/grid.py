@@ -4,7 +4,10 @@ from tvemoves_rufbad.bell_finite_element import (
     shape_function,
     shape_function_jacobian,
     shape_function_hessian_vectorized,
+    shape_function_on_edge_left,
+    shape_function_on_edge_right,
 )
+from collections import defaultdict
 
 
 Edge = tuple[int, int]
@@ -12,18 +15,39 @@ Triangle = tuple[int, int, int]
 BarycentricCoordinates = tuple[float, float, float]
 
 
-@dataclass(frozen=True)
 class Grid:
-    vertices: list[int]
-    edges: list[Edge]
-    triangles: list[Triangle]
-    boundary_vertices: list[int]
-    boundary_edges: list[Edge]
-    dirichlet_vertices: list[int]
-    dirichlet_edges: list[Edge]
-    neumann_vertices: list[int]
-    neumann_edges: list[Edge]
-    points: list[Vector]
+    def __init__(
+        self,
+        vertices: list[int],
+        edges: list[Edge],
+        triangles: list[Triangle],
+        boundary_vertices: list[int],
+        boundary_edges: list[Edge],
+        dirichlet_vertices: list[int],
+        dirichlet_edges: list[Edge],
+        neumann_vertices: list[int],
+        neumann_edges: list[Edge],
+        points: list[Vector],
+    ):
+        self.vertices = vertices
+        self.edges = edges
+        self.triangles = triangles
+        self.boundary_vertices = boundary_vertices
+        self.boundary_edges = boundary_edges
+        self.dirichlet_vertices = dirichlet_vertices
+        self.dirichlet_edges = dirichlet_edges
+        self.neumann_vertices = neumann_vertices
+        self.neumann_edges = neumann_edges
+        self.points = points
+
+        self.opposite_vertices = defaultdict(list)
+        for triangle in self.triangles:
+            for i in range(3):
+                edge = (triangle[i], triangle[(i + 1) % 3])
+                edge_reverse = (edge[1], edge[0])
+                opposite_vertex = triangle[(i + 2) % 3]
+                self.opposite_vertices[edge].append(opposite_vertex)
+                self.opposite_vertices[edge_reverse].append(opposite_vertex)
 
     def _triangle_parameters(
         self, triangle: Triangle
@@ -137,6 +161,18 @@ class Grid:
         return shape_function_hessian_vectorized(
             *self._area_coordinates(barycentric_coordinates, triangle), *b, *c
         )
+
+    def shape_function_on_edge_left(self, edge: Edge, t: float):
+        triangle = (edge[0], edge[1], self.opposite_vertices[edge][0])
+        L1 = self._area_coordinates((t, 1 - t, 0), triangle)[0]
+        _, b, c, _ = self._triangle_parameters(triangle)
+        return shape_function_on_edge_left(L1, b[2], c[2])
+
+    def shape_function_on_edge_right(self, edge: Edge, t: float):
+        triangle = (edge[0], edge[1], self.opposite_vertices[edge][0])
+        L1 = self._area_coordinates((t, 1 - t, 0), triangle)[0]
+        _, b, c, _ = self._triangle_parameters(triangle)
+        return shape_function_on_edge_right(L1, b[1], c[1])
 
 
 def generate_square_equilateral_grid(
