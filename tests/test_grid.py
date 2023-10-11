@@ -86,11 +86,11 @@ def test_square_equilateral_grid() -> None:
     )
 
 
-# def test_area_coordinates() -> None:
-#     G = generate_square_equilateral_grid(num_horizontal_points=50)
-#     barycentric_coordinates = generate_random_barycentric_coordinates(len(G.triangles))
-#     area_coordinates = [
-#         G._area_coordinates(w, triangle)
-#         for (w, triangle) in zip(barycentric_coordinates, G.triangles)
-#     ]
-#     assert all(sum(a) == approx(1) for a in area_coordinates)
+def test_area_coordinates() -> None:
+    G = generate_square_equilateral_grid(num_horizontal_points=50)
+    barycentric_coordinates = generate_random_barycentric_coordinates(len(G.triangles))
+    area_coordinates = [
+        G._area_coordinates(w, triangle)
+        for (w, triangle) in zip(barycentric_coordinates, G.triangles)
+    ]
+    assert all(sum(a) == approx(1) for a in area_coordinates)
