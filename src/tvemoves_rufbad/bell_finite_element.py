@@ -1,4 +1,4 @@
-from .tensors import Vector, Matrix
+from tvemoves_rufbad.tensors import Vector, Matrix
 import sympy as sp
 
 

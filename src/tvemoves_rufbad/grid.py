@@ -1,6 +1,6 @@
-from .tensors import Vector, Matrix
+from tvemoves_rufbad.tensors import Vector, Matrix
 from dataclasses import dataclass
-from .bell_finite_element import (
+from tvemoves_rufbad.bell_finite_element import (
     shape_function,
     shape_function_jacobian,
     shape_function_hessian_vectorized,
@@ -58,9 +58,7 @@ class Grid:
             wi * zi[1] for (wi, zi) in zip(barycentric_coordinates, triangle_vertices)
         )
 
-        return [
-            (ai + bi * x + ci * y) / (2 * delta) for (ai, bi, ci) in zip(a, b, c)
-        ]
+        return [(ai + bi * x + ci * y) / (2 * delta) for (ai, bi, ci) in zip(a, b, c)]
 
     def gradient_transform(
         self,

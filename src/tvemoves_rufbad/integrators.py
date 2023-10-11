@@ -1,8 +1,8 @@
-from .quadrature_rules import GaussQuadratureRule, TriangleQuadratureRule
-from .tensors import Vector
+from tvemoves_rufbad.quadrature_rules import GaussQuadratureRule, TriangleQuadratureRule
+from tvemoves_rufbad.tensors import Vector
 import pyomo.environ as pyo
 from typing import Callable
-from .grid import Triangle, Edge, BarycentricCoordinates
+from tvemoves_rufbad.grid import Triangle, Edge, BarycentricCoordinates
 
 
 class Integrator:

@@ -1,5 +1,5 @@
-from .tensors import Vector, Matrix, Tensor3D
-from .grid import Grid, Triangle, BarycentricCoordinates, Edge
+from tvemoves_rufbad.tensors import Vector, Matrix, Tensor3D
+from tvemoves_rufbad.grid import Grid, Triangle, BarycentricCoordinates, Edge
 
 
 class P1Interpolation:

@@ -1,4 +1,4 @@
-from .tensors import Matrix
+from tvemoves_rufbad.tensors import Matrix
 import pyomo.environ as pyo
 
 

@@ -1,11 +1,11 @@
 import pyomo.environ as pyo
 import numpy as np
-from .interpolation import P1Deformation, P1Interpolation
-from .quadrature_rules import DUNAVANT2, CENTROID
-from .tensors import Matrix
-from .integrators import Integrator
-from .grid import Grid
-from .utils import (
+from tvemoves_rufbad.interpolation import P1Deformation, P1Interpolation
+from tvemoves_rufbad.quadrature_rules import DUNAVANT2, CENTROID
+from tvemoves_rufbad.tensors import Matrix
+from tvemoves_rufbad.integrators import Integrator
+from tvemoves_rufbad.grid import Grid
+from tvemoves_rufbad.utils import (
     generate_martensite_potential,
     austenite_percentage,
     austenite_potential,
