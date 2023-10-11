@@ -17,7 +17,7 @@ class Integrator:
         first_sides = (points[j] - points[i] for (i, j, _) in self._triangles)
         second_sides = (points[k] - points[i] for (i, _, k) in self._triangles)
         self._triangle_areas = [
-            abs(first.vstack(second).det() / 2)
+            abs(first.stack(second).det() / 2)
             for (first, second) in zip(first_sides, second_sides)
         ]
 

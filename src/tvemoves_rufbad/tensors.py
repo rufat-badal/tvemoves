@@ -74,7 +74,7 @@ class Vector:
             ]
         )
 
-    def vstack(self, other: Vector) -> Matrix:
+    def stack(self, other: Vector) -> Matrix:
         if self.shape[0] != other.shape[0]:
             raise ValueError(
                 "vectors must be of the same length to be stacked vertically"
@@ -221,7 +221,7 @@ class Matrix:
     def map(self, f: Callable) -> Matrix:
         return Matrix([[f(x) for x in row] for row in self._data])
 
-    def vstack(self, other: Matrix) -> Tensor3D:
+    def stack(self, other: Matrix) -> Tensor3D:
         if self.shape[0] != other.shape[0]:
             raise ValueError(
                 "matrices must be of the same length to be stacked vertically"

@@ -46,7 +46,7 @@ class P1Deformation:
         )
 
     def strain(self, triangle: Triangle, barycentric_coordinates=None) -> Matrix:
-        return self.y1.gradient(triangle).vstack(self.y2.gradient(triangle))
+        return self.y1.gradient(triangle).stack(self.y2.gradient(triangle))
 
 
 class C1Interpolation:
@@ -184,7 +184,7 @@ class C1Deformation:
     def strain(
         self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
     ) -> Matrix:
-        return self.y1.gradient(triangle, barycentric_coordinates).vstack(
+        return self.y1.gradient(triangle, barycentric_coordinates).stack(
             self.y2.gradient(triangle, barycentric_coordinates)
         )
 
@@ -193,4 +193,4 @@ class C1Deformation:
     ) -> Tensor3D:
         hessian_y1 = self.y1.hessian(triangle, barycentric_coordinates)
         hessian_y2 = self.y2.hessian(triangle, barycentric_coordinates)
-        return hessian_y1.vstack(hessian_y2)
+        return hessian_y1.stack(hessian_y2)

@@ -29,7 +29,7 @@ def test_vector() -> None:
     assert (w * s)._data == approx(w_numpy * s)
     assert (v / d)._data == approx(v_numpy / d)
     assert v.reshape(m, k)._data == approx(v_numpy.reshape(m, k))
-    assert v.vstack(w)._data == approx(np.vstack((v_numpy, w_numpy)))
+    assert v.stack(w)._data == approx(np.stack((v_numpy, w_numpy)))
     assert v.map(lambda x: -x)._data == (-v)._data
     square = lambda x: x**2
     square_vectorized = np.vectorize(square)
@@ -91,13 +91,19 @@ def test_matrix() -> None:
     square = lambda x: x**2
     square_vectorized = np.vectorize(square)
     assert A.map(square)._data == approx(square_vectorized(A_numpy))
+    assert A.stack(B)._data == approx(np.stack((A_numpy, B_numpy)))
 
 
 def test_tensor3d() -> None:
-    T_shape = (100, 200, 50)
+    T_shape = (50, 100, 25)
     T_numpy = np.random.rand(*T_shape)
     T_data = list(T_numpy)
     T = Tensor3D(T_data)
+
+    S_shape = T_shape
+    S_numpy = np.random.rand(*S_shape)
+    S_data = list(S_numpy)
+    S = Tensor3D(S_data)
 
     assert T._data == T_data
     assert T.shape == T_shape
@@ -105,3 +111,12 @@ def test_tensor3d() -> None:
     square = lambda x: x**2
     square_vectorized = np.vectorize(square)
     assert T.map(square)._data == approx(square_vectorized(T_numpy))
+    assert (T + S)._data == approx(T_numpy + S_numpy)
+    assert (T - S)._data == approx(T_numpy - S_numpy)
+    assert (-T)._data == approx(-T_numpy)
+    assert all(
+        T[i, j, k] == T_numpy[i, j, k]
+        for i in range(T.shape[0])
+        for j in range(T.shape[1])
+        for k in range(T.shape[2])
+    )
