@@ -18,8 +18,8 @@ class P1Interpolation:
         t1, t2, t3 = barycentric_coordinates
         return t1 * self._params[i1] + t2 * self._params[i2] + t3 * self._params[i3]
 
-    def boundary(self, segment: Edge, t: float):
-        i1, i2 = segment
+    def on_boundary(self, edge: Edge, t: float):
+        i1, i2 = edge
         return t * self._params[i1] + (1 - t) * self._params[i2]
 
     def gradient(self, triangle: Triangle, barycentric_coordinates=None) -> Vector:
@@ -42,6 +42,14 @@ class P1Deformation:
             [
                 self.y1(triangle, barycentric_coordinates),
                 self.y2(triangle, barycentric_coordinates),
+            ]
+        )
+
+    def on_boundary(self, edge: Edge, t: float):
+        return Vector(
+            [
+                self.y1.on_boundary(edge, t),
+                self.y2(edge, t),
             ]
         )
 
