@@ -103,18 +103,18 @@ EPS = 1e-5
 def generate_edges_in_unit_interval(
     num_edges: int,
 ) -> tuple[list[tuple[int, int]], list[Vector]]:
-    segments = [(i, i + 1) for i in range(num_edges)]
+    edges = [(i, i + 1) for i in range(num_edges)]
     # boundary integrator can only work with vectors
     points = [Vector([i / num_edges, 0]) for i in range(num_edges + 1)]
-    return segments, points
+    return edges, points
 
 
 def generate_boundary_integrand(
     f: Callable[[float], float], points: list[Vector]
 ) -> Callable[[Edge, float], float]:
     # f must be a scalar function on the unit interval
-    def f_boundary(segment: Edge, t: float) -> float:
-        i1, i2 = segment
+    def f_boundary(edge: Edge, t: float) -> float:
+        i1, i2 = edge
         # only use first component (the second one is zero)
         return f(t * points[i1][0] + (1 - t) * points[i2][0])
 

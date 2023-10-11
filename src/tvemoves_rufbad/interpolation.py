@@ -49,7 +49,7 @@ class P1Deformation:
         return Vector(
             [
                 self.y1.on_boundary(edge, t),
-                self.y2(edge, t),
+                self.y2.on_boundary(edge, t),
             ]
         )
 
