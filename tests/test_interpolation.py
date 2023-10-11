@@ -278,7 +278,8 @@ def test_p1_deformation() -> None:
 def test_c1_interpolation() -> None:
     eps = 1e-6
     grad_eps = 1e-4
-    grid = generate_square_equilateral_grid(num_horizontal_points=7)
+    hessian_eps = 1e-2
+    grid = generate_square_equilateral_grid(num_horizontal_points=14)
     barycentric_coordinates = generate_random_barycentric_coordinates(
         len(grid.triangles)
     )
@@ -319,6 +320,19 @@ def test_c1_interpolation() -> None:
             for (grad_value, grad_value_approx) in zip(grad_values, grad_values_approx)
         ) / len(grid.triangles)
         assert mean_squared_grad_error < grad_eps
+
+        hessian_values = [hessian_f(p[0], p[1]) for p in evaluation_points]
+        hessian_values_approx = [
+            f_approx.hessian(triangle, w)
+            for (triangle, w) in zip(grid.triangles, barycentric_coordinates)
+        ]
+        mean_squared_hessian_error = sum(
+            (hessian_value - hessian_value_approx).normsqr()
+            for (hessian_value, hessian_value_approx) in zip(
+                hessian_values, hessian_values_approx
+            )
+        ) / len(grid.triangles)
+        assert mean_squared_hessian_error < hessian_eps
 
 
 def test_c1_deformation() -> None:
