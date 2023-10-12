@@ -4,27 +4,18 @@ from tvemoves_rufbad.mechanical_step import MechanicalStepRegularized
 from dataclasses import dataclass
 import numpy.typing as npt
 import numpy as np
-from tvemoves_rufbad.interpolation import P1Deformation, P1Interpolation
 
 
+@dataclass(frozen=True)
 class Step:
-    def __init__(
-        self,
-        y_params: npt.NDArray[np.float64],
-        theta_params: npt.NDArray[np.float64],
-        grid: Grid,
-    ):
-        self._y_params = y_params
-        self._theta_params = theta_params
-
-        self.y = P1Deformation(grid, *y_params)
-        self.theta = P1Interpolation(grid, theta_params)
+    y: npt.NDArray[np.float64]
+    theta: npt.NDArray[np.float64]
 
     def __repr__(self):
-        return f"Step(y={repr(self._y_params)}, theta={repr(self._theta_params)})"
+        return f"Step(y={repr(self.y)}, theta={repr(self.theta)})"
 
     def __str__(self):
-        return f"y:\n{str(self._y_params)}\ntheta:\n{str(self._theta_params)}"
+        return f"y:\n{str(self.y)}\ntheta:\n{str(self.theta)}"
 
 
 class Simulation:

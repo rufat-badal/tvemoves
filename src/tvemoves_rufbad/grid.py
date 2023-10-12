@@ -1,5 +1,4 @@
 from tvemoves_rufbad.tensors import Vector, Matrix
-from dataclasses import dataclass
 from tvemoves_rufbad.bell_finite_element import (
     shape_function,
     shape_function_jacobian,

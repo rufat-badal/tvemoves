@@ -1,11 +1,10 @@
 from tvemoves_rufbad.tensors import Vector, Matrix, Tensor3D
 from tvemoves_rufbad.grid import Grid, Triangle, BarycentricCoordinates, Edge
 import numpy.typing as npt
-from typing import Union
 
 
 class P1Interpolation:
-    def __init__(self, grid: Grid, params: Union[list, npt.NDArray]):
+    def __init__(self, grid: Grid, params: list):
         if len(params) != len(grid.vertices):
             raise ValueError("number of params must equal to the number of vertices")
         self._grid = grid
