@@ -30,8 +30,7 @@ class P1Interpolation:
 
 class P1Deformation:
     def __init__(self, grid, y1_params: list, y2_params: list):
-        self.y1 = P1Interpolation(grid, y1_params)
-        self.y2 = P1Interpolation(grid, y2_params)
+        self._y = [P1Interpolation(grid, y1_params), P1Interpolation(grid, y2_params)]
 
     def __call__(
         self,
@@ -40,21 +39,24 @@ class P1Deformation:
     ) -> Vector:
         return Vector(
             [
-                self.y1(triangle, barycentric_coordinates),
-                self.y2(triangle, barycentric_coordinates),
+                self._y[0](triangle, barycentric_coordinates),
+                self._y[1](triangle, barycentric_coordinates),
             ]
         )
 
     def on_boundary(self, edge: Edge, t: float):
         return Vector(
             [
-                self.y1.on_boundary(edge, t),
-                self.y2.on_boundary(edge, t),
+                self._y[0].on_boundary(edge, t),
+                self._y[1].on_boundary(edge, t),
             ]
         )
 
     def strain(self, triangle: Triangle, barycentric_coordinates=None) -> Matrix:
-        return self.y1.gradient(triangle).stack(self.y2.gradient(triangle))
+        return self._y[0].gradient(triangle).stack(self._y[1].gradient(triangle))
+
+    def __getitem__(self, i: int):
+        return self._y[i]
 
 
 class C1Interpolation:
@@ -181,8 +183,7 @@ class C1Interpolation:
 
 class C1Deformation:
     def __init__(self, grid, y1_params: list[list], y2_params: list[list]):
-        self.y1 = C1Interpolation(grid, y1_params)
-        self.y2 = C1Interpolation(grid, y2_params)
+        self._y = [C1Interpolation(grid, y1_params), C1Interpolation(grid, y2_params)]
 
     def __call__(
         self,
@@ -191,24 +192,26 @@ class C1Deformation:
     ) -> Vector:
         return Vector(
             [
-                self.y1(triangle, barycentric_coordinates),
-                self.y2(triangle, barycentric_coordinates),
+                self._y[0](triangle, barycentric_coordinates),
+                self._y[1](triangle, barycentric_coordinates),
             ]
         )
 
     def strain(
         self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
     ) -> Matrix:
-        return self.y1.gradient(triangle, barycentric_coordinates).stack(
-            self.y2.gradient(triangle, barycentric_coordinates)
+        return (
+            self._y[0]
+            .gradient(triangle, barycentric_coordinates)
+            .stack(self._y[1].gradient(triangle, barycentric_coordinates))
         )
 
     def hyper_strain(
         self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
     ) -> Tensor3D:
-        hessian_y1 = self.y1.hessian(triangle, barycentric_coordinates)
-        hessian_y2 = self.y2.hessian(triangle, barycentric_coordinates)
+        hessian_y1 = self._y[0].hessian(triangle, barycentric_coordinates)
+        hessian_y2 = self._y[1].hessian(triangle, barycentric_coordinates)
         return hessian_y1.stack(hessian_y2)
 
     def on_edge(self, edge: Edge, t: float) -> Vector:
-        return Vector([self.y1.on_edge(edge, t), self.y2.on_edge(edge, t)])
+        return Vector([self._y[0].on_edge(edge, t), self._y[1].on_edge(edge, t)])
