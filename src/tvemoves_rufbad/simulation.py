@@ -4,7 +4,7 @@ from tvemoves_rufbad.mechanical_step import MechanicalStepRegularized
 from dataclasses import dataclass
 import numpy.typing as npt
 import numpy as np
-from tvemoves_rufbad.interpolation import P1Deformation
+from tvemoves_rufbad.interpolation import P1Deformation, P1Interpolation
 
 
 class Step:
