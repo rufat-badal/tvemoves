@@ -14,8 +14,8 @@ class Integrator:
     ):
         self._triangles = triangles
         self._quadrature = quadrature
-        first_sides = (points[j] - points[i] for (i, j, _) in self._triangles)
-        second_sides = (points[k] - points[i] for (i, _, k) in self._triangles)
+        first_sides = (points[j] - points[i] for (i, j, _) in triangles)
+        second_sides = (points[k] - points[i] for (i, _, k) in triangles)
         self._triangle_areas = [
             abs(first.stack(second).det() / 2)
             for (first, second) in zip(first_sides, second_sides)
@@ -42,7 +42,7 @@ class BoundaryIntegrator:
         self._edges = edges
         self._quadrature = GaussQuadratureRule(degree)
         self._edge_lengths = [
-            pyo.sqrt((points[i] - points[j]).normsqr()) for (i, j) in self._edges
+            pyo.sqrt((points[i] - points[j]).normsqr()) for (i, j) in edges
         ]
 
     def __call__(

@@ -41,7 +41,7 @@ class Grid:
         self.points = points
 
         self.opposite_vertices = defaultdict(list)
-        for triangle in self.triangles:
+        for triangle in triangles:
             for i in range(3):
                 edge = (triangle[i], triangle[(i + 1) % 3])
                 edge_reverse = (edge[1], edge[0])
