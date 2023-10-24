@@ -1,6 +1,6 @@
 from tvemoves_rufbad.interpolation import C1Interpolation
 from tvemoves_rufbad.tensors import Vector, Matrix
-from tvemoves_rufbad.grid import generate_square_equilateral_grid
+from tvemoves_rufbad.grid import SquareEquilateralGrid
 
 
 def f(x: float, y: float) -> float:
@@ -15,7 +15,7 @@ def hessian_f(x: float, y: float) -> Matrix:
     return Matrix([[2, 0], [0, 2]])
 
 
-grid = generate_square_equilateral_grid(num_horizontal_points=4)
+grid = SquareEquilateralGrid(num_horizontal_points=4)
 f_at_grid_points = [f(p[0], p[1]) for p in grid.points]
 grad_f_at_grid_points = [grad_f(p[0], p[1]) for p in grid.points]
 hessian_f_at_grid_points = [hessian_f(p[0], p[1]) for p in grid.points]

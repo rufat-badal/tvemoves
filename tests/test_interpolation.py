@@ -4,7 +4,7 @@ from tvemoves_rufbad.interpolation import (
     C1Interpolation,
     C1Deformation,
 )
-from tvemoves_rufbad.grid import generate_square_equilateral_grid
+from tvemoves_rufbad.grid import SquareEquilateralGrid
 from tvemoves_rufbad.tensors import Vector, Matrix, Tensor3D
 import pyomo.environ as pyo
 from math import pi
@@ -162,7 +162,7 @@ def generate_evaluation_points(
 def test_p1_interpolation() -> None:
     eps = 1e-6
     grad_eps = 1e-2
-    grid = generate_square_equilateral_grid(num_horizontal_points=200)
+    grid = SquareEquilateralGrid(num_horizontal_points=200)
     barycentric_coordinates = generate_random_barycentric_coordinates(
         len(grid.triangles)
     )
@@ -197,7 +197,7 @@ def test_p1_interpolation() -> None:
 
 
 def test_p1_interpolation_with_pyomo_params() -> None:
-    grid = generate_square_equilateral_grid(num_horizontal_points=50)
+    grid = SquareEquilateralGrid(num_horizontal_points=50)
     barycentric_coordinates = generate_random_barycentric_coordinates(
         len(grid.triangles)
     )
@@ -235,7 +235,7 @@ def test_p1_interpolation_with_pyomo_params() -> None:
 def test_p1_deformation() -> None:
     eps = 1e-6
     grad_eps = 1e-3
-    grid = generate_square_equilateral_grid(num_horizontal_points=100)
+    grid = SquareEquilateralGrid(num_horizontal_points=100)
     barycentric_coordinates = generate_random_barycentric_coordinates(
         len(grid.triangles)
     )
@@ -279,7 +279,7 @@ def test_c1_interpolation() -> None:
     eps = 1e-6
     grad_eps = 1e-4
     hessian_eps = 1e-2
-    grid = generate_square_equilateral_grid(num_horizontal_points=14)
+    grid = SquareEquilateralGrid(num_horizontal_points=14)
     barycentric_coordinates = generate_random_barycentric_coordinates(
         len(grid.triangles)
     )
@@ -337,7 +337,7 @@ def test_c1_interpolation() -> None:
 
 def test_c1_deformation() -> None:
     eps = 1e-6
-    grid = generate_square_equilateral_grid(num_horizontal_points=7)
+    grid = SquareEquilateralGrid(num_horizontal_points=7)
     barycentric_coordinates = generate_random_barycentric_coordinates(
         len(grid.triangles)
     )

@@ -1,4 +1,4 @@
-from tvemoves_rufbad.grid import generate_square_equilateral_grid
+from tvemoves_rufbad.grid import SquareEquilateralGrid
 from pytest import approx
 from tests.test_interpolation import generate_random_barycentric_coordinates
 
@@ -11,7 +11,7 @@ def test_square_equilateral_grid() -> None:
     num_boundary_vertices = 4 * (n - 1)
     num_boundary_edges = 4 * (n - 1)
 
-    G = generate_square_equilateral_grid(n)
+    G = SquareEquilateralGrid(n)
     grid_spacing = 1 / (n - 1)
     assert G.vertices == list(range(num_vertices))
     assert all(0 <= p[0] <= 1 and 0 <= p[1] <= 1 for p in G.points)
@@ -65,29 +65,29 @@ def test_square_equilateral_grid() -> None:
     assert G.dirichlet_vertices == []
     assert G.dirichlet_edges == []
 
-    G_lower_fixed = generate_square_equilateral_grid(n, fix="lower")
+    G_lower_fixed = SquareEquilateralGrid(n, fix="lower")
     assert all(
         G_lower_fixed.points[v][1] == approx(0)
         for v in G_lower_fixed.dirichlet_vertices
     )
-    G_right_fixed = generate_square_equilateral_grid(n, fix="right")
+    G_right_fixed = SquareEquilateralGrid(n, fix="right")
     assert all(
         G_right_fixed.points[v][0] == approx(1)
         for v in G_right_fixed.dirichlet_vertices
     )
-    G_upper_fixed = generate_square_equilateral_grid(n, fix="upper")
+    G_upper_fixed = SquareEquilateralGrid(n, fix="upper")
     assert all(
         G_upper_fixed.points[v][1] == approx(1)
         for v in G_upper_fixed.dirichlet_vertices
     )
-    G_left_fixed = generate_square_equilateral_grid(n, fix="left")
+    G_left_fixed = SquareEquilateralGrid(n, fix="left")
     assert all(
         G_left_fixed.points[v][0] == approx(0) for v in G_left_fixed.dirichlet_vertices
     )
 
 
 def test_area_coordinates() -> None:
-    G = generate_square_equilateral_grid(num_horizontal_points=50)
+    G = SquareEquilateralGrid(num_horizontal_points=50)
     barycentric_coordinates = generate_random_barycentric_coordinates(len(G.triangles))
     area_coordinates = [
         G._area_coordinates(w, triangle)
