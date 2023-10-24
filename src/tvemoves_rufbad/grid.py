@@ -13,6 +13,10 @@ from abc import ABC, abstractmethod
 Edge = tuple[int, int]
 Triangle = tuple[int, int, int]
 BarycentricCoordinates = tuple[float, float, float]
+DomainPoint = tuple[Triangle, BarycentricCoordinates]
+DomainCurve = list[DomainPoint]
+CartesianPoint = tuple[float, float]
+CartesianCurve = list[CartesianPoint]
 
 
 class Grid(ABC):
@@ -48,8 +52,6 @@ class Grid(ABC):
                 opposite_vertex = triangle[(i + 2) % 3]
                 self.opposite_vertices[edge].append(opposite_vertex)
                 self.opposite_vertices[edge_reverse].append(opposite_vertex)
-
-        super().__init__()
 
     def _triangle_parameters(
         self, triangle: Triangle
@@ -176,11 +178,14 @@ class Grid(ABC):
         _, b, c, _ = self._triangle_parameters(triangle)
         return shape_function_on_edge_right(L1, b[1], c[1])
 
-    # @abstractmethod
-    # def deformation_curves(
-    #     self, num_lines_horizontal: int, num_lines_vertical: int = num_lines_horizontal
-    # ):
-    #     pass
+    @abstractmethod
+    def generate_cartesian_domain_curves(
+        self,
+        num_points: int,
+        num_curves_horizontal: int = 0,
+        num_curves_vertical: int | None = None,
+    ) -> list[CartesianCurve]:
+        pass
 
 
 class SquareEquilateralGrid(Grid):
@@ -360,3 +365,49 @@ class SquareEquilateralGrid(Grid):
             neumann_edges,
             points,
         )
+
+    def generate_cartesian_domain_curves(
+        self,
+        num_points: int,
+        num_curves_horizontal: int = 0,
+        num_curves_vertical: int | None = None,
+    ) -> list[CartesianCurve]:
+        if num_curves_vertical is None:
+            num_curves_vertical = num_curves_horizontal
+        cartesian_domain_curves = []
+        # bottom side
+        cartesian_domain_curves.append(
+            [(i / num_points, 0.0) for i in range(num_points + 1)]
+        )
+        # right side
+        cartesian_domain_curves.append(
+            [(1.0, i / num_points) for i in range(num_points + 1)]
+        )
+        # top side
+        cartesian_domain_curves.append(
+            [(i / num_points, 1.0) for i in range(num_points + 1)]
+        )
+        # left side
+        cartesian_domain_curves.append(
+            [(0.0, i / num_points) for i in range(num_points + 1)]
+        )
+
+        # additional horizontal curves
+        for i in range(1, num_curves_horizontal + 1):
+            cartesian_domain_curves.append(
+                [
+                    (j / num_points, i / (num_curves_horizontal + 1))
+                    for j in range(num_points + 1)
+                ]
+            )
+
+        # additional vertical curves
+        for i in range(1, num_curves_vertical + 1):
+            cartesian_domain_curves.append(
+                [
+                    (i / (num_curves_horizontal + 1), j / num_points)
+                    for j in range(num_points + 1)
+                ]
+            )
+
+        return cartesian_domain_curves
