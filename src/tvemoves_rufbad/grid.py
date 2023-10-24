@@ -7,6 +7,7 @@ from tvemoves_rufbad.bell_finite_element import (
     shape_function_on_edge_right,
 )
 from collections import defaultdict
+from abc import ABC, abstractmethod
 
 
 Edge = tuple[int, int]
@@ -14,7 +15,7 @@ Triangle = tuple[int, int, int]
 BarycentricCoordinates = tuple[float, float, float]
 
 
-class Grid:
+class Grid(ABC):
     def __init__(
         self,
         vertices: list[int],
@@ -47,6 +48,8 @@ class Grid:
                 opposite_vertex = triangle[(i + 2) % 3]
                 self.opposite_vertices[edge].append(opposite_vertex)
                 self.opposite_vertices[edge_reverse].append(opposite_vertex)
+
+        super().__init__()
 
     def _triangle_parameters(
         self, triangle: Triangle
@@ -172,6 +175,17 @@ class Grid:
         L1 = self._area_coordinates((t, 1 - t, 0), triangle)[0]
         _, b, c, _ = self._triangle_parameters(triangle)
         return shape_function_on_edge_right(L1, b[1], c[1])
+
+    @abstractmethod
+    def deformation_curves(
+        self, num_lines_horizontal: int, num_lines_vertical: int = num_lines_horizontal
+    ):
+        pass
+
+
+class SquareEquilateralGrid(Grid):
+    def __init__(self, num_horizontal_points: int, fix: str = "none"):
+        pass
 
 
 def generate_square_equilateral_grid(
