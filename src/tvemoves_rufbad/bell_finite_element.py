@@ -1,6 +1,7 @@
 """Computes the shape function and its derivatives for Bell's finite elements."""
 
 import sympy as sp
+from typing import Iterable
 from tvemoves_rufbad.tensors import Vector, Matrix
 
 
@@ -76,9 +77,9 @@ _shape_function_lambdified = sp.lambdify(_l + _b + _c, _shape_function_symbolic)
 
 
 def shape_function(
-    area_coordinates: tuple[float, float, float],
-    b: tuple[float, float, float],
-    c: tuple[float, float, float],
+    area_coordinates: Iterable[float],
+    b: Iterable[float],
+    c: Iterable[float],
 ) -> Vector:
     """Lambdification of the symbolic shape function."""
     return Vector(_shape_function_lambdified(*area_coordinates, *b, *c))
@@ -93,9 +94,9 @@ _shape_function_jacobian_lambdified = sp.lambdify(
 
 
 def shape_function_jacobian(
-    area_coordinates: tuple[float, float, float],
-    b: tuple[float, float, float],
-    c: tuple[float, float, float],
+    area_coordinates: Iterable[float],
+    b: Iterable[float],
+    c: Iterable[float],
 ) -> Matrix:
     """Lambdification of the gradient of the symbolic shape function."""
     return Matrix(
@@ -124,9 +125,9 @@ _shape_function_hessian_vectorized_lambdified = sp.lambdify(
 
 
 def shape_function_hessian_vectorized(
-    area_coordinates: tuple[float, float, float],
-    b: tuple[float, float, float],
-    c: tuple[float, float, float],
+    area_coordinates: Iterable[float],
+    b: Iterable[float],
+    c: Iterable[float],
 ) -> Matrix:
     """Lambdification of the hessian of the symbolic shape function."""
     return Matrix(
