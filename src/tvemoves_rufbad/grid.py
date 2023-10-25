@@ -35,7 +35,7 @@ class Grid(ABC):
         dirichlet_edges: list[Edge],
         neumann_vertices: list[int],
         neumann_edges: list[Edge],
-        points: list[Vector],
+        points: list[CartesianPoint],
     ):
         self.vertices = vertices
         self.edges = edges
@@ -187,7 +187,7 @@ class Grid(ABC):
         triangle = (edge[0], edge[1], self.opposite_vertices[edge][0])
         l1 = self._area_coordinates((t, 1 - t, 0), triangle)[0]
         _, b, c, _ = self._triangle_parameters(triangle)
-        return shape_function_on_edge_right(l1, b[1], c[1])
+        return shape_function_on_edge_right(l1, b[1], c[1]) 
 
     @abstractmethod
     def generate_cartesian_domain_curves(
