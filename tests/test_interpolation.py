@@ -1,3 +1,9 @@
+"""Test interpolators."""
+
+from math import pi
+import pyomo.environ as pyo
+from pytest import approx
+import numpy as np
 from tvemoves_rufbad.interpolation import (
     P1Interpolation,
     P1Deformation,
@@ -6,41 +12,51 @@ from tvemoves_rufbad.interpolation import (
 )
 from tvemoves_rufbad.grid import SquareEquilateralGrid
 from tvemoves_rufbad.tensors import Vector, Matrix, Tensor3D
-import pyomo.environ as pyo
-from math import pi
-from pytest import approx
-import numpy as np
 
 
 def affine(x: float, y: float) -> float:
+    """Affine map on the unit square."""
     return x + y
 
 
 def gradient_affine(x: float, y: float) -> Vector:
+    """Gradient of the affine map."""
+    del x
+    del y
     return Vector([1, 1])
 
 
 def hessian_affine(x: float, y: float) -> Matrix:
+    """Hessian of the affine map."""
+    del x
+    del y
     return Matrix([[0, 0], [0, 0]])
 
 
 def parabola(x: float, y: float) -> float:
+    """Parabola on the unit suqare."""
     return (x - 1 / 2) ** 2 + (y - 1 / 2) ** 2
 
 
 def gradient_parabola(x: float, y: float) -> Vector:
+    """Gradient of the parabola."""
     return Vector([2 * (x - 1 / 2), 2 * (y - 1 / 2)])
 
 
 def hessian_parabola(x: float, y: float) -> Matrix:
+    """Hessian of the parabola."""
+    del x
+    del y
     return Matrix([[2, 0], [0, 2]])
 
 
 def periodic(x: float, y: float) -> float:
+    """Periodic function on the unit squre."""
     return pyo.sin(2 * pi * x) * pyo.cos(2 * pi * y)
 
 
 def gradient_periodic(x: float, y: float) -> Vector:
+    """Gradient of the periodic function."""
     return Vector(
         [
             2 * pi * pyo.cos(2 * pi * y) * pyo.cos(2 * pi * x),
@@ -50,6 +66,7 @@ def gradient_periodic(x: float, y: float) -> Vector:
 
 
 def hessian_periodic(x: float, y: float) -> Matrix:
+    """Hessian of the periodic function."""
     return (
         -4
         * pi**2
@@ -74,23 +91,32 @@ hessians = [hessian_affine, hessian_parabola, hessian_periodic]
 
 
 def affine_deformation(x: float, y: float) -> Vector:
+    """Affine deformation."""
     return Vector([2 * x, y])
 
 
 def affine_strain(x: float, y: float) -> Matrix:
+    """Strain of the affine deformation."""
+    del x
+    del y
     return Matrix([[2, 0], [0, 1]])
 
 
 def affine_hyper_strain(x: float, y: float) -> Tensor3D:
+    """Hyper strain of the affine deformation."""
+    del x
+    del y
     return Tensor3D([[[0, 0], [0, 0]], [[0, 0], [0, 0]]])
 
 
 def bend_deformation(x: float, y: float) -> Vector:
+    """Deformation circularly bending the unit square."""
     angle = pi / 2 * x
     return (2 - y) * Vector([pyo.cos(angle), pyo.sin(angle)])
 
 
 def bend_strain(x: float, y: float) -> Matrix:
+    """Strain of the circular bending."""
     angle = pi / 2 * x
     return Matrix(
         [
@@ -101,6 +127,7 @@ def bend_strain(x: float, y: float) -> Matrix:
 
 
 def bend_hyper_strain(x: float, y: float) -> Tensor3D:
+    """Hyper strain of the circular bending."""
     angle = pi / 2 * x
     return Tensor3D(
         [
@@ -117,14 +144,17 @@ def bend_hyper_strain(x: float, y: float) -> Tensor3D:
 
 
 def squeeze_deformation(x: float, y: float) -> Vector:
+    """Deformation squeezing the unit square horizontally."""
     return Vector([x - 1 / 2, 1 / 2 * (4 * x**2 + 1) * (y - 1 / 2)])
 
 
 def squeeze_strain(x: float, y: float) -> Matrix:
+    """Strain of the horizontal squeeze."""
     return Matrix([[1, 0], [4 * x * (y - 1 / 2), 1 / 2 * (4 * x**2 + 1)]])
 
 
 def squeeze_hyper_strain(x: float, y: float) -> Tensor3D:
+    """Hyper strain of the horizontal squeeze."""
     return Tensor3D([[[0, 0], [0, 0]], [[4 * (y - 1 / 2), 4 * x], [4 * x, 0]]])
 
 
@@ -136,6 +166,7 @@ hyper_strains = [affine_hyper_strain, bend_hyper_strain, squeeze_hyper_strain]
 def generate_random_barycentric_coordinates(
     num_coordinates,
 ) -> list[tuple[float, float, float]]:
+    """Determines random barycentric coordinates for each provided triangle."""
     rng = np.random.default_rng()
     res = []
     for _ in range(num_coordinates):
@@ -153,6 +184,7 @@ def generate_evaluation_points(
     triangles: list[tuple[int, int, int]],
     points: list[Vector],
 ) -> list[Vector]:
+    """Create a list of cartesian evaluation points given their barycentric coordinates."""
     return [
         points[i1] * w1 + points[i2] * w2 + points[i3] * w3
         for ((i1, i2, i3), (w1, w2, w3)) in zip(triangles, barycentric_coordinates)
@@ -160,6 +192,7 @@ def generate_evaluation_points(
 
 
 def test_p1_interpolation() -> None:
+    """Test piecewise affine interpolation."""
     eps = 1e-6
     grad_eps = 1e-2
     grid = SquareEquilateralGrid(num_horizontal_points=200)
@@ -197,6 +230,7 @@ def test_p1_interpolation() -> None:
 
 
 def test_p1_interpolation_with_pyomo_params() -> None:
+    """Test piecewise affine interpolation with values given as pyomo paramters."""
     grid = SquareEquilateralGrid(num_horizontal_points=50)
     barycentric_coordinates = generate_random_barycentric_coordinates(
         len(grid.triangles)
@@ -233,6 +267,7 @@ def test_p1_interpolation_with_pyomo_params() -> None:
 
 
 def test_p1_deformation() -> None:
+    """Test P1 deformation."""
     eps = 1e-6
     grad_eps = 1e-3
     grid = SquareEquilateralGrid(num_horizontal_points=100)
@@ -276,6 +311,7 @@ def test_p1_deformation() -> None:
 
 
 def test_c1_interpolation() -> None:
+    """Test interpolation via Bell's finite elements."""
     eps = 1e-6
     grad_eps = 1e-4
     hessian_eps = 1e-2
@@ -336,6 +372,7 @@ def test_c1_interpolation() -> None:
 
 
 def test_c1_deformation() -> None:
+    """Test C1 deformation."""
     eps = 1e-6
     grid = SquareEquilateralGrid(num_horizontal_points=7)
     barycentric_coordinates = generate_random_barycentric_coordinates(

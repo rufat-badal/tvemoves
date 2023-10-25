@@ -1,9 +1,12 @@
+"""Implementation of 1-, 2-, and 3-d tensors."""
+
 from __future__ import annotations
 from itertools import permutations
 from typing import Callable
 
 
 def sign(p):
+    """Compute the sign of a permutation."""
     # p must be a permutation of [0, 1, 2, ...]
     num_misplaced = 0
     for i, a in enumerate(p):
@@ -15,6 +18,8 @@ def sign(p):
 
 
 class Vector:
+    """Custom vector class."""
+
     def __init__(self, data: list):
         self.shape = (len(data),)
         self._data = data
@@ -46,9 +51,11 @@ class Vector:
         return Vector([x - y for x, y in zip(self._data, other._data)])
 
     def normsqr(self):
+        """Compute square of the Euclidean norm."""
         return sum(x**2 for x in self._data)
 
     def dot(self, other: Vector):
+        """Compute the scalar product with another vector."""
         if self.shape != other.shape:
             raise ValueError("vectors must have the same length for the dot product")
         return sum(x * y for (x, y) in zip(self._data, other._data))
@@ -66,6 +73,7 @@ class Vector:
         return NotImplemented
 
     def reshape(self, num_rows: int, num_cols: int) -> Matrix:
+        """Reshape vector of length num_rows x num_cols to a num_rows x num_cols matrix."""
         # row major format
         return Matrix(
             [
@@ -75,6 +83,7 @@ class Vector:
         )
 
     def stack(self, other: Vector) -> Matrix:
+        """Vertically stack two vectors to create a matrix with two rows."""
         if self.shape[0] != other.shape[0]:
             raise ValueError(
                 "vectors must be of the same length to be stacked vertically"
@@ -87,10 +96,13 @@ class Vector:
         )
 
     def map(self, f: Callable) -> Vector:
+        """Apply a map f to each entry in the vector."""
         return Vector([f(x) for x in self._data])
 
 
 class Matrix:
+    """Custom matrix class."""
+
     def __init__(self, data: list[list]):
         # row major format
         self.shape = (len(data), len(data[0]))
@@ -156,6 +168,7 @@ class Matrix:
         )
 
     def transpose(self) -> Matrix:
+        """Computes the transpose of a matrix."""
         return Matrix(
             [
                 [self._data[i][j] for i in range(self.shape[0])]
@@ -164,9 +177,11 @@ class Matrix:
         )
 
     def trace(self):
+        """Computes the trace of a matrix."""
         return sum(self._data[i][i] for i in range(min(self.shape)))
 
     def det(self):
+        """Computes the determinant of a matrix via Laplace expansion."""
         if self.shape[0] != self.shape[1]:
             raise ValueError("det not defined for nonsquare matrix")
         res = 0
@@ -179,9 +194,11 @@ class Matrix:
         return res
 
     def normsqr(self):
+        """Computes the square of the Frobenius norm of a matrix."""
         return sum(x**2 for row in self._data for x in row)
 
     def scalar_product(self, other):
+        """Computes the Frobenius scalar product with another matrix."""
         if self.shape != other.shape:
             raise ValueError("matrices must have the same length for the dot product")
         return sum(
@@ -191,6 +208,7 @@ class Matrix:
         )
 
     def __mul__(self, scaling) -> Matrix:
+        """Computes scaled matrix."""
         return Matrix([[x * scaling for x in row] for row in self._data])
 
     def __rmul__(self, scaling) -> Matrix:
@@ -203,10 +221,11 @@ class Matrix:
         return NotImplemented
 
     def flatten(self) -> Vector:
-        # row major format
+        """Returns flattened matrix (row major format)."""
         return Vector([x for row in self._data for x in row])
 
     def dot(self, v) -> Vector:
+        """Computes matrix-vector-product."""
         if v.shape[0] != self.shape[1]:
             raise ValueError(
                 "shape of matrix and vector do not match for the matrix-vector-product"
@@ -219,9 +238,11 @@ class Matrix:
         )
 
     def map(self, f: Callable) -> Matrix:
+        """Applies map f to each entry of the matrix."""
         return Matrix([[f(x) for x in row] for row in self._data])
 
     def stack(self, other: Matrix) -> Tensor3D:
+        """Stack two matrices to a 3-d tensor."""
         if self.shape[0] != other.shape[0]:
             raise ValueError(
                 "matrices must be of the same length to be stacked vertically"
@@ -235,6 +256,8 @@ class Matrix:
 
 
 class Tensor3D:
+    """3-d tensors."""
+
     def __init__(self, data: list[list[list]]):
         self.shape = (len(data), len(data[0]), len(data[0][0]))
         for submatrix in data:
@@ -306,9 +329,11 @@ class Tensor3D:
         )
 
     def normsqr(self):
+        """Computes square of the Euclidean norm of a matrix."""
         return sum(x**2 for submatrix in self._data for row in submatrix for x in row)
 
     def map(self, f: Callable) -> Tensor3D:
+        """Applies map f to each entry of the tensor."""
         return Tensor3D(
             [[[f(x) for x in row] for row in submatrix] for submatrix in self._data]
         )

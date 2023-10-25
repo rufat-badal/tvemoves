@@ -1,9 +1,12 @@
-from tvemoves_rufbad.tensors import Vector, Matrix, Tensor3D
+"""Test tensor classes."""
+
 import numpy as np
 from pytest import approx
+from tvemoves_rufbad.tensors import Vector, Matrix, Tensor3D
 
 
 def test_vector() -> None:
+    """Test vector class."""
     m = 100
     k = 10
     n = m * k
@@ -31,12 +34,16 @@ def test_vector() -> None:
     assert v.reshape(m, k)._data == approx(v_numpy.reshape(m, k))
     assert v.stack(w)._data == approx(np.stack((v_numpy, w_numpy)))
     assert v.map(lambda x: -x)._data == (-v)._data
-    square = lambda x: x**2
+
+    def square(x):
+        return x**2
+
     square_vectorized = np.vectorize(square)
     assert v.map(square)._data == approx(square_vectorized(v_numpy))
 
 
 def test_matrix() -> None:
+    """Test matrix class."""
     A_shape = (100, 200)
     B_shape = A_shape
     C_shape = (200, 50)
@@ -88,13 +95,17 @@ def test_matrix() -> None:
     assert A.flatten()._data == approx(A_numpy.flatten())
     assert A.dot(v)._data == approx(A_numpy.dot(v_numpy))
     assert A.map(lambda x: -x)._data == (-A)._data
-    square = lambda x: x**2
+
+    def square(x):
+        return x**2
+
     square_vectorized = np.vectorize(square)
     assert A.map(square)._data == approx(square_vectorized(A_numpy))
     assert A.stack(B)._data == approx(np.stack((A_numpy, B_numpy)))
 
 
 def test_tensor3d() -> None:
+    """Test 3-d tensor class."""
     T_shape = (50, 100, 25)
     T_numpy = np.random.rand(*T_shape)
     T_data = list(T_numpy)
@@ -108,7 +119,10 @@ def test_tensor3d() -> None:
     assert T._data == T_data
     assert T.shape == T_shape
     assert T.normsqr() == approx(T_numpy.ravel().dot(T_numpy.ravel()))
-    square = lambda x: x**2
+
+    def square(x):
+        return x**2
+
     square_vectorized = np.vectorize(square)
     assert T.map(square)._data == approx(square_vectorized(T_numpy))
     assert (T + S)._data == approx(T_numpy + S_numpy)

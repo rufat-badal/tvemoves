@@ -1,8 +1,12 @@
+"""Module providing quadrature rules in triangles and on edges."""
+
 from math import isclose
 from numpy.polynomial.legendre import leggauss
 
 
 class TriangleQuadratureRule:
+    """Quadrature rule inside a triangle."""
+
     def __init__(self, points: list[tuple[float, float]], weights: list[float]):
         for p in points:
             x, y = p
@@ -65,8 +69,19 @@ DUNAVANT5 = TriangleQuadratureRule(
     ],
 )
 
+TRIANGLE_QUADRATURE_RULES = [
+    CENTROID,
+    VERTEX,
+    DUNAVANT2,
+    DUNAVANT3,
+    DUNAVANT4,
+    DUNAVANT5,
+]
+
 
 class GaussQuadratureRule:
+    """Gauss quadrature rule on the unit segment."""
+
     def __init__(self, degree: int):
         # points are in the interval [-1, 1]
         points, weights = leggauss(degree)
