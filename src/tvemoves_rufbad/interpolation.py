@@ -1,6 +1,5 @@
 """Module providing interpolations in triangles."""
 
-from typing import Iterable
 from tvemoves_rufbad.tensors import Vector, Matrix, Tensor3D
 from tvemoves_rufbad.grid import Grid, Triangle, BarycentricCoordinates, Edge
 
@@ -8,11 +7,11 @@ from tvemoves_rufbad.grid import Grid, Triangle, BarycentricCoordinates, Edge
 class P1Interpolation:
     """Piecewise affine interpolation."""
 
-    def __init__(self, grid: Grid, params: Iterable):
+    def __init__(self, grid: Grid, params: list):
         if len(params) != len(grid.vertices):
             raise ValueError("number of params must equal to the number of vertices")
         self._grid = grid
-        self._params = list(params)
+        self._params = params
 
     def __call__(
         self,
