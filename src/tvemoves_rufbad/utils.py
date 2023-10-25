@@ -1,36 +1,65 @@
-from tvemoves_rufbad.tensors import Matrix
+"""Module providing the definitions of important potentials and modeling functions."""
+
 import pyomo.environ as pyo
+from tvemoves_rufbad.tensors import Matrix
 
 
 def austenite_percentage(theta):
+    """Percentage of austenite in a material of temperature theta."""
     return 1 - 1 / (1 + theta)
 
 
-def dissipation_norm(dot_C: Matrix):
-    return dot_C.normsqr() / 2
+def dissipation_norm(symmetrized_strain_rate: Matrix):
+    """Norm of a symmetrized strain rate."""
+    return symmetrized_strain_rate.normsqr() / 2
 
 
-def neo_hook(F: Matrix):
-    trace_C = (F.transpose() @ F).trace()
-    det_F = F.det()
-    return trace_C - 2 - 2 * pyo.log(det_F) + (det_F - 1) ** 2
+def symmetrized_strain_delta(prev_strain, strain):
+    """Computes discrete symmetrized strain rate given two strains."""
+    strain_delta = strain - prev_strain
+    return (
+        strain_delta.transpose() @ prev_strain + prev_strain.transpose() @ strain_delta
+    )
 
 
-def austenite_potential(F: Matrix):
-    return neo_hook(F)
+def dissipation_potential(prev_strain, strain):
+    """Dissipation generated going from prev_strain to strain."""
+    return dissipation_norm(symmetrized_strain_delta(prev_strain, strain))
+
+
+def neo_hook(strain: Matrix):
+    """Neo hook potential."""
+    trace_of_symmetrized_strain = (strain.transpose() @ strain).trace()
+    det_of_strain = strain.det()
+    return (
+        trace_of_symmetrized_strain
+        - 2
+        - 2 * pyo.log(det_of_strain)
+        + (det_of_strain - 1) ** 2
+    )
+
+
+def austenite_potential(strain: Matrix):
+    """Austenite potential."""
+    return neo_hook(strain)
 
 
 def generate_martensite_potential(scaling_matrix: Matrix):
-    return lambda F: austenite_potential(F @ scaling_matrix)
+    """Create martensite potential for a given scaling matrix."""
+    return lambda strain: austenite_potential(strain @ scaling_matrix)
 
 
-def gradient_austenite_potential(F: Matrix):
-    det_F = F.det()
-    gradient_det = Matrix([[F[2, 2], -F[2, 1]], [-F[1, 2], F[1, 1]]])
-    return 2 * (F + (det_F - 1 / det_F - 1) * gradient_det)
+def gradient_austenite_potential(strain: Matrix):
+    """Gradient of the austenite potential."""
+    det_of_strain = strain.det()
+    gradient_of_det = Matrix(
+        [[strain[2, 2], -strain[2, 1]], [-strain[1, 2], strain[1, 1]]]
+    )
+    return 2 * (strain + (det_of_strain - 1 / det_of_strain - 1) * gradient_of_det)
 
 
 def generate_gradient_martensite_potential(scaling_matrix: Matrix):
+    """Create gradient of the martensite potential for a given scaling matrix."""
     # chain rule
     return (
         lambda F: gradient_austenite_potential(F @ scaling_matrix)
@@ -39,21 +68,15 @@ def generate_gradient_martensite_potential(scaling_matrix: Matrix):
 
 
 def internal_energy_weight(theta):
-    # a = austenite_percentage
-    # a(θ) - θ a'(θ)
+    """a(θ) - θ a'(θ) where a(θ) is the austenite percentage"""
     return theta**2 / ((1 + theta) ** 2)
 
 
 def antider_internal_energy_weight(theta):
-    # a = austenite_percentage
-    # integral of a(s) - s a'(s) from s = 0 to s = θ
+    """Integral of a(s) - s a'(s) from s = 0 to s = θ"""
     return (theta * (2 + theta)) / (1 + theta) - 2 * pyo.log(1 + theta)
 
 
-def symmetrized_strain_delta(prev_F, F):
-    delta_F = F - prev_F
-    return delta_F.transpose() @ prev_F + prev_F.transpose() @ delta_F
-
-
 def compose_to_integrand(outer, *inner):
+    """Compose an admissable integrand 'inner' with a function 'outer' to create a new integrand."""
     return lambda *args: outer(*(f(*args) for f in inner))
