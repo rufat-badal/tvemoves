@@ -1,172 +1,165 @@
-from tvemoves_rufbad.tensors import Vector, Matrix
+"""Computes the shape function and its derivatives for Bell's finite elements."""
+
 import sympy as sp
+from tvemoves_rufbad.tensors import Vector, Matrix
 
 
-L1, L2, L3 = sp.symbols("L1 L2 L3")
-L = [L1, L2, L3]
-t = sp.symbols("t")
-b1, b2, b3 = sp.symbols("b1 b2 b3")
-b = [b1, b2, b3]
-c1, c2, c3 = sp.symbols("c1 c2 c3")
-c = [c1, c2, c3]
-r = sp.Matrix(
+_l = list(sp.symbols("L1 L2 L3"))
+_t = sp.symbols("t")
+_b = list(sp.symbols("b1 b2 b3"))
+_c = list(sp.symbols("c1 c2 c3"))
+_r = sp.Matrix(
     [
-        [-(b[i] * b[j] + c[i] * c[j]) / (b[i] ** 2 + c[i] ** 2) for j in range(3)]
+        [-(_b[i] * _b[j] + _c[i] * _c[j]) / (_b[i] ** 2 + _c[i] ** 2) for j in range(3)]
         for i in range(3)
     ]
 )
 
-N1 = (
-    L1**5
-    + 5 * L1**4 * L2
-    + 5 * L1**4 * L3
-    + 10 * L1**3 * L2**2
-    + 10 * L1**3 * L3**2
-    + 20 * L1**3 * L2 * L3
-    + 30 * r[1, 0] * L1**2 * L2 * L3**2
-    + 30 * r[2, 0] * L1**2 * L3 * L2**2
+_shape_function_symbolic = []
+_shape_function_symbolic.append(
+    _l[0] ** 5
+    + 5 * _l[0] ** 4 * _l[1]
+    + 5 * _l[0] ** 4 * _l[2]
+    + 10 * _l[0] ** 3 * _l[1] ** 2
+    + 10 * _l[0] ** 3 * _l[2] ** 2
+    + 20 * _l[0] ** 3 * _l[1] * _l[2]
+    + 30 * _r[1, 0] * _l[0] ** 2 * _l[1] * _l[2] ** 2
+    + 30 * _r[2, 0] * _l[0] ** 2 * _l[2] * _l[1] ** 2
 )
-N2 = (
-    c[2] * L1**4 * L2
-    - c[1] * L1**4 * L3
-    + 4 * c[2] * L1**3 * L2**2
-    - 4 * c[1] * L1**3 * L3**2
-    + 4 * (c[2] - c[1]) * L1**3 * L2 * L3
-    - (3 * c[0] + 15 * r[1, 0] * c[1]) * L1**2 * L2 * L3**2
-    + (3 * c[0] + 15 * r[2, 0] * c[2]) * L1**2 * L3 * L2**2
+_shape_function_symbolic.append(
+    _c[2] * _l[0] ** 4 * _l[1]
+    - _c[1] * _l[0] ** 4 * _l[2]
+    + 4 * _c[2] * _l[0] ** 3 * _l[1] ** 2
+    - 4 * _c[1] * _l[0] ** 3 * _l[2] ** 2
+    + 4 * (_c[2] - _c[1]) * _l[0] ** 3 * _l[1] * _l[2]
+    - (3 * _c[0] + 15 * _r[1, 0] * _c[1]) * _l[0] ** 2 * _l[1] * _l[2] ** 2
+    + (3 * _c[0] + 15 * _r[2, 0] * _c[2]) * _l[0] ** 2 * _l[2] * _l[1] ** 2
 )
-N3 = (
-    -b[2] * L1**4 * L2
-    + b[1] * L1**4 * L3
-    - 4 * b[2] * L1**3 * L2**2
-    + 4 * b[1] * L1**3 * L3**2
-    + 4 * (b[1] - b[2]) * L1**3 * L2 * L3
-    + (3 * b[0] + 15 * r[1, 0] * b[1]) * L1**2 * L2 * L3**2
-    - (3 * b[0] + 15 * r[2, 0] * b[2]) * L1**2 * L3 * L2**2
+_shape_function_symbolic.append(
+    -_b[2] * _l[0] ** 4 * _l[1]
+    + _b[1] * _l[0] ** 4 * _l[2]
+    - 4 * _b[2] * _l[0] ** 3 * _l[1] ** 2
+    + 4 * _b[1] * _l[0] ** 3 * _l[2] ** 2
+    + 4 * (_b[1] - _b[2]) * _l[0] ** 3 * _l[1] * _l[2]
+    + (3 * _b[0] + 15 * _r[1, 0] * _b[1]) * _l[0] ** 2 * _l[1] * _l[2] ** 2
+    - (3 * _b[0] + 15 * _r[2, 0] * _b[2]) * _l[0] ** 2 * _l[2] * _l[1] ** 2
 )
-N4 = (
-    c[2] ** 2 / 2 * L1**3 * L2**2
-    + c[1] ** 2 / 2 * L1**3 * L3**2
-    - c[1] * c[2] * L1**3 * L2 * L3
-    + (c[0] * c[1] + 5 / 2 * r[1, 0] * c[1] ** 2) * L2 * L3**2 * L1**2
-    + (c[0] * c[2] + 5 / 2 * r[2, 0] * c[2] ** 2) * L3 * L2**2 * L1**2
+_shape_function_symbolic.append(
+    _c[2] ** 2 / 2 * _l[0] ** 3 * _l[1] ** 2
+    + _c[1] ** 2 / 2 * _l[0] ** 3 * _l[2] ** 2
+    - _c[1] * _c[2] * _l[0] ** 3 * _l[1] * _l[2]
+    + (_c[0] * _c[1] + 5 / 2 * _r[1, 0] * _c[1] ** 2) * _l[1] * _l[2] ** 2 * _l[0] ** 2
+    + (_c[0] * _c[2] + 5 / 2 * _r[2, 0] * _c[2] ** 2) * _l[2] * _l[1] ** 2 * _l[0] ** 2
 )
-N5 = (
-    -b[2] * c[2] * L1**3 * L2**2
-    - b[1] * c[1] * L1**3 * L3**2
-    + (b[1] * c[2] + b[2] * c[1]) * L1**3 * L2 * L3
-    - (b[0] * c[1] + b[1] * c[0] + 5 * r[1, 0] * b[1] * c[1]) * L2 * L3**2 * L1**2
-    - (b[0] * c[2] + b[2] * c[0] + 5 * r[2, 0] * b[2] * c[2]) * L3 * L2**2 * L1**2
+_shape_function_symbolic.append(
+    -_b[2] * _c[2] * _l[0] ** 3 * _l[1] ** 2
+    - _b[1] * _c[1] * _l[0] ** 3 * _l[2] ** 2
+    + (_b[1] * _c[2] + _b[2] * _c[1]) * _l[0] ** 3 * _l[1] * _l[2]
+    - (_b[0] * _c[1] + _b[1] * _c[0] + 5 * _r[1, 0] * _b[1] * _c[1])
+    * _l[1]
+    * _l[2] ** 2
+    * _l[0] ** 2
+    - (_b[0] * _c[2] + _b[2] * _c[0] + 5 * _r[2, 0] * _b[2] * _c[2])
+    * _l[2]
+    * _l[1] ** 2
+    * _l[0] ** 2
 )
-N6 = (
-    b[2] ** 2 / 2 * L1**3 * L2**2
-    + b[1] ** 2 / 2 * L1**3 * L3**2
-    - b[1] * b[2] * L1**3 * L2 * L3
-    + (b[0] * b[1] + 5 / 2 * r[1, 0] * b[1] ** 2) * L2 * L3**2 * L1**2
-    + (b[0] * b[2] + 5 / 2 * r[2, 0] * b[2] ** 2) * L3 * L2**2 * L1**2
+_shape_function_symbolic.append(
+    _b[2] ** 2 / 2 * _l[0] ** 3 * _l[1] ** 2
+    + _b[1] ** 2 / 2 * _l[0] ** 3 * _l[2] ** 2
+    - _b[1] * _b[2] * _l[0] ** 3 * _l[1] * _l[2]
+    + (_b[0] * _b[1] + 5 / 2 * _r[1, 0] * _b[1] ** 2) * _l[1] * _l[2] ** 2 * _l[0] ** 2
+    + (_b[0] * _b[2] + 5 / 2 * _r[2, 0] * _b[2] ** 2) * _l[2] * _l[1] ** 2 * _l[0] ** 2
 )
 
-shape_function_symbolic = [N1, N2, N3, N4, N5, N6]
-
-shape_function_lambdified = sp.lambdify(L + b + c, shape_function_symbolic)
+_shape_function_lambdified = sp.lambdify(_l + _b + _c, _shape_function_symbolic)
 
 
 def shape_function(
-    L1: float,
-    L2: float,
-    L3: float,
-    b1: float,
-    b2: float,
-    b3: float,
-    c1: float,
-    c2: float,
-    c3: float,
+    area_coordinates: tuple[float, float, float],
+    b: tuple[float, float, float],
+    c: tuple[float, float, float],
 ) -> Vector:
-    return Vector(shape_function_lambdified(L1, L2, L3, b1, b2, b3, c1, c2, c3))
+    """Lambdification of the symbolic shape function."""
+    return Vector(_shape_function_lambdified(*area_coordinates, *b, *c))
 
 
-shape_function_jacobian_symbolic = sp.Matrix(
-    [[sp.diff(shape_function_symbolic[i], L[j]) for j in range(3)] for i in range(6)]
+_shape_function_jacobian_symbolic = sp.Matrix(
+    [[sp.diff(_shape_function_symbolic[i], _l[j]) for j in range(3)] for i in range(6)]
 )
-shape_function_jacobian_lambdified = sp.lambdify(
-    L + b + c, shape_function_jacobian_symbolic
+_shape_function_jacobian_lambdified = sp.lambdify(
+    _l + _b + _c, _shape_function_jacobian_symbolic
 )
 
 
 def shape_function_jacobian(
-    L1: float,
-    L2: float,
-    L3: float,
-    b1: float,
-    b2: float,
-    b3: float,
-    c1: float,
-    c2: float,
-    c3: float,
+    area_coordinates: tuple[float, float, float],
+    b: tuple[float, float, float],
+    c: tuple[float, float, float],
 ) -> Matrix:
+    """Lambdification of the gradient of the symbolic shape function."""
     return Matrix(
-        shape_function_jacobian_lambdified(L1, L2, L3, b1, b2, b3, c1, c2, c3).tolist()
+        _shape_function_jacobian_lambdified(*area_coordinates, *b, *c).tolist()
     )
 
 
-shape_function_hessian_symbolic = sp.Array(
+_shape_function_hessian_symbolic = sp.Array(
     [
         [
-            [sp.diff(shape_function_symbolic[i], L[j], L[k]) for k in range(3)]
+            [sp.diff(_shape_function_symbolic[i], _l[j], _l[k]) for k in range(3)]
             for j in range(3)
         ]
         for i in range(6)
     ]
 )
-shape_function_hessian_vectorized_symbolic = sp.Matrix(
+_shape_function_hessian_vectorized_symbolic = sp.Matrix(
     [
         [H[0, 0], H[1, 1], H[2, 2], H[0, 1], H[0, 2], H[1, 2]]
-        for H in shape_function_hessian_symbolic
+        for H in _shape_function_hessian_symbolic
     ]
 )
-shape_function_hessian_vectorized_lambdified = sp.lambdify(
-    L + b + c, shape_function_hessian_vectorized_symbolic
+_shape_function_hessian_vectorized_lambdified = sp.lambdify(
+    _l + _b + _c, _shape_function_hessian_vectorized_symbolic
 )
 
 
 def shape_function_hessian_vectorized(
-    L1: float,
-    L2: float,
-    L3: float,
-    b1: float,
-    b2: float,
-    b3: float,
-    c1: float,
-    c2: float,
-    c3: float,
+    area_coordinates: tuple[float, float, float],
+    b: tuple[float, float, float],
+    c: tuple[float, float, float],
 ) -> Matrix:
+    """Lambdification of the hessian of the symbolic shape function."""
     return Matrix(
-        shape_function_hessian_vectorized_lambdified(
-            L1, L2, L3, b1, b2, b3, c1, c2, c3
+        _shape_function_hessian_vectorized_lambdified(
+            *area_coordinates, *b, *c
         ).tolist()
     )
 
 
-L1_t = sp.symbols("L1_t")
-shape_function_on_edge_left_symbolic = [
-    Ni.subs(L1, L1_t).subs(L2, 1 - L1_t).subs(L3, 0) for Ni in shape_function_symbolic
+_l1_t = sp.symbols("L1_t")
+_shape_function_on_edge_left_symbolic = [
+    Ni.subs(_l[0], _l1_t).subs(_l[1], 1 - _l1_t).subs(_l[2], 0)
+    for Ni in _shape_function_symbolic
 ]
-shape_function_on_edge_left_lambdified = sp.lambdify(
-    [L1_t, b3, c3], shape_function_on_edge_left_symbolic
+_shape_function_on_edge_left_lambdified = sp.lambdify(
+    [_l1_t, _b[2], _c[2]], _shape_function_on_edge_left_symbolic
 )
 
 
-def shape_function_on_edge_left(L1_on_edge: float, b3: float, c3: float):
-    return Vector(shape_function_on_edge_left_lambdified(L1_on_edge, b3, c3))
+def shape_function_on_edge_left(l1_on_edge: float, b3: float, c3: float):
+    """Lambdification of the symbolic shape function on an edge for the left point."""
+    return Vector(_shape_function_on_edge_left_lambdified(l1_on_edge, b3, c3))
 
 
-shape_function_on_edge_right_symbolic = [
-    Ni.subs(L1, 1 - L1_t).subs(L2, 0).subs(L3, L1_t) for Ni in shape_function_symbolic
+_shape_function_on_edge_right_symbolic = [
+    Ni.subs(_l[0], 1 - _l1_t).subs(_l[1], 0).subs(_l[2], _l1_t)
+    for Ni in _shape_function_symbolic
 ]
-shape_function_on_edge_right_lambdified = sp.lambdify(
-    [L1_t, b2, c2], shape_function_on_edge_right_symbolic
+_shape_function_on_edge_right_lambdified = sp.lambdify(
+    [_l1_t, _b[1], _c[1]], _shape_function_on_edge_right_symbolic
 )
 
 
-def shape_function_on_edge_right(L1_on_edge: float, b2: float, c2: float):
-    return Vector(shape_function_on_edge_right_lambdified(L1_on_edge, b2, c2))
+def shape_function_on_edge_right(l1_on_edge: float, b2: float, c2: float):
+    """Lambdification of the symbolic shape function on an edge for the right point."""
+    return Vector(_shape_function_on_edge_right_lambdified(l1_on_edge, b2, c2))
