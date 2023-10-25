@@ -1,12 +1,16 @@
+"""Test simulation class."""
+
 from tvemoves_rufbad.grid import SquareEquilateralGrid
-from tvemoves_rufbad.simulation import Simulation
+from tvemoves_rufbad.simulation import Simulation, SimulationParams
 
 
 def test_simulation() -> None:
+    """Assure that a simulation class can be correctly initialized."""
     grid = SquareEquilateralGrid(num_horizontal_points=2, fix="left")
-    simulation = Simulation(
-        grid, initial_temperature=0.1, search_radius=10, shape_memory_scaling=2, fps=3
+    params = SimulationParams(
+        initial_temperature=0.1, search_radius=10, shape_memory_scaling=2, fps=3
     )
+    simulation = Simulation(grid, params)
     simulation._mechanical_step._model.display()
 
 

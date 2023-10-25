@@ -1,13 +1,20 @@
-import pyomo.environ as pyo
-from tvemoves_rufbad.grid import Grid
-from tvemoves_rufbad.mechanical_step import MechanicalStepRegularized
+"""Module provind the simulation class."""
+
 from dataclasses import dataclass
 import numpy.typing as npt
 import numpy as np
+import pyomo.environ as pyo
+from tvemoves_rufbad.grid import Grid
+from tvemoves_rufbad.mechanical_step import (
+    MechanicalStepRegularized,
+    MechanicalStepParams,
+)
 
 
 @dataclass(frozen=True)
 class Step:
+    """Single simulation step (with or without regularization)"""
+
     y: npt.NDArray[np.float64]
     theta: npt.NDArray[np.float64]
 
@@ -18,24 +25,34 @@ class Step:
         return f"y:\n{str(self.y)}\ntheta:\n{str(self.theta)}"
 
 
+@dataclass
+class SimulationParams:
+    """Parameters specifying the simulation."""
+
+    initial_temperature: float
+    search_radius: float
+    shape_memory_scaling: float
+    fps: int
+
+    def get_mechanical_step_params(self) -> MechanicalStepParams:
+        """Return subset of the parameters concerning the mechanical step only."""
+        return MechanicalStepParams(
+            self.initial_temperature,
+            self.search_radius,
+            self.shape_memory_scaling,
+            self.fps,
+        )
+
+
 class Simulation:
-    def __init__(
-        self,
-        grid: Grid,
-        initial_temperature: float,
-        search_radius: float,
-        shape_memory_scaling: float,
-        fps: int,
-    ):
+    """Class implementing the minimizing movement scheme with or without regularization."""
+
+    def __init__(self, grid: Grid, params: SimulationParams):
         self._grid = grid
         self._solver = pyo.SolverFactory("ipopt")
+        self.params = params
         self._mechanical_step = MechanicalStepRegularized(
-            self._solver,
-            grid,
-            initial_temperature,
-            search_radius,
-            shape_memory_scaling,
-            fps,
+            self._solver, grid, self.params.get_mechanical_step_params()
         )
         # self._mechanical_step.solve()
         # self.steps = [
