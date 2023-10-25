@@ -1,3 +1,7 @@
+"""Module providing grid generators."""
+
+from collections import defaultdict
+from abc import ABC, abstractmethod
 from tvemoves_rufbad.tensors import Vector, Matrix
 from tvemoves_rufbad.bell_finite_element import (
     shape_function,
@@ -6,8 +10,6 @@ from tvemoves_rufbad.bell_finite_element import (
     shape_function_on_edge_left,
     shape_function_on_edge_right,
 )
-from collections import defaultdict
-from abc import ABC, abstractmethod
 
 
 Edge = tuple[int, int]
@@ -20,6 +22,8 @@ CartesianCurve = list[CartesianPoint]
 
 
 class Grid(ABC):
+    """Abstract grid class."""
+
     def __init__(
         self,
         vertices: list[int],
@@ -93,6 +97,7 @@ class Grid(ABC):
         triangle: Triangle,
         area_gradient: Vector,
     ) -> Vector:
+        """Transforms gradient with respect to area coordinates to a Cartesian gradient"""
         _, b, c, delta = self._triangle_parameters(triangle)
         trafo_matrix = Matrix([[b[0], b[1], b[2]], [c[0], c[1], c[2]]]) / (2 * delta)
         return trafo_matrix.dot(area_gradient)
@@ -102,6 +107,7 @@ class Grid(ABC):
         triangle: Triangle,
         area_hessian_vectorized: Vector,
     ) -> Matrix:
+        """Transforms vectorized hessian with respect to area coordinates to Cartesian hessian."""
         _, b, c, delta = self._triangle_parameters(triangle)
         trafo_matrix = Matrix(
             [
@@ -141,9 +147,10 @@ class Grid(ABC):
         triangle: Triangle,
         barycentric_coordinates: BarycentricCoordinates,
     ) -> Vector:
+        """Computes shape function in a triangle."""
         _, b, c, _ = self._triangle_parameters(triangle)
         return shape_function(
-            *self._area_coordinates(barycentric_coordinates, triangle), *b, *c
+            self._area_coordinates(barycentric_coordinates, triangle), b, c
         )
 
     def shape_function_jacobian(
@@ -151,9 +158,10 @@ class Grid(ABC):
         triangle: Triangle,
         barycentric_coordinates: BarycentricCoordinates,
     ) -> Matrix:
+        """Computes jacobian of the shape function in a triangle."""
         _, b, c, _ = self._triangle_parameters(triangle)
         return shape_function_jacobian(
-            *self._area_coordinates(barycentric_coordinates, triangle), *b, *c
+            self._area_coordinates(barycentric_coordinates, triangle), b, c
         )
 
     def shape_function_hessian_vectorized(
@@ -161,22 +169,25 @@ class Grid(ABC):
         triangle: Triangle,
         barycentric_coordinates: BarycentricCoordinates,
     ) -> Matrix:
+        """Computes jacobian of the shape function in a triangle."""
         _, b, c, _ = self._triangle_parameters(triangle)
         return shape_function_hessian_vectorized(
-            *self._area_coordinates(barycentric_coordinates, triangle), *b, *c
+            self._area_coordinates(barycentric_coordinates, triangle), b, c
         )
 
     def shape_function_on_edge_left(self, edge: Edge, t: float):
+        """Computes shape function on an edge for the left endpoint."""
         triangle = (edge[0], edge[1], self.opposite_vertices[edge][0])
-        L1 = self._area_coordinates((t, 1 - t, 0), triangle)[0]
+        l1 = self._area_coordinates((t, 1 - t, 0), triangle)[0]
         _, b, c, _ = self._triangle_parameters(triangle)
-        return shape_function_on_edge_left(L1, b[2], c[2])
+        return shape_function_on_edge_left(l1, b[2], c[2])
 
     def shape_function_on_edge_right(self, edge: Edge, t: float):
+        """Computes shape function on an edge for the right endpoint."""
         triangle = (edge[0], edge[1], self.opposite_vertices[edge][0])
-        L1 = self._area_coordinates((t, 1 - t, 0), triangle)[0]
+        l1 = self._area_coordinates((t, 1 - t, 0), triangle)[0]
         _, b, c, _ = self._triangle_parameters(triangle)
-        return shape_function_on_edge_right(L1, b[1], c[1])
+        return shape_function_on_edge_right(l1, b[1], c[1])
 
     @abstractmethod
     def generate_cartesian_domain_curves(
@@ -185,10 +196,12 @@ class Grid(ABC):
         num_curves_horizontal: int = 0,
         num_curves_vertical: int | None = None,
     ) -> list[CartesianCurve]:
-        pass
+        """Generate curves inside the grid domain."""
 
 
 class SquareEquilateralGrid(Grid):
+    """Grid of equilateral right triangles inside a unit square."""
+
     def __init__(self, num_horizontal_points: int, fix: str = "none"):
         def pair_to_vertex(i, j):
             # (0, 0) -> 0, (1, 0) -> 1, ...,

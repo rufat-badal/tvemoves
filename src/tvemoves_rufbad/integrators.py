@@ -1,18 +1,21 @@
+"""Module providing integrators over triangles or edges."""
+from typing import Callable
+import pyomo.environ as pyo
 from tvemoves_rufbad.quadrature_rules import GaussQuadratureRule, TriangleQuadratureRule
 from tvemoves_rufbad.tensors import Vector
-import pyomo.environ as pyo
-from typing import Callable
 from tvemoves_rufbad.grid import Triangle, Edge, BarycentricCoordinates
 
 
 class Integrator:
+    """Integrator over triangles."""
+
     def __init__(
         self,
         quadrature: TriangleQuadratureRule,
         triangles: list[Triangle],
         points: list[Vector],
     ):
-        self._triangles = triangles
+        self._triangles = list(triangles)
         self._quadrature = quadrature
         first_sides = (points[j] - points[i] for (i, j, _) in triangles)
         second_sides = (points[k] - points[i] for (i, _, k) in triangles)
@@ -38,6 +41,8 @@ class Integrator:
 
 
 class BoundaryIntegrator:
+    """Integrator over edges."""
+
     def __init__(self, degree: int, edges: list[Edge], points: list[Vector]):
         self._edges = edges
         self._quadrature = GaussQuadratureRule(degree)
