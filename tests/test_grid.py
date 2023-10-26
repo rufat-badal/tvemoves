@@ -1,7 +1,15 @@
 """Test grid classes."""
 
 from pytest import approx
-from tvemoves_rufbad.grid import SquareEquilateralGrid
+from tvemoves_rufbad.tensors import Vector
+from tvemoves_rufbad.grid import (
+    SquareEquilateralGrid,
+    BarycentricPoint,
+    BarycentricCurve,
+    Curve,
+    Grid,
+)
+
 from tests.test_interpolation import generate_random_barycentric_coordinates
 
 
@@ -101,3 +109,50 @@ def test_area_coordinates() -> None:
         for (w, triangle) in zip(barycentric_coordinates, grid.triangles)
     ]
     assert all(sum(a) == approx(1) for a in area_coordinates)
+
+
+def test_generate_deformation_curve() -> None:
+    """Test transformation from cartesian to barycentric curves."""
+    grid = SquareEquilateralGrid(30)
+    num_curves_horizontal = 3
+    num_curves = 4 + 2 * num_curves_horizontal
+    num_points_per_curve = 20
+    deformation_curves = grid.generate_deformation_curves(
+        num_points_per_curve, num_curves_horizontal
+    )
+    assert len(deformation_curves) == num_curves
+    assert all(len(curve) == num_points_per_curve for curve in deformation_curves)
+
+
+def to_cartesian_point(grid: Grid, p: BarycentricPoint) -> Vector:
+    """Transform a barycentric point into a cartesian point."""
+    triangle, barycentric_coordinates = p
+    p1, p2, p3 = (grid.points[i] for i in triangle)
+    w1, w2, w3 = barycentric_coordinates
+    return w1 * p1 + w2 * p2 + w3 * p3
+
+
+def to_cartesian_curve(grid: Grid, barycentric_curve: BarycentricCurve) -> Curve:
+    """Transform a curve of barycentric points into the corresponding curve of cartesian points."""
+    return [
+        to_cartesian_point(grid, p_barycentric) for p_barycentric in barycentric_curve
+    ]
+
+
+def test_to_barycentric_curve() -> None:
+    """Test transformation to a barycentric curve."""
+    grid = SquareEquilateralGrid(30)
+    num_curves_horizontal = 3
+    num_points_per_curve = 20
+    deformation_curves = grid.generate_deformation_curves(
+        num_points_per_curve, num_curves_horizontal
+    )
+    error = 0
+    for curve in deformation_curves:
+        barycentric_curve = grid.to_barycentric_curve(curve)
+        curve_recovered = to_cartesian_curve(grid, barycentric_curve)
+        error += sum(
+            (p - p_recovered).normsqr()
+            for (p, p_recovered) in zip(curve, curve_recovered)
+        ) / len(curve)
+    assert error == approx(0)

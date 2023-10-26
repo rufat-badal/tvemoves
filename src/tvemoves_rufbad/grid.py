@@ -15,8 +15,8 @@ from tvemoves_rufbad.bell_finite_element import (
 Edge = tuple[int, int]
 Triangle = tuple[int, int, int]
 BarycentricCoordinates = tuple[float, float, float]
-DomainPoint = tuple[Triangle, BarycentricCoordinates]
-DomainCurve = list[DomainPoint]
+BarycentricPoint = tuple[Triangle, BarycentricCoordinates]
+BarycentricCurve = list[BarycentricPoint]
 Curve = list[Vector]
 
 
@@ -187,14 +187,77 @@ class Grid(ABC):
         _, b, c, _ = self._triangle_parameters(triangle)
         return shape_function_on_edge_right(l1, b[1], c[1])
 
+    def _triangle_contains_point(self, triangle: Triangle, p: Vector) -> bool:
+        p1, p2, p3 = (self.points[i] for i in triangle)
+        d1 = _sign(p, p1, p2)
+        d2 = _sign(p, p2, p3)
+        d3 = _sign(p, p3, p1)
+
+        has_neg = (d1 < 0) or (d2 < 0) or (d3 < 0)
+        has_pos = (d1 > 0) or (d2 > 0) or (d3 > 0)
+
+        return not (has_neg and has_pos)
+
+    def _to_barycentric_coordinates(
+        self, triangle: Triangle, p: Vector
+    ) -> BarycentricCoordinates:
+        """Assuming that the point is inside the triangle, computes its barycentric coordinates."""
+        p1, p2, p3 = (self.points[i] for i in triangle)
+        v1 = p2 - p1
+        v2 = p3 - p1
+        v3 = p - p1
+
+        d11 = v1.dot(v1)
+        d12 = v1.dot(v2)
+        d22 = v2.dot(v2)
+        d31 = v3.dot(v1)
+        d32 = v3.dot(v2)
+
+        denom = d11 * d22 - d12 * d12
+        v = (d22 * d31 - d12 * d32) / denom
+        w = (d11 * d32 - d12 * d31) / denom
+
+        if v < 0 or v > 1 or w < 0 or w > 1:
+            raise ValueError(
+                "Cannot determine barycentric coordinates for a point outside the triangle."
+            )
+        u = 1 - v - w
+        return (u, v, w)
+
+    def _to_barycentric_point(self, p: Vector) -> BarycentricPoint | None:
+        """Given cartesian point, determine its containing triangle and barycentric coordinates.
+
+        If the point is outside all grid triangles return None"""
+        for triangle in self.triangles:
+            if self._triangle_contains_point(triangle, p):
+                return (triangle, self._to_barycentric_coordinates(triangle, p))
+        return None
+
+    def to_barycentric_curve(self, curve: Curve) -> BarycentricCurve | None:
+        """Transform a cartesian curve into a domain curve.
+
+        If any point of the cartesian curve is outside of all grid triangles, return None.
+        """
+        barycentric_curve: BarycentricCurve = []
+        for p in curve:
+            p_barycentric = self._to_barycentric_point(p)
+            if p_barycentric is None:
+                return None
+            barycentric_curve.append(p_barycentric)
+        return barycentric_curve
+
     @abstractmethod
-    def generate_cartesian_domain_curves(
+    def generate_deformation_curves(
         self,
         num_points: int,
         num_curves_horizontal: int = 0,
         num_curves_vertical: int | None = None,
     ) -> list[Curve]:
         """Generate curves inside the grid domain."""
+
+
+def _sign(p1: Vector, p2: Vector, p3: Vector):
+    return (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1])
 
 
 class SquareEquilateralGrid(Grid):
@@ -377,7 +440,7 @@ class SquareEquilateralGrid(Grid):
             points,
         )
 
-    def generate_cartesian_domain_curves(
+    def generate_deformation_curves(
         self,
         num_points: int,
         num_curves_horizontal: int = 0,
@@ -386,29 +449,30 @@ class SquareEquilateralGrid(Grid):
         if num_curves_vertical is None:
             num_curves_vertical = num_curves_horizontal
         cartesian_domain_curves = []
+        eps = 1 / (num_points - 1)
         # bottom side
         cartesian_domain_curves.append(
-            [Vector([i / num_points, 0.0]) for i in range(num_points + 1)]
+            [Vector([i * eps, 0.0]) for i in range(num_points)]
         )
         # right side
         cartesian_domain_curves.append(
-            [Vector([1.0, i / num_points]) for i in range(num_points + 1)]
+            [Vector([1.0, i * eps]) for i in range(num_points)]
         )
         # top side
         cartesian_domain_curves.append(
-            [Vector([i / num_points, 1.0]) for i in range(num_points + 1)]
+            [Vector([i * eps, 1.0]) for i in range(num_points)]
         )
         # left side
         cartesian_domain_curves.append(
-            [Vector([0.0, i / num_points]) for i in range(num_points + 1)]
+            [Vector([0.0, i * eps]) for i in range(num_points)]
         )
 
         # additional horizontal curves
         for i in range(1, num_curves_horizontal + 1):
             cartesian_domain_curves.append(
                 [
-                    Vector([j / num_points, i / (num_curves_horizontal + 1)])
-                    for j in range(num_points + 1)
+                    Vector([j * eps, i / (num_curves_horizontal + 1)])
+                    for j in range(num_points)
                 ]
             )
 
@@ -416,8 +480,8 @@ class SquareEquilateralGrid(Grid):
         for i in range(1, num_curves_vertical + 1):
             cartesian_domain_curves.append(
                 [
-                    Vector([i / (num_curves_horizontal + 1), j / num_points])
-                    for j in range(num_points + 1)
+                    Vector([i / (num_curves_horizontal + 1), j * eps])
+                    for j in range(num_points)
                 ]
             )
 
