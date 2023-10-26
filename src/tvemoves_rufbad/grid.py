@@ -80,16 +80,15 @@ class Grid(ABC):
         self, barycentric_coordinates: BarycentricCoordinates, triangle: Triangle
     ) -> list[float]:
         a, b, c, delta = self._triangle_parameters(triangle)
-        triangle_vertices = [self.points[i] for i in triangle]
-        # barycentric coordinates => cartesian coordinates
-        x: float = sum(
-            wi * zi[0] for (wi, zi) in zip(barycentric_coordinates, triangle_vertices)
-        )
-        y: float = sum(
-            wi * zi[1] for (wi, zi) in zip(barycentric_coordinates, triangle_vertices)
-        )
+        p1, p2, p3 = (self.points[i] for i in triangle)
+        w1, w2, w3 = barycentric_coordinates
 
-        return [(ai + bi * x + ci * y) / (2 * delta) for (ai, bi, ci) in zip(a, b, c)]
+        # barycentric coordinates => cartesian coordinates
+        p = w1 * p1 + w2 * p2 + w3 * p3
+
+        return [
+            (ai + bi * p[0] + ci * p[1]) / (2 * delta) for (ai, bi, ci) in zip(a, b, c)
+        ]
 
     def gradient_transform(
         self,

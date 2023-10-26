@@ -1,9 +1,8 @@
 """Test integrators."""
 
 from typing import Callable
-from math import pi
+from math import pi, isclose
 import pyomo.environ as pyo
-from pytest import approx
 from tvemoves_rufbad.integrators import Integrator, BoundaryIntegrator
 from tvemoves_rufbad.tensors import Vector
 from tvemoves_rufbad.grid import (
@@ -165,7 +164,7 @@ def test_integrator_with_pyomo_parameters() -> None:
             Vector([model.initial_x1[i], model.initial_x2[i]]) for i in grid.vertices
         ]
         integrand_pyomo = generate_integrand(f, points_pyomo)
-        assert integrator(integrand) == approx(pyo.value(integrator(integrand_pyomo)))
+        assert isclose(integrator(integrand), pyo.value(integrator(integrand_pyomo)))
 
 
 def test_boundary_integrator() -> None:

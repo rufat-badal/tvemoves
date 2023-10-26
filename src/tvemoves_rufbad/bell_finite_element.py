@@ -1,7 +1,7 @@
 """Computes the shape function and its derivatives for Bell's finite elements."""
 
-import sympy as sp
 from typing import Iterable
+import sympy as sp
 from tvemoves_rufbad.tensors import Vector, Matrix
 
 
