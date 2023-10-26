@@ -17,8 +17,7 @@ Triangle = tuple[int, int, int]
 BarycentricCoordinates = tuple[float, float, float]
 DomainPoint = tuple[Triangle, BarycentricCoordinates]
 DomainCurve = list[DomainPoint]
-CartesianPoint = tuple[float, float]
-CartesianCurve = list[CartesianPoint]
+Curve = list[Vector]
 
 
 class Grid(ABC):
@@ -35,7 +34,7 @@ class Grid(ABC):
         dirichlet_edges: list[Edge],
         neumann_vertices: list[int],
         neumann_edges: list[Edge],
-        points: list[CartesianPoint],
+        points: list[Vector],
     ):
         self.vertices = vertices
         self.edges = edges
@@ -187,7 +186,7 @@ class Grid(ABC):
         triangle = (edge[0], edge[1], self.opposite_vertices[edge][0])
         l1 = self._area_coordinates((t, 1 - t, 0), triangle)[0]
         _, b, c, _ = self._triangle_parameters(triangle)
-        return shape_function_on_edge_right(l1, b[1], c[1]) 
+        return shape_function_on_edge_right(l1, b[1], c[1])
 
     @abstractmethod
     def generate_cartesian_domain_curves(
@@ -195,7 +194,7 @@ class Grid(ABC):
         num_points: int,
         num_curves_horizontal: int = 0,
         num_curves_vertical: int | None = None,
-    ) -> list[CartesianCurve]:
+    ) -> list[Curve]:
         """Generate curves inside the grid domain."""
 
 
@@ -384,32 +383,32 @@ class SquareEquilateralGrid(Grid):
         num_points: int,
         num_curves_horizontal: int = 0,
         num_curves_vertical: int | None = None,
-    ) -> list[CartesianCurve]:
+    ) -> list[Curve]:
         if num_curves_vertical is None:
             num_curves_vertical = num_curves_horizontal
         cartesian_domain_curves = []
         # bottom side
         cartesian_domain_curves.append(
-            [(i / num_points, 0.0) for i in range(num_points + 1)]
+            [Vector([i / num_points, 0.0]) for i in range(num_points + 1)]
         )
         # right side
         cartesian_domain_curves.append(
-            [(1.0, i / num_points) for i in range(num_points + 1)]
+            [Vector([1.0, i / num_points]) for i in range(num_points + 1)]
         )
         # top side
         cartesian_domain_curves.append(
-            [(i / num_points, 1.0) for i in range(num_points + 1)]
+            [Vector([i / num_points, 1.0]) for i in range(num_points + 1)]
         )
         # left side
         cartesian_domain_curves.append(
-            [(0.0, i / num_points) for i in range(num_points + 1)]
+            [Vector([0.0, i / num_points]) for i in range(num_points + 1)]
         )
 
         # additional horizontal curves
         for i in range(1, num_curves_horizontal + 1):
             cartesian_domain_curves.append(
                 [
-                    (j / num_points, i / (num_curves_horizontal + 1))
+                    Vector([j / num_points, i / (num_curves_horizontal + 1)])
                     for j in range(num_points + 1)
                 ]
             )
@@ -418,7 +417,7 @@ class SquareEquilateralGrid(Grid):
         for i in range(1, num_curves_vertical + 1):
             cartesian_domain_curves.append(
                 [
-                    (i / (num_curves_horizontal + 1), j / num_points)
+                    Vector([i / (num_curves_horizontal + 1), j / num_points])
                     for j in range(num_points + 1)
                 ]
             )
