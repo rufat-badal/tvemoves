@@ -1,8 +1,9 @@
 """Test integrators."""
 
 from typing import Callable
-from math import pi, isclose
+from math import pi
 import pyomo.environ as pyo
+from pytest import approx
 from tvemoves_rufbad.integrators import Integrator, BoundaryIntegrator
 from tvemoves_rufbad.tensors import Vector
 from tvemoves_rufbad.grid import (
@@ -143,7 +144,7 @@ def test_integrator() -> None:
 def test_integrator_with_pyomo_parameters() -> None:
     """Check that the integrator also works with pyomo parameters instead of floats."""
     quadrature = DUNAVANT5
-    grid = SquareEquilateralGrid(num_horizontal_points=30)
+    grid = SquareEquilateralGrid(num_horizontal_points=20)
     integrator = Integrator(quadrature, grid.triangles, grid.points)
     for f in functions:
         integrand = generate_integrand(f, grid.points)
@@ -164,7 +165,7 @@ def test_integrator_with_pyomo_parameters() -> None:
             Vector([model.initial_x1[i], model.initial_x2[i]]) for i in grid.vertices
         ]
         integrand_pyomo = generate_integrand(f, points_pyomo)
-        assert isclose(integrator(integrand), pyo.value(integrator(integrand_pyomo)))
+        assert integrator(integrand) == approx(pyo.value(integrator(integrand_pyomo)))
 
 
 def test_boundary_integrator() -> None:

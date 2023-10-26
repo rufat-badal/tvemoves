@@ -1,5 +1,5 @@
 Pyomo==6.6.2
-numpy==1.26.0
+numpy==1.26.1
 sympy==1.12
 build==1.0.3
 tween==0.0.3
