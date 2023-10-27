@@ -3,3 +3,4 @@ numpy==1.26.1
 sympy==1.12
 build==1.0.3
 tween==0.0.3
+matplotlib==3.8.0
