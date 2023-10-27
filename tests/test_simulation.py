@@ -8,7 +8,11 @@ def test_simulation() -> None:
     """Assure that a simulation class can be correctly initialized."""
     grid = SquareEquilateralGrid(num_horizontal_points=2, fix="left")
     params = SimulationParams(
-        initial_temperature=0.1, search_radius=10, shape_memory_scaling=2, fps=3
+        initial_temperature=0.1,
+        search_radius=10,
+        shape_memory_scaling=2,
+        fps=3,
+        regularization=None,
     )
     simulation = Simulation(grid, params)
     simulation._mechanical_step._model.display()

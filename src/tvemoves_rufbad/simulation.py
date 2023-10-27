@@ -6,8 +6,8 @@ import numpy as np
 import pyomo.environ as pyo
 from tvemoves_rufbad.grid import Grid
 from tvemoves_rufbad.mechanical_step import (
-    MechanicalStepRegularized,
     MechanicalStepParams,
+    MechanicalStep,
 )
 
 
@@ -33,14 +33,19 @@ class SimulationParams:
     search_radius: float
     shape_memory_scaling: float
     fps: int
+    regularization: float | None
 
-    def get_mechanical_step_params(self) -> MechanicalStepParams:
+    def get_mechanical_step_params(
+        self,
+    ) -> MechanicalStepParams:
         """Return subset of the parameters concerning the mechanical step only."""
+
         return MechanicalStepParams(
             self.initial_temperature,
             self.search_radius,
             self.shape_memory_scaling,
             self.fps,
+            self.regularization,
         )
 
 
@@ -51,14 +56,11 @@ class Simulation:
         self._grid = grid
         self._solver = pyo.SolverFactory("ipopt")
         self.params = params
-        self._mechanical_step = MechanicalStepRegularized(
-            self._solver, grid, self.params.get_mechanical_step_params()
-        )
-        # self._mechanical_step.solve()
-        # self.steps = [
-        #     Step(
-        #         self._mechanical_step.prev_y(),
-        #         self._mechanical_step.prev_theta(),
-        #         grid,
-        #     )
-        # ]
+        if params.regularization is None:
+            self._mechanical_step = MechanicalStep(
+                self._solver, grid, self.params.get_mechanical_step_params()
+            )
+        self._mechanical_step.solve()
+        self.steps = [
+            Step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
+        ]
