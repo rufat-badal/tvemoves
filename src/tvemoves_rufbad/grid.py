@@ -3,6 +3,7 @@
 from collections import defaultdict
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from matplotlib import pyplot as plt
 from tvemoves_rufbad.tensors import Vector, Matrix
 from tvemoves_rufbad.bell_finite_element import (
     shape_function,
@@ -248,6 +249,52 @@ class Grid(ABC):
                 return None
             barycentric_curve.append(p_barycentric)
         return barycentric_curve
+
+    def _plot_points(self, ax: plt.Axes) -> None:
+        x = [p[0] for p in self.points]
+        y = [p[1] for p in self.points]
+        ax.scatter(x, y, color="black", s=10)
+
+    def _plot_edges(self, ax: plt.Axes) -> None:
+        for edge in self.edges:
+            i, j = edge
+            p, q = self.points[i], self.points[j]
+            ax.plot([p[0], q[0]], [p[1], q[1]], color="black", linewidth=1)
+
+    def _plot_deformation_lines(
+        self, ax: plt.Axes, num_horizontal_lines: int, num_vertical_lines: int
+    ):
+        deformation_curves = self.generate_deformation_curves(
+            100, num_horizontal_lines, num_vertical_lines
+        )
+        for curve in deformation_curves:
+            x = [p[0] for p in curve]
+            y = [p[1] for p in curve]
+            ax.plot(x, y, color="blue", linestyle="--", linewidth=1.5)
+
+    def plot(
+        self,
+        num_horizontal_deformation_lines: int = 2,
+        num_vertical_deformation_lines: int | None = None,
+    ) -> plt.Figure:
+        """Returns matplotlib plot of the grid."""
+        if num_vertical_deformation_lines is None:
+            num_vertical_deformation_lines = num_horizontal_deformation_lines
+
+        fig, ax = plt.subplots()
+        border = 0.05
+        ax.set_xlim(-border, 1 + border)
+        ax.set_ylim(-border, 1 + border)
+        ax.set_aspect(1)
+        ax.axis("off")
+
+        self._plot_points(ax)
+        self._plot_edges(ax)
+        self._plot_deformation_lines(
+            ax, num_horizontal_deformation_lines, num_vertical_deformation_lines
+        )
+
+        return fig
 
     @abstractmethod
     def generate_deformation_curves(
