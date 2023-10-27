@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from tvemoves_rufbad.tensors import Vector, Matrix
 from tvemoves_rufbad.bell_finite_element import (
     shape_function,
@@ -20,6 +21,14 @@ BarycentricCurve = list[BarycentricPoint]
 Curve = list[Vector]
 
 
+@dataclass
+class Boundary:
+    """Discrete boundary of a triangulation."""
+
+    vertices: list[int]
+    edges: list[Edge]
+
+
 class Grid(ABC):
     """Abstract grid class."""
 
@@ -28,23 +37,17 @@ class Grid(ABC):
         vertices: list[int],
         edges: list[Edge],
         triangles: list[Triangle],
-        boundary_vertices: list[int],
-        boundary_edges: list[Edge],
-        dirichlet_vertices: list[int],
-        dirichlet_edges: list[Edge],
-        neumann_vertices: list[int],
-        neumann_edges: list[Edge],
+        boundary: Boundary,
+        dirichlet_boundary: Boundary,
+        neumann_boundary: Boundary,
         points: list[Vector],
     ):
         self.vertices = vertices
         self.edges = edges
         self.triangles = triangles
-        self.boundary_vertices = boundary_vertices
-        self.boundary_edges = boundary_edges
-        self.dirichlet_vertices = dirichlet_vertices
-        self.dirichlet_edges = dirichlet_edges
-        self.neumann_vertices = neumann_vertices
-        self.neumann_edges = neumann_edges
+        self.boundary = boundary
+        self.dirichlet_boundary = dirichlet_boundary
+        self.neumann_boundary = neumann_boundary
         self.points = points
 
         self.opposite_vertices = defaultdict(list)
@@ -431,12 +434,9 @@ class SquareEquilateralGrid(Grid):
             vertices,
             edges,
             triangles,
-            boundary_vertices,
-            boundary_edges,
-            dirichlet_vertices,
-            dirichlet_edges,
-            neumann_vertices,
-            neumann_edges,
+            Boundary(boundary_vertices, boundary_edges),
+            Boundary(dirichlet_vertices, dirichlet_edges),
+            Boundary(neumann_vertices, neumann_edges),
             points,
         )
 

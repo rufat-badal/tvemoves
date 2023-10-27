@@ -46,18 +46,18 @@ def test_square_equilateral_grid() -> None:
     )
     assert len(grid.triangles) == num_triangles
     assert len(grid.triangles) == len(set(grid.triangles))
-    assert len(grid.boundary_vertices) == num_boundary_vertices
+    assert len(grid.boundary.vertices) == num_boundary_vertices
     assert all(
         grid.points[v][0] == approx(0)
         or grid.points[v][0] == approx(1)
         or grid.points[v][1] == approx(0)
         or grid.points[v][1] == approx(1)
-        for v in grid.boundary_vertices
+        for v in grid.boundary.vertices
     )
-    assert len(grid.boundary_edges) == num_boundary_edges
+    assert len(grid.boundary.edges) == num_boundary_edges
     assert all(
-        v in grid.boundary_vertices and w in grid.boundary_vertices
-        for (v, w) in grid.boundary_edges
+        v in grid.boundary.vertices and w in grid.boundary.vertices
+        for (v, w) in grid.boundary.edges
     )
     assert all(
         (
@@ -68,33 +68,33 @@ def test_square_equilateral_grid() -> None:
             abs(grid.points[v][0] - grid.points[w][0]) == approx(grid_spacing)
             and grid.points[v][1] == approx(grid.points[w][1])
         )
-        for (v, w) in grid.boundary_edges
+        for (v, w) in grid.boundary.edges
     )
-    assert all(e in grid.edges for e in grid.boundary_edges)
-    assert grid.neumann_vertices == grid.boundary_vertices
-    assert grid.neumann_edges == grid.boundary_edges
-    assert grid.dirichlet_vertices == []
-    assert grid.dirichlet_edges == []
+    assert all(e in grid.edges for e in grid.boundary.edges)
+    assert grid.neumann_boundary.vertices == grid.boundary.vertices
+    assert grid.neumann_boundary.edges == grid.boundary.edges
+    assert grid.dirichlet_boundary.vertices == []
+    assert grid.dirichlet_boundary.edges == []
 
     grid_lower_fixed = SquareEquilateralGrid(n, fix="lower")
     assert all(
         grid_lower_fixed.points[v][1] == approx(0)
-        for v in grid_lower_fixed.dirichlet_vertices
+        for v in grid_lower_fixed.dirichlet_boundary.vertices
     )
     grid_right_fixed = SquareEquilateralGrid(n, fix="right")
     assert all(
         grid_right_fixed.points[v][0] == approx(1)
-        for v in grid_right_fixed.dirichlet_vertices
+        for v in grid_right_fixed.dirichlet_boundary.vertices
     )
     grid_upper_fixed = SquareEquilateralGrid(n, fix="upper")
     assert all(
         grid_upper_fixed.points[v][1] == approx(1)
-        for v in grid_upper_fixed.dirichlet_vertices
+        for v in grid_upper_fixed.dirichlet_boundary.vertices
     )
     grid_left_fixed = SquareEquilateralGrid(n, fix="left")
     assert all(
         grid_left_fixed.points[v][0] == approx(0)
-        for v in grid_left_fixed.dirichlet_vertices
+        for v in grid_left_fixed.dirichlet_boundary.vertices
     )
 
 
@@ -150,6 +150,7 @@ def test_to_barycentric_curve() -> None:
     error = 0
     for curve in deformation_curves:
         barycentric_curve = grid.to_barycentric_curve(curve)
+        assert barycentric_curve is not None
         curve_recovered = to_cartesian_curve(grid, barycentric_curve)
         error += sum(
             (p - p_recovered).normsqr()

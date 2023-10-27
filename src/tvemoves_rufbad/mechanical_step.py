@@ -96,7 +96,7 @@ class MechanicalStep:
                 m.prev_y2[v] + params.search_radius,
             )
 
-        for v in grid.dirichlet_vertices:
+        for v in grid.dirichlet_boundary.vertices:
             m.y1[v].fix()
             m.y2[v].fix()
 
@@ -193,7 +193,7 @@ class MechanicalStepRegularized:
                 m.prev_y2[i] + params.search_radius,
             )
 
-        for v in grid.dirichlet_vertices:
+        for v in grid.dirichlet_boundary.vertices:
             m.y1[v + 1, 1].fix()
             m.y2[v + 1, 1].fix()
 
