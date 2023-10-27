@@ -147,10 +147,33 @@ def test_to_barycentric_curve() -> None:
     deformation_curves = grid.generate_deformation_curves(
         num_points_per_curve, num_curves_horizontal
     )
-    error = 0
+    error = 0.0
     for curve in deformation_curves:
-        barycentric_curve = grid.to_barycentric_curve(curve)
+        barycentric_curve = grid._to_barycentric_curve(curve)
         assert barycentric_curve is not None
+        curve_recovered = to_cartesian_curve(grid, barycentric_curve)
+        error += sum(
+            (p - p_recovered).normsqr()
+            for (p, p_recovered) in zip(curve, curve_recovered)
+        ) / len(curve)
+    assert error == approx(0)
+
+
+def test_generate_barycentric_deformation_curves() -> None:
+    """Test the generation of barycentric deformation curves."""
+    grid = SquareEquilateralGrid(30)
+    num_curves_horizontal = 3
+    num_points_per_curve = 20
+    deformation_curves = grid.generate_deformation_curves(
+        num_points_per_curve, num_curves_horizontal
+    )
+    barycentric_deformation_curves = grid.generate_barycentric_deformation_curves(
+        num_points_per_curve, num_curves_horizontal
+    )
+    error = 0.0
+    for curve, barycentric_curve in zip(
+        deformation_curves, barycentric_deformation_curves
+    ):
         curve_recovered = to_cartesian_curve(grid, barycentric_curve)
         error += sum(
             (p - p_recovered).normsqr()

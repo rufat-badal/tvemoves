@@ -237,7 +237,7 @@ class Grid(ABC):
                 return (triangle, self._to_barycentric_coordinates(triangle, p))
         return None
 
-    def to_barycentric_curve(self, curve: Curve) -> BarycentricCurve | None:
+    def _to_barycentric_curve(self, curve: Curve) -> BarycentricCurve | None:
         """Transform a cartesian curve into a domain curve.
 
         If any point of the cartesian curve is outside of all grid triangles, return None.
@@ -304,6 +304,27 @@ class Grid(ABC):
         num_curves_vertical: int | None = None,
     ) -> list[Curve]:
         """Generate curves inside the grid domain."""
+
+    def generate_barycentric_deformation_curves(
+        self,
+        num_points: int,
+        num_curves_horizontal: int = 0,
+        num_curves_vertical: int | None = None,
+    ):
+        """Generate curves consisting of barycentric points inside the grid domain."""
+        curves = self.generate_deformation_curves(
+            num_points, num_curves_horizontal, num_curves_vertical
+        )
+        barycentric_curves: list[BarycentricCurve] = []
+        for curve in curves:
+            barycentric_curve = self._to_barycentric_curve(curve)
+            if barycentric_curve is None:
+                raise ValueError(
+                    "generate_deformation_curves returned a curve not contained inside the grid domain"
+                )
+            barycentric_curves.append(barycentric_curve)
+
+        return barycentric_curves
 
 
 def _sign(p1: Vector, p2: Vector, p3: Vector):
