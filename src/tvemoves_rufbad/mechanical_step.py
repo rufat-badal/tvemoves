@@ -1,6 +1,7 @@
 """Module providing implementation of the mechanical step of the minimizing movement scheme."""
 
 from dataclasses import dataclass
+from abc import ABC, abstractmethod
 import pyomo.environ as pyo
 import numpy.typing as npt
 import numpy as np
@@ -27,6 +28,26 @@ class MechanicalStepParams:
     shape_memory_scaling: float
     fps: int
     regularization: float | None
+
+
+class AbstractMechanicalStep(ABC):
+    """Abstract base class of a mechanical step returned by the create_mechanical_step factory."""
+
+    @abstractmethod
+    def solve(self) -> None:
+        """Solve the next mechanical step."""
+
+    @abstractmethod
+    def prev_y(self) -> npt.NDArray[np.float64]:
+        """Return the previous deformation as numpy array."""
+
+    @abstractmethod
+    def y(self) -> npt.NDArray[np.float64]:
+        """Return the current deformation as numpy array."""
+
+    @abstractmethod
+    def prev_theta(self) -> npt.NDArray[np.float64]:
+        """Return the previous temperature as numpy array."""
 
 
 def _generate_total_elastic_integrand(shape_memory_scaling, strain, prev_temp):
@@ -119,6 +140,56 @@ def _generate_model(
     return m
 
 
+class MechanicalStep(AbstractMechanicalStep):
+    """Mechanical step with or without regularization employing P1 finite elements."""
+
+    def __init__(
+        self,
+        solver,
+        grid: Grid,
+        initial_temperature: float,
+        search_radius: float,
+        shape_memory_scaling: float,
+        fps: int,
+    ):
+        self._solver = solver
+        self._num_vertices = len(grid.vertices)
+        self._model = _generate_model(
+            grid,
+            initial_temperature,
+            search_radius,
+            shape_memory_scaling,
+            fps,
+        )
+
+    def solve(self) -> None:
+        self._solver.solve(self._model)
+
+    def prev_y(self) -> npt.NDArray[np.float64]:
+        """Return the previous deformation as 2xN numpy array, where N is the number of vertices."""
+        return np.array(
+            [
+                [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
+                for i in range(self._num_vertices)
+            ]
+        )
+
+    def y(self) -> npt.NDArray[np.float64]:
+        """Return the current deformation as 2xN numpy array, where N is the number of vertices."""
+        return np.array(
+            [
+                [self._model.y1[i].value, self._model.y2[i].value]
+                for i in range(self._num_vertices)
+            ]
+        )
+
+    def prev_theta(self) -> npt.NDArray[np.float64]:
+        """Return the previous temperature as vector of length N, where N is the number of vertices."""
+        return np.array(
+            [self._model.prev_theta[i].value for i in range(self._num_vertices)]
+        )
+
+
 def _generate_model_regularized(
     grid: Grid,
     initial_temperature: float,
@@ -169,60 +240,16 @@ def _generate_model_regularized(
     return m
 
 
-class MechanicalStep:
-    """Mechanical step with or without regularization."""
-
-    def __init__(
-        self,
+def create_mechanical_step(
+    solver, grid: Grid, params: MechanicalStepParams
+) -> AbstractMechanicalStep:
+    """Mechanical step factory."""
+    # Currently we only create a non-regularized mechanical step
+    return MechanicalStep(
         solver,
-        grid: Grid,
-        params: MechanicalStepParams,
-    ):
-        self._solver = solver
-        self._num_vertices = len(grid.vertices)
-        self.regularized = params.regularization is not None
-        if params.regularization is None:
-            self._model = _generate_model(
-                grid,
-                params.initial_temperature,
-                params.search_radius,
-                params.shape_memory_scaling,
-                params.fps,
-            )
-        else:
-            self._model = _generate_model_regularized(
-                grid,
-                params.initial_temperature,
-                params.search_radius,
-                params.shape_memory_scaling,
-                params.fps,
-                params.regularization,
-            )
-
-    def solve(self) -> None:
-        """Performs the next mechanical step."""
-        self._solver.solve(self._model)
-
-    def prev_y(self) -> npt.NDArray[np.float64]:
-        """Return the current previous deformation."""
-        return np.array(
-            [
-                [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
-                for i in range(self._num_vertices)
-            ]
-        )
-
-    def y(self) -> npt.NDArray[np.float64]:
-        """Return the current previous deformation."""
-        return np.array(
-            [
-                [self._model.y1[i].value, self._model.y2[i].value]
-                for i in range(self._num_vertices)
-            ]
-        )
-
-    def prev_theta(self) -> npt.NDArray[np.float64]:
-        """Return the current previous temperature."""
-        return np.array(
-            [self._model.prev_theta[i].value for i in range(self._num_vertices)]
-        )
+        grid,
+        params.initial_temperature,
+        params.search_radius,
+        params.shape_memory_scaling,
+        params.fps,
+    )

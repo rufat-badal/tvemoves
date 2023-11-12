@@ -1,4 +1,3 @@
-from matplotlib import pyplot as plt
 from tvemoves_rufbad.grid import SquareEquilateralGrid
 from tvemoves_rufbad.simulation import SimulationParams, Simulation
 
