@@ -163,7 +163,7 @@ strains = [affine_strain, bend_strain, squeeze_strain]
 hyper_strains = [affine_hyper_strain, bend_hyper_strain, squeeze_hyper_strain]
 
 
-def generate_random_barycentric_coordinates(
+def create_random_barycentric_coordinates(
     num_coordinates,
 ) -> list[tuple[float, float, float]]:
     """Determines random barycentric coordinates for each provided triangle."""
@@ -179,7 +179,7 @@ def generate_random_barycentric_coordinates(
     return res
 
 
-def generate_evaluation_points(
+def create_evaluation_points(
     barycentric_coordinates: list[tuple[float, float, float]],
     triangles: list[tuple[int, int, int]],
     points: list[Vector],
@@ -196,10 +196,8 @@ def test_p1_interpolation() -> None:
     eps = 1e-6
     grad_eps = 1e-2
     grid = SquareEquilateralGrid(num_horizontal_points=200)
-    barycentric_coordinates = generate_random_barycentric_coordinates(
-        len(grid.triangles)
-    )
-    evaluation_points = generate_evaluation_points(
+    barycentric_coordinates = create_random_barycentric_coordinates(len(grid.triangles))
+    evaluation_points = create_evaluation_points(
         barycentric_coordinates, grid.triangles, grid.points
     )
 
@@ -232,9 +230,7 @@ def test_p1_interpolation() -> None:
 def test_p1_interpolation_with_pyomo_params() -> None:
     """Test piecewise affine interpolation with values given as pyomo paramters."""
     grid = SquareEquilateralGrid(num_horizontal_points=50)
-    barycentric_coordinates = generate_random_barycentric_coordinates(
-        len(grid.triangles)
-    )
+    barycentric_coordinates = create_random_barycentric_coordinates(len(grid.triangles))
 
     for f in functions:
         params = [f(p[0], p[1]) for p in grid.points]
@@ -271,10 +267,8 @@ def test_p1_deformation() -> None:
     eps = 1e-6
     grad_eps = 1e-3
     grid = SquareEquilateralGrid(num_horizontal_points=100)
-    barycentric_coordinates = generate_random_barycentric_coordinates(
-        len(grid.triangles)
-    )
-    evaluation_points = generate_evaluation_points(
+    barycentric_coordinates = create_random_barycentric_coordinates(len(grid.triangles))
+    evaluation_points = create_evaluation_points(
         barycentric_coordinates, grid.triangles, grid.points
     )
 
@@ -316,10 +310,8 @@ def test_c1_interpolation() -> None:
     grad_eps = 1e-4
     hessian_eps = 1e-2
     grid = SquareEquilateralGrid(num_horizontal_points=14)
-    barycentric_coordinates = generate_random_barycentric_coordinates(
-        len(grid.triangles)
-    )
-    evaluation_points = generate_evaluation_points(
+    barycentric_coordinates = create_random_barycentric_coordinates(len(grid.triangles))
+    evaluation_points = create_evaluation_points(
         barycentric_coordinates, grid.triangles, grid.points
     )
 
@@ -375,10 +367,8 @@ def test_c1_deformation() -> None:
     """Test C1 deformation."""
     eps = 1e-6
     grid = SquareEquilateralGrid(num_horizontal_points=7)
-    barycentric_coordinates = generate_random_barycentric_coordinates(
-        len(grid.triangles)
-    )
-    evaluation_points = generate_evaluation_points(
+    barycentric_coordinates = create_random_barycentric_coordinates(len(grid.triangles))
+    evaluation_points = create_evaluation_points(
         barycentric_coordinates, grid.triangles, grid.points
     )
 

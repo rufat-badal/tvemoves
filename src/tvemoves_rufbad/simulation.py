@@ -53,11 +53,10 @@ class Simulation:
         self._grid = grid
         self._solver = pyo.SolverFactory("ipopt")
         self.params = params
-        if params.regularization is None:
-            self._mechanical_step = create_mechanical_step(
-                self._solver, grid, self.params.get_mechanical_step_params()
-            )
-        self._mechanical_step.solve()
-        self.steps = [
-            Step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
-        ]
+        self._mechanical_step = create_mechanical_step(
+            self._solver, grid, self.params.get_mechanical_step_params()
+        )
+        # self._mechanical_step.solve()
+        # self.steps = [
+        #     Step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
+        # ]

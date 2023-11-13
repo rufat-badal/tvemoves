@@ -42,7 +42,7 @@ def periodic(x: float, y: float) -> float:
 INT_PERIODIC = 0
 
 
-def generate_integrand(
+def create_integrand(
     f: Callable[[float, float], float], grid_points: list[Vector]
 ) -> Callable[[Triangle, BarycentricCoordinates], float]:
     """Given a function on the unit square, create integrand for the integrator."""
@@ -97,7 +97,7 @@ BOUNDARY_INTEGRAL_VALUES = [
 EPS = 1e-5
 
 
-def generate_edges_in_unit_interval(
+def create_edges_in_unit_interval(
     num_edges: int,
 ) -> tuple[list[tuple[int, int]], list[Vector]]:
     """Split unit interval into num_edges edges."""
@@ -107,7 +107,7 @@ def generate_edges_in_unit_interval(
     return edges, points
 
 
-def generate_boundary_integrand(
+def create_boundary_integrand(
     f: Callable[[float], float], points: list[Vector]
 ) -> Callable[[Edge, float], float]:
     """Given a map on the unit interval create integrand for the Gauss integrator."""
@@ -130,7 +130,7 @@ def test_integrator() -> None:
             approximation_converges = False
             while num_horizontal_points <= max_horizontal_points:
                 grid = SquareEquilateralGrid(num_horizontal_points)
-                integrand = generate_integrand(f, grid.points)
+                integrand = create_integrand(f, grid.points)
                 integrator = Integrator(quadrature, grid.triangles, grid.points)
                 error = abs(integrator(integrand) - integral_value)
                 if error < EPS:
@@ -146,7 +146,7 @@ def test_integrator_with_pyomo_parameters() -> None:
     grid = SquareEquilateralGrid(num_horizontal_points=20)
     integrator = Integrator(quadrature, grid.triangles, grid.points)
     for f in functions:
-        integrand = generate_integrand(f, grid.points)
+        integrand = create_integrand(f, grid.points)
         model = pyo.ConcreteModel()
         model.initial_x1 = pyo.Param(
             grid.vertices,
@@ -163,7 +163,7 @@ def test_integrator_with_pyomo_parameters() -> None:
         points_pyomo = [
             Vector([model.initial_x1[i], model.initial_x2[i]]) for i in grid.vertices
         ]
-        integrand_pyomo = generate_integrand(f, points_pyomo)
+        integrand_pyomo = create_integrand(f, points_pyomo)
         assert isclose(integrator(integrand), pyo.value(integrator(integrand_pyomo)))
 
 
@@ -175,10 +175,8 @@ def test_boundary_integrator() -> None:
             num_points = 2
             approximation_converges = False
             while num_points <= max_points:
-                edges, points = generate_edges_in_unit_interval(
-                    num_edges=num_points - 1
-                )
-                integrand = generate_boundary_integrand(f, points)
+                edges, points = create_edges_in_unit_interval(num_edges=num_points - 1)
+                integrand = create_boundary_integrand(f, points)
                 integrator = BoundaryIntegrator(degree, edges, points)
                 error = abs(integrator(integrand) - integral_value)
                 if error < EPS:

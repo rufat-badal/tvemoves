@@ -10,7 +10,7 @@ from tvemoves_rufbad.grid import (
     Grid,
 )
 
-from tests.test_interpolation import generate_random_barycentric_coordinates
+from tests.test_interpolation import create_random_barycentric_coordinates
 
 
 def test_square_equilateral_grid() -> None:
@@ -101,9 +101,7 @@ def test_square_equilateral_grid() -> None:
 def test_area_coordinates() -> None:
     """Test transformation from barycentric to area coordinates."""
     grid = SquareEquilateralGrid(num_horizontal_points=50)
-    barycentric_coordinates = generate_random_barycentric_coordinates(
-        len(grid.triangles)
-    )
+    barycentric_coordinates = create_random_barycentric_coordinates(len(grid.triangles))
     area_coordinates = [
         grid._area_coordinates(w, triangle)
         for (w, triangle) in zip(barycentric_coordinates, grid.triangles)
@@ -111,13 +109,13 @@ def test_area_coordinates() -> None:
     assert all(sum(a) == approx(1) for a in area_coordinates)
 
 
-def test_generate_deformation_curve() -> None:
+def test_create_deformation_curve() -> None:
     """Test transformation from cartesian to barycentric curves."""
     grid = SquareEquilateralGrid(30)
     num_curves_horizontal = 3
     num_curves = 4 + 2 * num_curves_horizontal
     num_points_per_curve = 20
-    deformation_curves = grid.generate_deformation_curves(
+    deformation_curves = grid.create_deformation_curves(
         num_points_per_curve, num_curves_horizontal
     )
     assert len(deformation_curves) == num_curves
@@ -144,7 +142,7 @@ def test_to_barycentric_curve() -> None:
     grid = SquareEquilateralGrid(30)
     num_curves_horizontal = 3
     num_points_per_curve = 20
-    deformation_curves = grid.generate_deformation_curves(
+    deformation_curves = grid.create_deformation_curves(
         num_points_per_curve, num_curves_horizontal
     )
     error = 0.0
@@ -159,15 +157,15 @@ def test_to_barycentric_curve() -> None:
     assert error == approx(0)
 
 
-def test_generate_barycentric_deformation_curves() -> None:
+def test_create_barycentric_deformation_curves() -> None:
     """Test the generation of barycentric deformation curves."""
     grid = SquareEquilateralGrid(30)
     num_curves_horizontal = 3
     num_points_per_curve = 20
-    deformation_curves = grid.generate_deformation_curves(
+    deformation_curves = grid.create_deformation_curves(
         num_points_per_curve, num_curves_horizontal
     )
-    barycentric_deformation_curves = grid.generate_barycentric_deformation_curves(
+    barycentric_deformation_curves = grid.create_barycentric_deformation_curves(
         num_points_per_curve, num_curves_horizontal
     )
     error = 0.0

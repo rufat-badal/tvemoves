@@ -264,7 +264,7 @@ class Grid(ABC):
     def _plot_deformation_lines(
         self, ax: plt.Axes, num_horizontal_lines: int, num_vertical_lines: int
     ):
-        deformation_curves = self.generate_deformation_curves(
+        deformation_curves = self.create_deformation_curves(
             100, num_horizontal_lines, num_vertical_lines
         )
         for curve in deformation_curves:
@@ -297,7 +297,7 @@ class Grid(ABC):
         return fig
 
     @abstractmethod
-    def generate_deformation_curves(
+    def create_deformation_curves(
         self,
         num_points: int,
         num_curves_horizontal: int = 0,
@@ -305,14 +305,14 @@ class Grid(ABC):
     ) -> list[Curve]:
         """Generate curves inside the grid domain."""
 
-    def generate_barycentric_deformation_curves(
+    def create_barycentric_deformation_curves(
         self,
         num_points: int,
         num_curves_horizontal: int = 0,
         num_curves_vertical: int | None = None,
     ):
         """Generate curves consisting of barycentric points inside the grid domain."""
-        curves = self.generate_deformation_curves(
+        curves = self.create_deformation_curves(
             num_points, num_curves_horizontal, num_curves_vertical
         )
         barycentric_curves: list[BarycentricCurve] = []
@@ -320,7 +320,7 @@ class Grid(ABC):
             barycentric_curve = self._to_barycentric_curve(curve)
             if barycentric_curve is None:
                 raise ValueError(
-                    "generate_deformation_curves returned a curve not contained inside the grid domain"
+                    "create_deformation_curves returned a curve not contained inside the grid domain"
                 )
             barycentric_curves.append(barycentric_curve)
 
@@ -508,7 +508,7 @@ class SquareEquilateralGrid(Grid):
             points,
         )
 
-    def generate_deformation_curves(
+    def create_deformation_curves(
         self,
         num_points: int,
         num_curves_horizontal: int = 0,

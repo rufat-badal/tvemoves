@@ -11,7 +11,7 @@ from tvemoves_rufbad.tensors import Matrix
 from tvemoves_rufbad.integrators import Integrator
 from tvemoves_rufbad.grid import Grid
 from tvemoves_rufbad.utils import (
-    generate_martensite_potential,
+    create_martensite_potential,
     austenite_percentage,
     austenite_potential,
     compose_to_integrand,
@@ -50,11 +50,11 @@ class AbstractMechanicalStep(ABC):
         """Return the previous temperature as numpy array."""
 
 
-def _generate_total_elastic_integrand(shape_memory_scaling, strain, prev_temp):
+def _create_total_elastic_integrand(shape_memory_scaling, strain, prev_temp):
     """Construct integrand of the total elastic energy without regularizing terms."""
 
     scaling_matrix = Matrix([[1 / shape_memory_scaling, 0], [0, 1]])
-    martensite_potential = generate_martensite_potential(scaling_matrix)
+    martensite_potential = create_martensite_potential(scaling_matrix)
 
     def martensite_percentage(theta):
         return 1 - austenite_percentage(theta)
@@ -71,7 +71,7 @@ def _generate_total_elastic_integrand(shape_memory_scaling, strain, prev_temp):
     return total_elastic_integrand
 
 
-def _generate_model(
+def _create_model(
     grid: Grid,
     initial_temperature: float,
     search_radius: float,
@@ -128,9 +128,7 @@ def _generate_model(
     prev_temp = P1Interpolation(grid, m.prev_theta)
 
     m.total_elastic_energy = integrator(
-        _generate_total_elastic_integrand(
-            shape_memory_scaling, deform.strain, prev_temp
-        )
+        _create_total_elastic_integrand(shape_memory_scaling, deform.strain, prev_temp)
     )
     m.dissipation = integrator_for_piecewise_constant(
         compose_to_integrand(dissipation_potential, prev_deform.strain, deform.strain)
@@ -140,8 +138,8 @@ def _generate_model(
     return m
 
 
-class MechanicalStep(AbstractMechanicalStep):
-    """Mechanical step with or without regularization employing P1 finite elements."""
+class _MechanicalStep(AbstractMechanicalStep):
+    """Mechanical step without regularization using P1 finite elements for the deformation."""
 
     def __init__(
         self,
@@ -154,7 +152,7 @@ class MechanicalStep(AbstractMechanicalStep):
     ):
         self._solver = solver
         self._num_vertices = len(grid.vertices)
-        self._model = _generate_model(
+        self._model = _create_model(
             grid,
             initial_temperature,
             search_radius,
@@ -166,7 +164,7 @@ class MechanicalStep(AbstractMechanicalStep):
         self._solver.solve(self._model)
 
     def prev_y(self) -> npt.NDArray[np.float64]:
-        """Return the previous deformation as 2xN numpy array, where N is the number of vertices."""
+        """Return the previous deformation as Nx2 numpy array, where N is the number of vertices."""
         return np.array(
             [
                 [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
@@ -175,7 +173,7 @@ class MechanicalStep(AbstractMechanicalStep):
         )
 
     def y(self) -> npt.NDArray[np.float64]:
-        """Return the current deformation as 2xN numpy array, where N is the number of vertices."""
+        """Return the current deformation as Nx2 numpy array, where N is the number of vertices."""
         return np.array(
             [
                 [self._model.y1[i].value, self._model.y2[i].value]
@@ -190,7 +188,7 @@ class MechanicalStep(AbstractMechanicalStep):
         )
 
 
-def _generate_model_regularized(
+def _create_model_regularized_bell_finite_elements(
     grid: Grid,
     initial_temperature: float,
     search_radius: float,
@@ -198,6 +196,7 @@ def _generate_model_regularized(
     fps: int,
     regularization: float,
 ) -> pyo.ConcreteModel:
+    print("Hello from _create_model_regularized_bell_finite_elements")
     m = pyo.ConcreteModel("Mechanical Step with Regularization")
     m.vertices = pyo.RangeSet(len(grid.vertices))
     m.deformation_indices = m.vertices * pyo.RangeSet(6)
@@ -240,16 +239,78 @@ def _generate_model_regularized(
     return m
 
 
+class _MechanicalStepRegularizedBellFiniteElements(AbstractMechanicalStep):
+    """Mechanical step with regularization using Bell finite elements for the deformation."""
+
+    def __init__(
+        self,
+        solver,
+        grid: Grid,
+        initial_temperature: float,
+        search_radius: float,
+        shape_memory_scaling: float,
+        fps: int,
+        regularization: float,
+    ):
+        self._solver = solver
+        self._num_vertices = len(grid.vertices)
+        self._model = _create_model_regularized_bell_finite_elements(
+            grid,
+            initial_temperature,
+            search_radius,
+            shape_memory_scaling,
+            fps,
+            regularization,
+        )
+
+    def solve(self) -> None:
+        self._solver.solve(self._model)
+
+    def prev_y(self) -> npt.NDArray[np.float64]:
+        """Return the previous deformation as Nx2x6 numpy array, where N is the number of vertices."""
+        return np.array(
+            [
+                [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
+                for i in range(self._num_vertices)
+            ]
+        )
+
+    def y(self) -> npt.NDArray[np.float64]:
+        """Return the current deformation as Nx2x6 numpy array, where N is the number of vertices."""
+        return np.array(
+            [
+                [self._model.y1[i].value, self._model.y2[i].value]
+                for i in range(self._num_vertices)
+            ]
+        )
+
+    def prev_theta(self) -> npt.NDArray[np.float64]:
+        """Return the previous temperature as vector of length N, where N is the number of vertices."""
+        return np.array(
+            [self._model.prev_theta[i].value for i in range(self._num_vertices)]
+        )
+
+
 def create_mechanical_step(
     solver, grid: Grid, params: MechanicalStepParams
 ) -> AbstractMechanicalStep:
     """Mechanical step factory."""
-    # Currently we only create a non-regularized mechanical step
-    return MechanicalStep(
+    if params.regularization is None:
+        return _MechanicalStep(
+            solver,
+            grid,
+            params.initial_temperature,
+            params.search_radius,
+            params.shape_memory_scaling,
+            params.fps,
+        )
+
+    return _MechanicalStepRegularizedBellFiniteElements(
         solver,
         grid,
         params.initial_temperature,
         params.search_radius,
         params.shape_memory_scaling,
         params.fps,
+        params.regularization,
     )
