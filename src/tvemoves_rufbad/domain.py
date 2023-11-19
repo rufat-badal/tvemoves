@@ -60,41 +60,34 @@ class Domain(ABC):
     def create_grid(self, scale: float) -> Grid:
         """ "Create a grid adapted to the current domain."""
 
-    @abstractmethod
-    def create_curves(
-        self,
-        segment_length: float,
-        num_horizontal_curves: int = 0,
-        num_vertical_curves: int | None = None,
-    ) -> list[Curve]:
-        """Creates a list of discrete curves covered by the grid triangles.
+    # @abstractmethod
+    # def create_curves(
+    #     self,
+    #     segment_length: float,
+    #     num_horizontal_curves: int = 0,
+    #     num_vertical_curves: int | None = None,
+    # ) -> list[Curve]:
+    #     """Creates a list of discrete curves covered by the grid triangles.
 
-        Boundary curves are always generated. The distance between successive
-        points of each curve must be equal to `segment_length`.
-        """
+    #     Boundary curves are always generated. The distance between successive
+    #     points of each curve must be equal to `segment_length`.
+    #     """
 
 
 FixOption = typing.Literal[None, "all", "lower", "right", "upper", "left"]
 
 
-class Rectangle(Domain):
-    """ "Rectangular reference domain."""
+class RectangleDomain(Domain):
+    """Rectangular reference domain."""
 
     def __init__(
         self,
-        lower_left_corner: Vector = Vector([0.0, 0.0]),
-        upper_right_corner: Vector = Vector([1.0, 1.0]),
+        width: float,
+        height: float,
         fix: FixOption = None,
     ):
-        if (
-            upper_right_corner[0] < lower_left_corner[0]
-            or upper_right_corner[1] < lower_left_corner[1]
-        ):
-            raise ValueError("Invalid corners provided")
-        self.lower_left_corner = lower_left_corner
-        self.upper_right_corner = upper_right_corner
-        self.width = upper_right_corner[0] - lower_left_corner[0]
-        self.height = upper_right_corner[1] - lower_left_corner[1]
+        self.width = width
+        self.height = height
         self.fix = fix
 
     def create_grid(self, scale: float) -> Grid:
@@ -103,29 +96,29 @@ class Rectangle(Domain):
         If `scale` does not evenly divide the width or height of the rectangle (only) the rightmost
         or uppermost edges of the grid might not align exactly with the rectangle boundary.
         """
-        num_horizontal_points = self.width // scale
-        num_vertical_points = self.height // scale
+        num_horizontal_vertices = int(self.width // scale) + 1
+        num_vertical_vertices = int(self.height // scale) + 1
 
         def pair_to_vertex(i, j):
             # left to right, bottom to top
-            return j * num_horizontal_points + i
+            return j * num_horizontal_vertices + i
 
-        vertices = list(range(num_horizontal_points * num_vertical_points))
+        vertices = list(range(num_horizontal_vertices * num_vertical_vertices))
 
         horizontal_edges = [
             (pair_to_vertex(i, j), pair_to_vertex(i + 1, j))
-            for i in range(num_horizontal_points - 1)
-            for j in range(num_vertical_points)
+            for i in range(num_horizontal_vertices - 1)
+            for j in range(num_vertical_vertices)
         ]
         vertical_edges = [
             (pair_to_vertex(i, j), pair_to_vertex(i, j + 1))
-            for i in range(num_horizontal_points)
-            for j in range(num_vertical_points - 1)
+            for i in range(num_horizontal_vertices)
+            for j in range(num_vertical_vertices - 1)
         ]
         diagonal_edges = [
             (pair_to_vertex(i, j), pair_to_vertex(i + 1, j + 1))
-            for i in range(num_horizontal_points - 1)
-            for j in range(num_vertical_points - 1)
+            for i in range(num_horizontal_vertices - 1)
+            for j in range(num_vertical_vertices - 1)
         ]
         edges = horizontal_edges + vertical_edges + diagonal_edges
 
@@ -135,8 +128,8 @@ class Rectangle(Domain):
                 pair_to_vertex(i, j),
                 pair_to_vertex(i + 1, j + 1),
             )
-            for i in range(num_horizontal_points - 1)
-            for j in range(num_vertical_points - 1)
+            for i in range(num_horizontal_vertices - 1)
+            for j in range(num_vertical_vertices - 1)
         ]
         upper_triangles = [
             (
@@ -144,46 +137,46 @@ class Rectangle(Domain):
                 pair_to_vertex(i + 1, j + 1),
                 pair_to_vertex(i, j),
             )
-            for i in range(num_horizontal_points - 1)
-            for j in range(num_vertical_points - 1)
+            for i in range(num_horizontal_vertices - 1)
+            for j in range(num_vertical_vertices - 1)
         ]
         triangles = lower_triangles + upper_triangles
 
         lower_boundary_vertices = set(
-            pair_to_vertex(i, 0) for i in range(num_horizontal_points)
+            pair_to_vertex(i, 0) for i in range(num_horizontal_vertices)
         )
         lower_boundary_edges = [
             (pair_to_vertex(i, 0), pair_to_vertex(i + 1, 0))
-            for i in range(num_horizontal_points - 1)
+            for i in range(num_horizontal_vertices - 1)
         ]
         right_boundary_vertices = set(
-            pair_to_vertex(num_horizontal_points - 1, j)
-            for j in range(num_vertical_points)
+            pair_to_vertex(num_horizontal_vertices - 1, j)
+            for j in range(num_vertical_vertices)
         )
         right_boundary_edges = [
             (
-                pair_to_vertex(num_horizontal_points - 1, j),
-                pair_to_vertex(num_horizontal_points - 1, j + 1),
+                pair_to_vertex(num_horizontal_vertices - 1, j),
+                pair_to_vertex(num_horizontal_vertices - 1, j + 1),
             )
-            for j in range(num_vertical_points - 1)
+            for j in range(num_vertical_vertices - 1)
         ]
         upper_boundary_vertices = set(
-            pair_to_vertex(i, num_horizontal_points - 1)
-            for i in range(num_horizontal_points)
+            pair_to_vertex(i, num_vertical_vertices - 1)
+            for i in range(num_horizontal_vertices)
         )
         upper_boundary_edges = [
             (
-                pair_to_vertex(i, num_horizontal_points - 1),
-                pair_to_vertex(i + 1, num_horizontal_points - 1),
+                pair_to_vertex(i, num_vertical_vertices - 1),
+                pair_to_vertex(i + 1, num_vertical_vertices - 1),
             )
-            for i in range(num_horizontal_points - 1)
+            for i in range(num_horizontal_vertices - 1)
         ]
         left_boundary_vertices = set(
-            pair_to_vertex(0, j) for j in range(num_vertical_points)
+            pair_to_vertex(0, j) for j in range(num_vertical_vertices)
         )
         left_boundary_edges = [
             (pair_to_vertex(0, j), pair_to_vertex(0, j + 1))
-            for j in range(num_horizontal_points - 1)
+            for j in range(num_vertical_vertices - 1)
         ]
 
         boundary_vertices = list(
@@ -261,15 +254,15 @@ class Rectangle(Domain):
         points = [
             Vector(
                 [
-                    v % num_horizontal_points * scale,
-                    v // num_horizontal_points * scale,
+                    v % num_horizontal_vertices * scale,
+                    v // num_horizontal_vertices * scale,
                 ]
             )
             for v in vertices
         ]
 
         return Grid(
-            boundary,
+            vertices,
             edges,
             triangles,
             boundary,
