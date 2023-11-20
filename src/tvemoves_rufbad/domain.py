@@ -107,8 +107,8 @@ class RectangleDomain(Domain):
 
         horizontal_edges = [
             (pair_to_vertex(i, j), pair_to_vertex(i + 1, j))
-            for i in range(num_horizontal_vertices - 1)
             for j in range(num_vertical_vertices)
+            for i in range(num_horizontal_vertices - 1)
         ]
         vertical_edges = [
             (pair_to_vertex(i, j), pair_to_vertex(i, j + 1))
@@ -124,8 +124,8 @@ class RectangleDomain(Domain):
 
         lower_triangles = [
             (
-                pair_to_vertex(i + 1, j),
                 pair_to_vertex(i, j),
+                pair_to_vertex(i + 1, j),
                 pair_to_vertex(i + 1, j + 1),
             )
             for i in range(num_horizontal_vertices - 1)
@@ -133,9 +133,9 @@ class RectangleDomain(Domain):
         ]
         upper_triangles = [
             (
-                pair_to_vertex(i, j + 1),
-                pair_to_vertex(i + 1, j + 1),
                 pair_to_vertex(i, j),
+                pair_to_vertex(i + 1, j + 1),
+                pair_to_vertex(i, j + 1),
             )
             for i in range(num_horizontal_vertices - 1)
             for j in range(num_vertical_vertices - 1)
