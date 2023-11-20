@@ -29,7 +29,8 @@ class BarycentricPoint:
     coordinates: BarycentricCoordinates
 
 
-Curve = list[BarycentricPoint]
+Curve = list[Vector]
+BarycentricCurve = list[BarycentricPoint]
 
 
 @dataclass(frozen=True)
@@ -60,18 +61,18 @@ class Domain(ABC):
     def create_grid(self, scale: float) -> Grid:
         """ "Create a grid adapted to the current domain."""
 
-    # @abstractmethod
-    # def create_curves(
-    #     self,
-    #     segment_length: float,
-    #     num_horizontal_curves: int = 0,
-    #     num_vertical_curves: int | None = None,
-    # ) -> list[Curve]:
-    #     """Creates a list of discrete curves covered by the grid triangles.
+    @abstractmethod
+    def create_curves(
+        self,
+        num_points_per_curve: int,
+        num_horizontal_curves: int = 0,
+        num_vertical_curves: int | None = None,
+    ) -> list[Curve]:
+        """Creates a list of discrete curves inside the domain.
 
-    #     Boundary curves are always generated. The distance between successive
-    #     points of each curve must be equal to `segment_length`.
-    #     """
+        Boundary curves are always generated. Each curve contains num_points_per_curve
+        points.
+        """
 
 
 FixOption = typing.Literal[None, "all", "lower", "right", "upper", "left"]
@@ -270,3 +271,50 @@ class RectangleDomain(Domain):
             neumann_boundary,
             points,
         )
+
+    def create_curves(
+        self,
+        num_points_per_curve: int,
+        num_horizontal_curves: int = 0,
+        num_vertical_curves: int | None = None,
+    ) -> list[Curve]:
+        """Creates horizontal and vertical curves inside the rectangle.
+
+        `num_horizontal_curves` is the number of internal horizontal curves as we always
+        generate the boundary curves. Hence, there are `num_horizontal_cruves + 2`
+        horizontal curves (similarly for the vertical curves).
+        """
+
+        if num_vertical_curves is None:
+            num_vertical_curves = num_horizontal_curves
+
+        num_all_horizontal_curves = num_horizontal_curves + 2
+        num_all_vertical_curves = num_vertical_curves + 2
+
+        horizontal_curves = [
+            [
+                Vector(
+                    [
+                        i * self.width / (num_points_per_curve - 1),
+                        j * self.height / (num_all_horizontal_curves - 1),
+                    ]
+                )
+                for i in range(num_points_per_curve)
+            ]
+            for j in range(num_all_horizontal_curves)
+        ]
+
+        vertical_curves = [
+            [
+                Vector(
+                    [
+                        j * self.width / (num_all_vertical_curves - 1),
+                        i * self.height / (num_points_per_curve - 1),
+                    ]
+                )
+                for i in range(num_points_per_curve)
+            ]
+            for j in range(num_all_vertical_curves)
+        ]
+
+        return horizontal_curves + vertical_curves

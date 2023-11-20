@@ -106,3 +106,35 @@ def test_rectangle_domain_create_grid() -> None:
         grid_left_fixed.points[v][0] == approx(0)
         for v in grid_left_fixed.dirichlet_boundary.vertices
     )
+
+
+def test_rectangle_domain_create_curves() -> None:
+    """Test create_curves of rectangle domains."""
+    width = 3
+    height = 2
+    num_points_per_curve = 100
+    num_horizontal_curves = 3
+    num_vertical_curves = 5
+
+    rectangle = RectangleDomain(width, height)
+    curves = rectangle.create_curves(
+        num_points_per_curve, num_horizontal_curves, num_vertical_curves
+    )
+    horizontal_step = [width / (num_points_per_curve - 1), 0]
+    vertical_step = [0, height / (num_points_per_curve - 1)]
+
+    for curve in curves:
+        assert len(curve) == num_points_per_curve
+        first_step = (curve[1] - curve[0])._data
+        assert first_step == approx(horizontal_step) or first_step == approx(
+            vertical_step
+        )
+        assert all(
+            (curve[i + 1] - curve[i])._data == approx(first_step)
+            for i in range(2, num_points_per_curve - 1)
+        )
+        assert curve[0][0] == approx(0) or curve[0][1] == approx(0)
+        assert curve[-1][0] == approx(width) or curve[-1][1] == approx(height)
+
+
+test_rectangle_domain_create_curves()
