@@ -11,8 +11,14 @@ class BarycentricCoordinates:
 
     def __init__(self, u: float, v: float):
         self.u = u
-        self.u = v
+        self.v = v
         self.w = 1 - u - v
+
+    def __str__(self) -> str:
+        return f"({self.u}, {self.v}, {self.w})"
+
+    def __repr__(self) -> str:
+        return f"BarycentricCoordinates{self.__str__()}"
 
 
 Vertex = int
@@ -170,8 +176,8 @@ class RectangleDomain(Domain):
         If `scale` does not evenly divide the width or height of the rectangle (only) the rightmost
         or uppermost edges of the grid might not align exactly with the rectangle boundary.
         """
-        num_horizontal_vertices = int(self.width // scale) + 1
-        num_vertical_vertices = int(self.height // scale) + 1
+        num_horizontal_vertices = int(self.width / scale) + 1
+        num_vertical_vertices = int(self.height / scale) + 1
 
         def pair_to_vertex(i, j):
             # left to right, bottom to top

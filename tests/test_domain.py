@@ -1,7 +1,13 @@
 """Test domains."""
 
 from pytest import approx
-from tvemoves_rufbad.domain import RectangleDomain
+from tvemoves_rufbad.tensors import Vector
+from tvemoves_rufbad.domain import (
+    RectangleDomain,
+    to_barycentric_curve,
+    Grid,
+    BarycentricPoint,
+)
 
 
 def test_rectangle_domain_create_grid() -> None:
@@ -10,8 +16,8 @@ def test_rectangle_domain_create_grid() -> None:
     height = 2
     # make sure that scale does not evenly divide width and height
     scale = 0.7 / (width * height)
-    num_vertical_vertices = int(height // scale) + 1
-    num_horizontal_vertices = int(width // scale) + 1
+    num_vertical_vertices = int(height / scale) + 1
+    num_horizontal_vertices = int(width / scale) + 1
     grid_width = (num_horizontal_vertices - 1) * scale
     grid_height = (num_vertical_vertices - 1) * scale
     num_vertices = num_vertical_vertices * num_horizontal_vertices
@@ -135,3 +141,34 @@ def test_rectangle_domain_create_curves() -> None:
         )
         assert curve[0][0] == approx(0) or curve[0][1] == approx(0)
         assert curve[-1][0] == approx(width) or curve[-1][1] == approx(height)
+
+
+def _to_cartesian_point(barycentric_point: BarycentricPoint, grid: Grid) -> Vector:
+    i1, i2, i3 = barycentric_point.triangle
+    p1, p2, p3 = grid.points[i1], grid.points[i2], grid.points[i3]
+    coords = barycentric_point.coordinates
+    return coords.u * p1 + coords.v * p2 + coords.w * p3
+
+
+def test_to_barycentric_curve() -> None:
+    """Test transformation from a curve to a barycentric curve."""
+    width = 1
+    height = 1
+    num_points_per_curve = 2
+    num_horizontal_curves = 0
+    num_vertical_curves = 0
+
+    rectangle = RectangleDomain(width, height)
+    curves = rectangle.create_curves(
+        num_points_per_curve, num_horizontal_curves, num_vertical_curves
+    )
+    scale = 1 / 5
+    grid = rectangle.create_grid(scale)
+    barycentric_curves = [to_barycentric_curve(curve, grid) for curve in curves]
+    for barycentric_curve, curve in zip(barycentric_curves, curves):
+        assert len(barycentric_curve) == len(curve)
+        if len(barycentric_curve) < len(curve):
+            for barycentric_point, point in zip(barycentric_curve, curve):
+                assert (
+                    _to_cartesian_point(barycentric_point, grid) - point
+                ).norm() == approx(0)
