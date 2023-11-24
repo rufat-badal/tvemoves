@@ -60,6 +60,9 @@ class Vector:
     def __rtruediv__(self, divisor):
         return NotImplemented
 
+    def __eq__(self, other: Vector) -> bool:
+        return self.data == other.data
+
     def normsqr(self):
         """Compute square of the Euclidean norm."""
         return sum(x * x for x in self.data)
@@ -160,6 +163,9 @@ class Matrix:
 
     def __neg__(self) -> Matrix:
         return Matrix([[-x for x in row] for row in self.data])
+
+    def __eq__(self, other: Matrix) -> bool:
+        return self.data == other.data
 
     def __add__(self, other: Matrix) -> Matrix:
         if self.shape != other.shape:
@@ -365,6 +371,9 @@ class Tensor3D:
 
     def __neg__(self) -> Tensor3D:
         return Tensor3D([[[-x for x in row] for row in matrix] for matrix in self.data])
+
+    def __eq__(self, other: Tensor3D) -> bool:
+        return self.data == other.data
 
     def __add__(self, other: Tensor3D) -> Tensor3D:
         if self.shape != other.shape:
