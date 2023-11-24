@@ -1,24 +1,23 @@
-""""Implementation of the domain class that in particular can create grids"""
+""""Domain class that in particular can create grids"""
 
 import typing
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from tvemoves_rufbad.tensors import Vector
 
-Vertex = int
-Edge = tuple[Vertex, Vertex]
-Triangle = tuple[Vertex, Vertex, Vertex]
-
 
 class BarycentricCoordinates:
     """Barycentric coordinates"""
 
     def __init__(self, u: float, v: float):
-        if u < 0 or v < 0 or 1 - u - v < 0:
-            raise ValueError("Invalid first two barycentric coordinates provided")
         self.u = u
         self.u = v
         self.w = 1 - u - v
+
+
+Vertex = int
+Edge = tuple[Vertex, Vertex]
+Triangle = tuple[Vertex, Vertex, Vertex]
 
 
 @dataclass
@@ -52,6 +51,80 @@ class Grid:
     dirichlet_boundary: Boundary
     neumann_boundary: Boundary
     points: list[Vector]
+
+
+TriangleVertices = tuple[Vector, Vector, Vector]
+
+
+def _sign(triangle_vertices: TriangleVertices):
+    p1, p2, p3 = triangle_vertices
+    return (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1])
+
+
+def _triangle_contains_point(triangle_vertices: TriangleVertices, p: Vector) -> bool:
+    """Determine if a point is contained in a triangle."""
+    p1, p2, p3 = triangle_vertices
+    d1 = _sign((p, p1, p2))
+    d2 = _sign((p, p2, p3))
+    d3 = _sign((p, p3, p1))
+
+    has_neg = (d1 < 0) or (d2 < 0) or (d3 < 0)
+    has_pos = (d1 > 0) or (d2 > 0) or (d3 > 0)
+
+    return not (has_neg and has_pos)
+
+
+def _to_barycentric_coordinates(
+    triangle_vertices: TriangleVertices, p: Vector
+) -> BarycentricCoordinates:
+    """Assuming that the point is inside the triangle, computes its barycentric coordinates."""
+    p1, p2, p3 = triangle_vertices
+
+    v1 = p2 - p1
+    v2 = p3 - p1
+    v3 = p - p1
+
+    d11 = v1.dot(v1)
+    d12 = v1.dot(v2)
+    d22 = v2.dot(v2)
+    d31 = v3.dot(v1)
+    d32 = v3.dot(v2)
+
+    denom = d11 * d22 - d12 * d12
+    v = (d22 * d31 - d12 * d32) / denom
+    w = (d11 * d32 - d12 * d31) / denom
+    u = 1 - v - w
+
+    return BarycentricCoordinates(u, v)
+
+
+def _to_barycentric_point(p: Vector, grid: Grid) -> BarycentricPoint | None:
+    """Given cartesian point and a grid, determine its containing triangle and
+    barycentric coordinates.
+
+    If the point is outside all grid triangles return None.
+    """
+    for triangle in grid.triangles:
+        i1, i2, i3 = triangle
+        triangle_vertices = (grid.points[i1], grid.points[i2], grid.points[i3])
+        if _triangle_contains_point(triangle_vertices, p):
+            return BarycentricPoint(
+                triangle, _to_barycentric_coordinates(triangle_vertices, p)
+            )
+    return None
+
+
+def to_barycentric_curve(curve: Curve, grid: Grid) -> BarycentricCurve:
+    """Transform a curve of Euclidean points to a barycentric curve.
+
+    Points that are not contained in the respective grid are removed from the returned curve.
+    """
+    barycentric_curve: BarycentricCurve = []
+    for p in curve:
+        p_barycentric = _to_barycentric_point(p, grid)
+        if p_barycentric is not None:
+            barycentric_curve.append(p_barycentric)
+    return barycentric_curve
 
 
 class Domain(ABC):

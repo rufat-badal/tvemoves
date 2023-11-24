@@ -125,16 +125,13 @@ def test_rectangle_domain_create_curves() -> None:
 
     for curve in curves:
         assert len(curve) == num_points_per_curve
-        first_step = (curve[1] - curve[0])._data
+        first_step = (curve[1] - curve[0]).data
         assert first_step == approx(horizontal_step) or first_step == approx(
             vertical_step
         )
         assert all(
-            (curve[i + 1] - curve[i])._data == approx(first_step)
+            (curve[i + 1] - curve[i]).data == approx(first_step)
             for i in range(2, num_points_per_curve - 1)
         )
         assert curve[0][0] == approx(0) or curve[0][1] == approx(0)
         assert curve[-1][0] == approx(width) or curve[-1][1] == approx(height)
-
-
-test_rectangle_domain_create_curves()
