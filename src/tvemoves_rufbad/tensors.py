@@ -212,11 +212,11 @@ class Matrix:
         )
 
     def trace(self):
-        """Computes the trace of a matrix."""
+        """Compute the trace of a matrix."""
         return sum(self.data[i][i] for i in range(min(self.shape)))
 
     def det(self):
-        """Computes the determinant of a matrix via Laplace expansion."""
+        """Compute the determinant of a matrix via Laplace expansion."""
         if self.shape[0] != self.shape[1]:
             raise ValueError(
                 f"det not defined for nonsquare matrix of shape {self.shape}"
@@ -239,7 +239,7 @@ class Matrix:
         return pyo.sqrt(self.normsqr())
 
     def scalar_product(self, other):
-        """Computes the Frobenius scalar product with another matrix."""
+        """Compute the Frobenius scalar product with another matrix."""
         if self.shape != other.shape:
             raise ValueError(
                 f"matrices of shape {self.shape} and {other.shape} cannot be scalar multiplied"
@@ -251,7 +251,7 @@ class Matrix:
         )
 
     def __mul__(self, scaling) -> Matrix:
-        """Computes scaled matrix."""
+        """Compute scaled matrix."""
         return Matrix([[x * scaling for x in row] for row in self.data])
 
     def __rmul__(self, scaling) -> Matrix:
@@ -303,21 +303,23 @@ class Matrix:
 
 
 class Tensor3D:
-    """3-d tensors."""
+    """Custom 3-d tensor class."""
 
     def __init__(self, data: list[list[list]]):
         self.shape = (len(data), len(data[0]), len(data[0][0]))
         for submatrix in data:
             if len(submatrix) != self.shape[1]:
-                raise ValueError("incorrectly shaped initialization list provided")
+                raise ValueError("inhomogeneously shaped initialization list provided")
             for row in submatrix:
                 if len(row) != self.shape[2]:
-                    raise ValueError("incorrectly shaped initialization list provided")
+                    raise ValueError(
+                        "inhomogeneously shaped initialization list provided"
+                    )
         self.data = data
 
     def __repr__(self):
         typeinfo = "Tensor3D(["
-        matrices_representations = []
+        matrices = []
         for i in range(self.shape[0]):
             matrix_rows = [
                 "["
@@ -325,23 +327,40 @@ class Tensor3D:
                 + "]"
                 for j in range(self.shape[1])
             ]
-            matrices_representations.append(
+            matrices.append(
                 "[" + (",\n " + len(typeinfo) * " ").join(matrix_rows) + "]"
             )
-        data = (",\n" + len(typeinfo) * " ").join(matrices_representations)
-        return typeinfo + data + ")]"
+        data = (",\n" + len(typeinfo) * " ").join(matrices)
+        return typeinfo + data + "])"
+
+    def __str__(self):
+        start = "["
+        matrices = []
+        for i in range(self.shape[0]):
+            matrix_rows = [
+                "["
+                + ", ".join([repr(self.data[i][j][k]) for k in range(self.shape[2])])
+                + "]"
+                for j in range(self.shape[1])
+            ]
+            matrices.append("[" + (",\n " + len(start) * " ").join(matrix_rows) + "]")
+        data = (",\n" + len(start) * " ").join(matrices)
+        return start + data + "]"
 
     def __getitem__(self, index: tuple[int, int, int]):
         i, j, k = index
-        if (
-            i < 0
-            or i >= self.shape[0]
-            or j < 0
-            or j >= self.shape[1]
-            or k < 0
-            or k >= self.shape[2]
-        ):
-            raise IndexError("tensor index out of bounds")
+        if i < 0 or i >= self.shape[0]:
+            raise IndexError(
+                f"index {i} is out of bounds for axis 0 with size {self.shape[0]}"
+            )
+        if i < 0 or i >= self.shape[0]:
+            raise IndexError(
+                f"index {j} is out of bounds for axis 1 with size {self.shape[1]}"
+            )
+        if i < 0 or i >= self.shape[0]:
+            raise IndexError(
+                f"index {k} is out of bounds for axis 2 with size {self.shape[2]}"
+            )
         return self.data[i][j][k]
 
     def __neg__(self) -> Tensor3D:
@@ -349,36 +368,48 @@ class Tensor3D:
 
     def __add__(self, other: Tensor3D) -> Tensor3D:
         if self.shape != other.shape:
-            raise ValueError("tensors must have the same shape for addition")
+            raise ValueError(
+                f"tensors of shapes {self.shape} and {other.shape} cannot be added"
+            )
         return Tensor3D(
             [
                 [
-                    [x + y for (x, y) in zip(row, other_row)]
+                    [x + y for x, y in zip(row, other_row)]
                     for row, other_row in zip(matrix, other_matrix)
                 ]
-                for (matrix, other_matrix) in zip(self.data, other.data)
+                for matrix, other_matrix in zip(self.data, other.data)
             ]
         )
 
     def __sub__(self, other: Tensor3D) -> Tensor3D:
         if self.shape != other.shape:
-            raise ValueError("tensors must have the same shape for addition")
+            raise ValueError(
+                f"tensors of shapes {self.shape} and {other.shape} cannot be subtracted"
+            )
         return Tensor3D(
             [
                 [
-                    [x - y for (x, y) in zip(row, other_row)]
+                    [x - y for x, y in zip(row, other_row)]
                     for row, other_row in zip(matrix, other_matrix)
                 ]
-                for (matrix, other_matrix) in zip(self.data, other.data)
+                for matrix, other_matrix in zip(self.data, other.data)
             ]
         )
 
     def normsqr(self):
-        """Computes square of the Euclidean norm of a matrix."""
+        """Compute square of the Euclidean norm of the tensor."""
         return sum(x**2 for submatrix in self.data for row in submatrix for x in row)
+
+    def norm(self):
+        """Compute the Euclidean norm of the tensor."""
+        return pyo.sqrt(self.normsqr())
 
     def map(self, f: Callable) -> Tensor3D:
         """Applies map f to each entry of the tensor."""
         return Tensor3D(
             [[[f(x) for x in row] for row in submatrix] for submatrix in self.data]
         )
+
+    def numpy(self) -> npt.NDArray:
+        """Return copy of the tensor as numpy array."""
+        return np.array(self.data)

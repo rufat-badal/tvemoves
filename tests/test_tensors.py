@@ -127,9 +127,4 @@ def test_tensor3d() -> None:
     assert (T + S).data == approx(T_numpy + S_numpy)
     assert (T - S).data == approx(T_numpy - S_numpy)
     assert (-T).data == approx(-T_numpy)
-    assert all(
-        T[i, j, k] == T_numpy[i, j, k]
-        for i in range(T.shape[0])
-        for j in range(T.shape[1])
-        for k in range(T.shape[2])
-    )
+    assert (T.numpy() == T_numpy).all()
