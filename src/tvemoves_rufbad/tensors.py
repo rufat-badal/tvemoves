@@ -93,7 +93,7 @@ class Vector:
         """Reshape vector of length num_rows x num_cols to a num_rows x num_cols matrix."""
         if self.size != num_rows * num_cols:
             raise ValueError(
-                f"cannot reshape vector of size {self.size} to a matrix of shape ({num_rows}, {num_cols}) "
+                f"cannot reshape vector of size {self.size} to a matrix of shape ({num_rows}, {num_cols})"
             )
         return Matrix(
             [
@@ -109,7 +109,6 @@ class Vector:
 
 def sign(p):
     """Compute the sign of a permutation."""
-    # p must be a permutation of [0, 1, 2, ...]
     num_misplaced = 0
     for i, a in enumerate(p):
         for b in p[i + 1 :]:
@@ -123,11 +122,10 @@ class Matrix:
     """Custom matrix class."""
 
     def __init__(self, data: list[list]):
-        # row major format
         self.shape = (len(data), len(data[0]))
         for row in data[1:]:
             if len(row) != self.shape[1]:
-                raise ValueError("incorrectly shaped initialization list provided")
+                raise ValueError("inhomogeneously shaped initialization list provided")
         self.data = data
 
     def __repr__(self):
@@ -137,12 +135,27 @@ class Matrix:
         ]
         typeinfo = "Matrix(["
         data = (",\n" + len(typeinfo) * " ").join(lines)
-        return typeinfo + data + ")]"
+        return typeinfo + data + "])"
+
+    def __str__(self):
+        lines = [
+            "[" + " ".join([repr(self.data[i][j]) for j in range(self.shape[1])]) + "]"
+            for i in range(self.shape[0])
+        ]
+        start = "["
+        data = ("\n" + len(start) * " ").join(lines)
+        return start + data + "]"
 
     def __getitem__(self, index: tuple[int, int]):
         i, j = index
-        if i < 0 or i >= self.shape[0] or j < 0 or j >= self.shape[1]:
-            raise IndexError("matrix index out of bounds")
+        if i < 0 or i >= self.shape[0]:
+            raise IndexError(
+                f"row index {i} out of bounds for matrix with {self.shape[0]} rows"
+            )
+        if j < 0 or j >= self.shape[1]:
+            raise IndexError(
+                f"column index {j} out of bounds for matrix with {self.shape[1]} columns"
+            )
         return self.data[i][j]
 
     def __neg__(self) -> Matrix:
@@ -150,27 +163,33 @@ class Matrix:
 
     def __add__(self, other: Matrix) -> Matrix:
         if self.shape != other.shape:
-            raise ValueError("matrices must have the same shape for addition")
+            raise ValueError(
+                f"matrices of shapes {self.shape} and {other.shape} cannot be added"
+            )
         return Matrix(
             [
                 [x + y for x, y in zip(row, other_row)]
-                for (row, other_row) in zip(self.data, other.data)
+                for row, other_row in zip(self.data, other.data)
             ]
         )
 
     def __sub__(self, other: Matrix) -> Matrix:
         if self.shape != other.shape:
-            raise ValueError("matrices must have the same shape for subtraction")
+            raise ValueError(
+                f"matrices of shapes {self.shape} and {other.shape} cannot be subtracted"
+            )
         return Matrix(
             [
                 [x - y for x, y in zip(row, other_row)]
-                for (row, other_row) in zip(self.data, other.data)
+                for row, other_row in zip(self.data, other.data)
             ]
         )
 
     def __matmul__(self, other: Matrix) -> Matrix:
         if self.shape[1] != other.shape[0]:
-            raise ValueError("matrix shapes do not match for multiplication")
+            raise ValueError(
+                f"matrices of shapes {self.shape} and {other.shape} cannot be multiplied"
+            )
         return Matrix(
             [
                 [
@@ -184,7 +203,7 @@ class Matrix:
         )
 
     def transpose(self) -> Matrix:
-        """Computes the transpose of a matrix."""
+        """Compute the transpose of a matrix."""
         return Matrix(
             [
                 [self.data[i][j] for i in range(self.shape[0])]
@@ -199,7 +218,9 @@ class Matrix:
     def det(self):
         """Computes the determinant of a matrix via Laplace expansion."""
         if self.shape[0] != self.shape[1]:
-            raise ValueError("det not defined for nonsquare matrix")
+            raise ValueError(
+                f"det not defined for nonsquare matrix of shape {self.shape}"
+            )
         res = 0
         for p in permutations(range(self.shape[0])):
             prod = 1
@@ -210,16 +231,22 @@ class Matrix:
         return res
 
     def normsqr(self):
-        """Computes the square of the Frobenius norm of a matrix."""
+        """Compute the square of the Frobenius norm of a matrix."""
         return sum(x**2 for row in self.data for x in row)
+
+    def norm(self):
+        """Compute the the Frobenius norm of a matrix."""
+        return pyo.sqrt(self.normsqr())
 
     def scalar_product(self, other):
         """Computes the Frobenius scalar product with another matrix."""
         if self.shape != other.shape:
-            raise ValueError("matrices must have the same length for the dot product")
+            raise ValueError(
+                f"matrices of shape {self.shape} and {other.shape} cannot be scalar multiplied"
+            )
         return sum(
             x * y
-            for (row, other_row) in zip(self.data, other.data)
+            for row, other_row in zip(self.data, other.data)
             for (x, y) in zip(row, other_row)
         )
 
@@ -237,14 +264,14 @@ class Matrix:
         return NotImplemented
 
     def flatten(self) -> Vector:
-        """Returns flattened matrix (row major format)."""
+        """Returns matrix flattened to a vector."""
         return Vector([x for row in self.data for x in row])
 
     def dot(self, v) -> Vector:
-        """Computes matrix-vector-product."""
-        if v.shape[0] != self.shape[1]:
+        """Compute matrix-vector-product."""
+        if v.size != self.shape[1]:
             raise ValueError(
-                "shape of matrix and vector do not match for the matrix-vector-product"
+                f"cannot multiply a matrix of shape {self.shape} with a vector of size {v.size}"
             )
         return Vector(
             [
@@ -261,7 +288,7 @@ class Matrix:
         """Stack two matrices to a 3-d tensor."""
         if self.shape[0] != other.shape[0]:
             raise ValueError(
-                "matrices must be of the same length to be stacked vertically"
+                f"matrices of shapes {self.shape} and {other.shape} cannot be stacked"
             )
         return Tensor3D(
             [
@@ -269,6 +296,10 @@ class Matrix:
                 other.data,
             ]
         )
+
+    def numpy(self) -> npt.NDArray:
+        """Return copy of the matrix as numpy array."""
+        return np.array(self.data)
 
 
 class Tensor3D:
@@ -323,7 +354,7 @@ class Tensor3D:
             [
                 [
                     [x + y for (x, y) in zip(row, other_row)]
-                    for (row, other_row) in zip(matrix, other_matrix)
+                    for row, other_row in zip(matrix, other_matrix)
                 ]
                 for (matrix, other_matrix) in zip(self.data, other.data)
             ]
@@ -336,7 +367,7 @@ class Tensor3D:
             [
                 [
                     [x - y for (x, y) in zip(row, other_row)]
-                    for (row, other_row) in zip(matrix, other_matrix)
+                    for row, other_row in zip(matrix, other_matrix)
                 ]
                 for (matrix, other_matrix) in zip(self.data, other.data)
             ]

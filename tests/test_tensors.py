@@ -25,7 +25,7 @@ def test_vector() -> None:
     assert (v + w).data == approx(v_numpy + w_numpy)
     assert (v - w).data == approx(v_numpy - w_numpy)
     assert (-v).data == approx(-v_numpy)
-    assert all(v.numpy() == v_numpy)
+    assert (v.numpy() == v_numpy).all()
     assert v.dot(w) == approx(v_numpy.dot(w_numpy))
     assert v.normsqr() == approx(v.dot(v))
     assert v.norm() == approx(np.sqrt(v.normsqr()))
@@ -80,9 +80,7 @@ def test_matrix() -> None:
     assert (A + B).data == approx(A_numpy + B_numpy)
     assert (A - B).data == approx(A_numpy - B_numpy)
     assert (-A).data == approx(-A_numpy)
-    assert all(
-        A[i, j] == A_numpy[i, j] for i in range(A.shape[0]) for j in range(A.shape[1])
-    )
+    assert (A.numpy() == A_numpy).all()
     assert (A @ C).shape == AC_shape
     assert (A @ C).data == approx(A_numpy @ C_numpy)
     assert A.transpose().data == approx(np.transpose(A_numpy))
