@@ -20,26 +20,27 @@ def test_vector() -> None:
     s = np.random.rand()
     d = np.random.rand() + 1
 
-    assert v._data == v_data
-    assert w._data == w_data
-    assert (v + w)._data == approx(v_numpy + w_numpy)
-    assert (v - w)._data == approx(v_numpy - w_numpy)
-    assert (-v)._data == approx(-v_numpy)
-    assert all(v[i] == v_numpy[i] for i in range(v.shape[0]))
+    assert v.data == v_data
+    assert w.data == w_data
+    assert (v + w).data == approx(v_numpy + w_numpy)
+    assert (v - w).data == approx(v_numpy - w_numpy)
+    assert (-v).data == approx(-v_numpy)
+    assert all(v.numpy() == v_numpy)
     assert v.dot(w) == approx(v_numpy.dot(w_numpy))
     assert v.normsqr() == approx(v.dot(v))
-    assert (s * v)._data == approx(s * v_numpy)
-    assert (w * s)._data == approx(w_numpy * s)
-    assert (v / d)._data == approx(v_numpy / d)
-    assert v.reshape(m, k)._data == approx(v_numpy.reshape(m, k))
-    assert v.stack(w)._data == approx(np.stack((v_numpy, w_numpy)))
-    assert v.map(lambda x: -x)._data == (-v)._data
+    assert v.norm() == approx(np.sqrt(v.normsqr()))
+    assert (s * v).data == approx(s * v_numpy)
+    assert (w * s).data == approx(w_numpy * s)
+    assert (v / d).data == approx(v_numpy / d)
+    assert v.reshape(m, k).data == approx(v_numpy.reshape(m, k))
+    assert v.stack(w).data == approx(np.stack((v_numpy, w_numpy)))
+    assert v.map(lambda x: -x).data == (-v).data
 
     def square(x):
         return x**2
 
     square_vectorized = np.vectorize(square)
-    assert v.map(square)._data == approx(square_vectorized(v_numpy))
+    assert v.map(square).data == approx(square_vectorized(v_numpy))
 
 
 def test_matrix() -> None:
@@ -68,40 +69,40 @@ def test_matrix() -> None:
     s = np.random.rand()
     d = np.random.rand() + 1
 
-    assert A._data == A_data
+    assert A.data == A_data
     assert A.shape == A_shape
-    assert B._data == B_data
+    assert B.data == B_data
     assert B.shape == B_shape
-    assert C._data == C_data
+    assert C.data == C_data
     assert C.shape == C_shape
-    assert D._data == D_data
+    assert D.data == D_data
     assert D.shape == D_shape
-    assert (A + B)._data == approx(A_numpy + B_numpy)
-    assert (A - B)._data == approx(A_numpy - B_numpy)
-    assert (-A)._data == approx(-A_numpy)
+    assert (A + B).data == approx(A_numpy + B_numpy)
+    assert (A - B).data == approx(A_numpy - B_numpy)
+    assert (-A).data == approx(-A_numpy)
     assert all(
         A[i, j] == A_numpy[i, j] for i in range(A.shape[0]) for j in range(A.shape[1])
     )
     assert (A @ C).shape == AC_shape
-    assert (A @ C)._data == approx(A_numpy @ C_numpy)
-    assert A.transpose()._data == approx(np.transpose(A_numpy))
+    assert (A @ C).data == approx(A_numpy @ C_numpy)
+    assert A.transpose().data == approx(np.transpose(A_numpy))
     assert A.trace() == approx(np.trace(A_numpy))
     assert D.det() == approx(np.linalg.det(D_numpy))
     assert A.scalar_product(B) == approx(A_numpy.ravel().dot(B_numpy.ravel()))
     assert A.normsqr() == approx(A.scalar_product(A))
-    assert (s * A)._data == approx(s * A_numpy)
-    assert (C * s)._data == approx(C_numpy * s)
-    assert (C / d)._data == approx(C_numpy / d)
-    assert A.flatten()._data == approx(A_numpy.flatten())
-    assert A.dot(v)._data == approx(A_numpy.dot(v_numpy))
-    assert A.map(lambda x: -x)._data == (-A)._data
+    assert (s * A).data == approx(s * A_numpy)
+    assert (C * s).data == approx(C_numpy * s)
+    assert (C / d).data == approx(C_numpy / d)
+    assert A.flatten().data == approx(A_numpy.flatten())
+    assert A.dot(v).data == approx(A_numpy.dot(v_numpy))
+    assert A.map(lambda x: -x).data == (-A).data
 
     def square(x):
         return x**2
 
     square_vectorized = np.vectorize(square)
-    assert A.map(square)._data == approx(square_vectorized(A_numpy))
-    assert A.stack(B)._data == approx(np.stack((A_numpy, B_numpy)))
+    assert A.map(square).data == approx(square_vectorized(A_numpy))
+    assert A.stack(B).data == approx(np.stack((A_numpy, B_numpy)))
 
 
 def test_tensor3d() -> None:
@@ -116,7 +117,7 @@ def test_tensor3d() -> None:
     S_data = list(S_numpy)
     S = Tensor3D(S_data)
 
-    assert T._data == T_data
+    assert T.data == T_data
     assert T.shape == T_shape
     assert T.normsqr() == approx(T_numpy.ravel().dot(T_numpy.ravel()))
 
@@ -124,10 +125,10 @@ def test_tensor3d() -> None:
         return x**2
 
     square_vectorized = np.vectorize(square)
-    assert T.map(square)._data == approx(square_vectorized(T_numpy))
-    assert (T + S)._data == approx(T_numpy + S_numpy)
-    assert (T - S)._data == approx(T_numpy - S_numpy)
-    assert (-T)._data == approx(-T_numpy)
+    assert T.map(square).data == approx(square_vectorized(T_numpy))
+    assert (T + S).data == approx(T_numpy + S_numpy)
+    assert (T - S).data == approx(T_numpy - S_numpy)
+    assert (-T).data == approx(-T_numpy)
     assert all(
         T[i, j, k] == T_numpy[i, j, k]
         for i in range(T.shape[0])
