@@ -3,6 +3,7 @@
 import typing
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
+from matplotlib import pyplot as plt
 from tvemoves_rufbad.tensors import Vector
 
 
@@ -130,6 +131,33 @@ class Grid:
             if p_barycentric is not None:
                 barycentric_curve.append(p_barycentric)
         return barycentric_curve
+
+    def _plot_vertices(self, ax: plt.Axes) -> None:
+        x = [p[0] for p in self.points]
+        y = [p[1] for p in self.points]
+        ax.scatter(x, y, color="black", s=10)
+
+    def _plot_edges(self, ax: plt.Axes) -> None:
+        for edge in self.edges:
+            i, j = edge
+            p, q = self.points[i], self.points[j]
+            ax.plot([p[0], q[0]], [p[1], q[1]], color="black", linewidth=1)
+
+    def plot(self, ax: plt.Axes | None = None) -> plt.Axes:
+        """Returns matplotlib plot of the grid."""
+        if ax is None:
+            _, ax = plt.subplots()
+
+        border = 0.05
+        ax.set_xlim(-border, 1 + border)
+        ax.set_ylim(-border, 1 + border)
+        ax.set_aspect(1)
+        ax.axis("off")
+
+        self._plot_vertices(ax)
+        self._plot_edges(ax)
+
+        return ax
 
 
 class Domain(ABC):
