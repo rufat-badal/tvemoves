@@ -4,7 +4,6 @@ from pytest import approx
 from tvemoves_rufbad.tensors import Vector
 from tvemoves_rufbad.domain import (
     RectangleDomain,
-    to_barycentric_curve,
     Grid,
     BarycentricPoint,
 )
@@ -164,7 +163,7 @@ def test_to_barycentric_curve() -> None:
     )
     scale = 1 / 5
     grid = rectangle.create_grid(scale)
-    barycentric_curves = [to_barycentric_curve(curve, grid) for curve in curves]
+    barycentric_curves = [grid.to_barycentric_curve(curve) for curve in curves]
     for barycentric_curve, curve in zip(barycentric_curves, curves):
         assert len(barycentric_curve) == len(curve)
         if len(barycentric_curve) < len(curve):

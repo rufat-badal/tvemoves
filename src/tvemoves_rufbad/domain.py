@@ -46,19 +46,6 @@ class Boundary:
     edges: list[Edge]
 
 
-@dataclass(frozen=True)
-class Grid:
-    """Simulation grid"""
-
-    vertices: list[Vertex]
-    edges: list[Edge]
-    triangles: list[Triangle]
-    boundary: Boundary
-    dirichlet_boundary: Boundary
-    neumann_boundary: Boundary
-    points: list[Vector]
-
-
 TriangleVertices = tuple[Vector, Vector, Vector]
 
 
@@ -104,33 +91,45 @@ def _to_barycentric_coordinates(
     return BarycentricCoordinates(u, v)
 
 
-def _to_barycentric_point(p: Vector, grid: Grid) -> BarycentricPoint | None:
-    """Given cartesian point and a grid, determine its containing triangle and
-    barycentric coordinates.
+@dataclass(frozen=True)
+class Grid:
+    """Simulation grid"""
 
-    If the point is outside all grid triangles return None.
-    """
-    for triangle in grid.triangles:
-        i1, i2, i3 = triangle
-        triangle_vertices = (grid.points[i1], grid.points[i2], grid.points[i3])
-        if _triangle_contains_point(triangle_vertices, p):
-            return BarycentricPoint(
-                triangle, _to_barycentric_coordinates(triangle_vertices, p)
-            )
-    return None
+    vertices: list[Vertex]
+    edges: list[Edge]
+    triangles: list[Triangle]
+    boundary: Boundary
+    dirichlet_boundary: Boundary
+    neumann_boundary: Boundary
+    points: list[Vector]
 
+    def _to_barycentric_point(self, p: Vector) -> BarycentricPoint | None:
+        """Given cartesian point, determine its containing triangle and
+        barycentric coordinates.
 
-def to_barycentric_curve(curve: Curve, grid: Grid) -> BarycentricCurve:
-    """Transform a curve of Euclidean points to a barycentric curve.
+        If the point is outside all grid triangles return None.
+        """
+        for triangle in self.triangles:
+            i1, i2, i3 = triangle
+            triangle_vertices = (self.points[i1], self.points[i2], self.points[i3])
+            if _triangle_contains_point(triangle_vertices, p):
+                return BarycentricPoint(
+                    triangle, _to_barycentric_coordinates(triangle_vertices, p)
+                )
+        return None
 
-    Points that are not contained in the respective grid are removed from the returned curve.
-    """
-    barycentric_curve: BarycentricCurve = []
-    for p in curve:
-        p_barycentric = _to_barycentric_point(p, grid)
-        if p_barycentric is not None:
-            barycentric_curve.append(p_barycentric)
-    return barycentric_curve
+    def to_barycentric_curve(self, curve: Curve) -> BarycentricCurve:
+        """Transform a curve of Euclidean points to a barycentric curve.
+
+        Points that are not contained in at least one of the trignalges are removed
+        from the returned curve.
+        """
+        barycentric_curve: BarycentricCurve = []
+        for p in curve:
+            p_barycentric = self._to_barycentric_point(p)
+            if p_barycentric is not None:
+                barycentric_curve.append(p_barycentric)
+        return barycentric_curve
 
 
 class Domain(ABC):

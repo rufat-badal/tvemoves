@@ -60,7 +60,9 @@ class Vector:
     def __rtruediv__(self, divisor):
         return NotImplemented
 
-    def __eq__(self, other: Vector) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Vector):
+            return NotImplemented
         return self.data == other.data
 
     def normsqr(self):
@@ -164,7 +166,9 @@ class Matrix:
     def __neg__(self) -> Matrix:
         return Matrix([[-x for x in row] for row in self.data])
 
-    def __eq__(self, other: Matrix) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Matrix):
+            return NotImplemented
         return self.data == other.data
 
     def __add__(self, other: Matrix) -> Matrix:
@@ -372,7 +376,9 @@ class Tensor3D:
     def __neg__(self) -> Tensor3D:
         return Tensor3D([[[-x for x in row] for row in matrix] for matrix in self.data])
 
-    def __eq__(self, other: Tensor3D) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Tensor3D):
+            return NotImplemented
         return self.data == other.data
 
     def __add__(self, other: Tensor3D) -> Tensor3D:
