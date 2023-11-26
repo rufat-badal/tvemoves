@@ -15,7 +15,3 @@ def test_simulation() -> None:
         regularization=None,
     )
     simulation = Simulation(grid, params)
-    simulation._mechanical_step._model.display()
-
-
-test_simulation()

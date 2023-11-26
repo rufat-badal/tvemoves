@@ -254,9 +254,9 @@ def test_p1_interpolation_with_pyomo_params() -> None:
         ]
         assert values == approx(values_pyomo)
 
-        grad_values = [f_approx.gradient(triangle)._data for triangle in grid.triangles]
+        grad_values = [f_approx.gradient(triangle).data for triangle in grid.triangles]
         grad_values_pyomo = [
-            f_approx_pyomo.gradient(triangle).map(pyo.value)._data
+            f_approx_pyomo.gradient(triangle).map(pyo.value).data
             for triangle in grid.triangles
         ]
         assert grad_values == grad_values_pyomo
