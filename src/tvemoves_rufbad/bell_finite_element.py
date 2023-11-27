@@ -76,7 +76,7 @@ _N6 = (
 
 _N = [_N1, _N2, _N3, _N4, _N5, _N6]
 
-_shape_function_lambdified = sp.lambdify(_L + _b + _c, _N)
+_N_lambdified = sp.lambdify(_L + _b + _c, _N)
 
 
 def _get_b(triangle_vertices: TriangleVertices) -> tuple[float, float, float]:
@@ -94,7 +94,7 @@ def shape_function(
 ) -> Vector:
     """Shape function for a given triangle."""
     return Vector(
-        _shape_function_lambdified(
+        _N_lambdified(
             *barycentric_coordinates,
             *_get_b(triangle_vertices),
             *_get_c(triangle_vertices),
@@ -110,10 +110,8 @@ print(
 )
 
 
-_N_jacobian_symbolic = sp.Matrix(
-    [[sp.diff(_N[i], _L[j]) for j in range(3)] for i in range(6)]
-)
-_shape_function_jacobian_lambdified = sp.lambdify(_L + _b + _c, _N_jacobian_symbolic)
+_N_jacobian = sp.Matrix([[sp.diff(_N[i], _L[j]) for j in range(3)] for i in range(6)])
+_N_jacobian_lambdified = sp.lambdify(_L + _b + _c, _N_jacobian)
 
 
 def shape_function_jacobian(
@@ -122,7 +120,7 @@ def shape_function_jacobian(
 ) -> Matrix:
     """Lambdification of the gradient of the symbolic shape function."""
     return Matrix(
-        _shape_function_jacobian_lambdified(
+        _N_jacobian_lambdified(
             *barycentric_coordinates,
             *_get_b(triangle_vertices),
             *_get_c(triangle_vertices),
@@ -137,47 +135,38 @@ print(
     )
 )
 
-
-# _shape_function_jacobian_symbolic = sp.Matrix(
-#     [[sp.diff(_shape_function_symbolic[i], _l[j]) for j in range(3)] for i in range(6)]
-# )
-# _shape_function_jacobian_lambdified = sp.lambdify(
-#     _l + _b + _c, _shape_function_jacobian_symbolic
-# )
-
-
-# _shape_function_hessian_symbolic = sp.Array(
-#     [
-#         [
-#             [sp.diff(_shape_function_symbolic[i], _l[j], _l[k]) for k in range(3)]
-#             for j in range(3)
-#         ]
-#         for i in range(6)
-#     ]
-# )
-# _shape_function_hessian_vectorized_symbolic = sp.Matrix(
-#     [
-#         [H[0, 0], H[1, 1], H[2, 2], H[0, 1], H[0, 2], H[1, 2]]
-#         for H in _shape_function_hessian_symbolic
-#     ]
-# )
-# _shape_function_hessian_vectorized_lambdified = sp.lambdify(
-#     _l + _b + _c, _shape_function_hessian_vectorized_symbolic
-# )
+_N_hessian = sp.Array(
+    [
+        [[sp.diff(_N[i], _L[j], _L[k]) for k in range(3)] for j in range(3)]
+        for i in range(6)
+    ]
+)
+_N_hessian_vectorized = sp.Matrix(
+    [[H[0, 0], H[1, 1], H[2, 2], H[0, 1], H[0, 2], H[1, 2]] for H in _N_hessian]
+)
+_N_hessian_vectorized_lambdified = sp.lambdify(_L + _b + _c, _N_hessian_vectorized)
 
 
-# def shape_function_hessian_vectorized(
-#     area_coordinates: Iterable[float],
-#     b: Iterable[float],
-#     c: Iterable[float],
-# ) -> Matrix:
-#     """Lambdification of the hessian of the symbolic shape function."""
-#     return Matrix(
-#         _shape_function_hessian_vectorized_lambdified(
-#             *area_coordinates, *b, *c
-#         ).tolist()
-#     )
+def shape_function_hessian_vectorized(
+    triangle_vertices: TriangleVertices,
+    barycentric_coordinates: BarycentricCoordinates,
+) -> Matrix:
+    """Lambdification of the hessian of the symbolic shape function."""
+    return Matrix(
+        _N_hessian_vectorized_lambdified(
+            *barycentric_coordinates,
+            *_get_b(triangle_vertices),
+            *_get_c(triangle_vertices),
+        ).tolist()
+    )
 
+
+print(
+    shape_function_hessian_vectorized(
+        (Vector([0.0, 0.0]), Vector([1.0, 0.0]), Vector([1.0, 1.0])),
+        (1 / 3, 1 / 3, 1 / 3),
+    )
+)
 
 # _l1_t = sp.symbols("L1_t")
 # _shape_function_on_edge_left_symbolic = [
