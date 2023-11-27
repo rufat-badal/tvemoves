@@ -102,14 +102,6 @@ def shape_function(
     )
 
 
-print(
-    shape_function(
-        (Vector([0.0, 0.0]), Vector([1.0, 0.0]), Vector([1.0, 1.0])),
-        (1 / 3, 1 / 3, 1 / 3),
-    )
-)
-
-
 _N_jacobian = sp.Matrix([[sp.diff(_N[i], _L[j]) for j in range(3)] for i in range(6)])
 _N_jacobian_lambdified = sp.lambdify(_L + _b + _c, _N_jacobian)
 
@@ -126,14 +118,6 @@ def shape_function_jacobian(
             *_get_c(triangle_vertices),
         ).tolist()
     )
-
-
-print(
-    shape_function_jacobian(
-        (Vector([0.0, 0.0]), Vector([1.0, 0.0]), Vector([1.0, 1.0])),
-        (1 / 3, 1 / 3, 1 / 3),
-    )
-)
 
 _N_hessian = sp.Array(
     [
@@ -160,13 +144,6 @@ def shape_function_hessian_vectorized(
         ).tolist()
     )
 
-
-print(
-    shape_function_hessian_vectorized(
-        (Vector([0.0, 0.0]), Vector([1.0, 0.0]), Vector([1.0, 1.0])),
-        (1 / 3, 1 / 3, 1 / 3),
-    )
-)
 
 # _l1_t = sp.symbols("L1_t")
 # _shape_function_on_edge_left_symbolic = [
