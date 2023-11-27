@@ -4,7 +4,12 @@ import typing
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from matplotlib import pyplot as plt
+from matplotlib import patches
 from tvemoves_rufbad.tensors import Vector
+
+PLOT_BORDER = 0.05
+PLOT_LINEWIDTH = 1.5
+PLOT_VERTEX_SIZE = 15
 
 
 class BarycentricCoordinates:
@@ -92,6 +97,24 @@ def _to_barycentric_coordinates(
     return BarycentricCoordinates(u, v)
 
 
+def _create_axes() -> plt.Axes:
+    _, ax = plt.subplots()
+    ax.axis("off")
+    ax.set_aspect(1)
+
+    return ax
+
+
+def _adjust_xlim(ax: plt.Axes, xlim=tuple[float, float]) -> None:
+    old_xlim = ax.get_xlim()
+    ax.set_xlim(min(old_xlim[0], xlim[0]), max(old_xlim[1], xlim[1]))
+
+
+def _adjust_ylim(ax: plt.Axes, ylim=tuple[float, float]) -> None:
+    old_ylim = ax.get_ylim()
+    ax.set_ylim(min(old_ylim[0], ylim[0]), max(old_ylim[1], ylim[1]))
+
+
 @dataclass(frozen=True)
 class Grid:
     """Simulation grid"""
@@ -135,24 +158,24 @@ class Grid:
     def _plot_vertices(self, ax: plt.Axes) -> None:
         x = [p[0] for p in self.points]
         y = [p[1] for p in self.points]
-        ax.scatter(x, y, color="black", s=10)
+        ax.scatter(x, y, color="black", s=PLOT_VERTEX_SIZE)
 
     def _plot_edges(self, ax: plt.Axes) -> None:
         for edge in self.edges:
             i, j = edge
             p, q = self.points[i], self.points[j]
-            ax.plot([p[0], q[0]], [p[1], q[1]], color="black", linewidth=1)
+            ax.plot([p[0], q[0]], [p[1], q[1]], color="black", linewidth=PLOT_LINEWIDTH)
 
     def plot(self, ax: plt.Axes | None = None) -> plt.Axes:
         """Returns matplotlib plot of the grid."""
         if ax is None:
-            _, ax = plt.subplots()
+            ax = _create_axes()
 
-        border = 0.05
-        ax.set_xlim(-border, 1 + border)
-        ax.set_ylim(-border, 1 + border)
-        ax.set_aspect(1)
-        ax.axis("off")
+        new_xlim = (-PLOT_BORDER, max(p[0] for p in self.points) + PLOT_BORDER)
+        _adjust_xlim(ax, new_xlim)
+
+        new_ylim = (-PLOT_BORDER, max(p[1] for p in self.points) + PLOT_BORDER)
+        _adjust_ylim(ax, new_ylim)
 
         self._plot_vertices(ax)
         self._plot_edges(ax)
@@ -179,6 +202,10 @@ class Domain(ABC):
         Boundary curves are always generated. Each curve contains num_points_per_curve
         points.
         """
+
+    @abstractmethod
+    def plot(self, ax: plt.Axes | None = None) -> plt.Axes:
+        """Visualize the domain."""
 
 
 FixOption = typing.Literal[None, "all", "lower", "right", "upper", "left"]
@@ -424,3 +451,22 @@ class RectangleDomain(Domain):
         ]
 
         return horizontal_curves + vertical_curves
+
+    def plot(self, ax: plt.Axes | None = None):
+        if ax is None:
+            ax = _create_axes()
+
+        plt.xlim(-PLOT_BORDER, self.width + PLOT_BORDER)
+        plt.ylim(-PLOT_BORDER, self.height + PLOT_BORDER)
+
+        rectangle = patches.Rectangle(
+            (0, 0),
+            self.width,
+            self.height,
+            edgecolor="blue",
+            facecolor="lightblue",
+            linewidth=PLOT_LINEWIDTH,
+        )
+        ax.add_patch(rectangle)
+
+        return ax
