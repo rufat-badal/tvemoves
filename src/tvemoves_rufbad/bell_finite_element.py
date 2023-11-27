@@ -79,12 +79,12 @@ _N = [_N1, _N2, _N3, _N4, _N5, _N6]
 _shape_function_lambdified = sp.lambdify(_L + _b + _c, _N)
 
 
-def _b(triangle_vertices: TriangleVertices) -> tuple[float, float, float]:
+def _get_b(triangle_vertices: TriangleVertices) -> tuple[float, float, float]:
     p1, p2, p3 = triangle_vertices
     return (p2[1] - p3[1], p3[1] - p1[1], p1[1] - p2[1])
 
 
-def _c(triangle_vertices: TriangleVertices) -> tuple[float, float, float]:
+def _get_c(triangle_vertices: TriangleVertices) -> tuple[float, float, float]:
     p1, p2, p3 = triangle_vertices
     return (p3[0] - p2[0], p1[0] - p3[0], p2[0] - p1[0])
 
@@ -95,7 +95,9 @@ def shape_function(
     """Shape function for a given triangle."""
     return Vector(
         _shape_function_lambdified(
-            *barycentric_coordinates, *_b(triangle_vertices), *_c(triangle_vertices)
+            *barycentric_coordinates,
+            *_get_b(triangle_vertices),
+            *_get_c(triangle_vertices),
         )
     )
 
@@ -108,23 +110,40 @@ print(
 )
 
 
+_N_jacobian_symbolic = sp.Matrix(
+    [[sp.diff(_N[i], _L[j]) for j in range(3)] for i in range(6)]
+)
+_shape_function_jacobian_lambdified = sp.lambdify(_L + _b + _c, _N_jacobian_symbolic)
+
+
+def shape_function_jacobian(
+    triangle_vertices: TriangleVertices,
+    barycentric_coordinates: BarycentricCoordinates,
+) -> Matrix:
+    """Lambdification of the gradient of the symbolic shape function."""
+    return Matrix(
+        _shape_function_jacobian_lambdified(
+            *barycentric_coordinates,
+            *_get_b(triangle_vertices),
+            *_get_c(triangle_vertices),
+        ).tolist()
+    )
+
+
+print(
+    shape_function_jacobian(
+        (Vector([0.0, 0.0]), Vector([1.0, 0.0]), Vector([1.0, 1.0])),
+        (1 / 3, 1 / 3, 1 / 3),
+    )
+)
+
+
 # _shape_function_jacobian_symbolic = sp.Matrix(
 #     [[sp.diff(_shape_function_symbolic[i], _l[j]) for j in range(3)] for i in range(6)]
 # )
 # _shape_function_jacobian_lambdified = sp.lambdify(
 #     _l + _b + _c, _shape_function_jacobian_symbolic
 # )
-
-
-# def shape_function_jacobian(
-#     area_coordinates: Iterable[float],
-#     b: Iterable[float],
-#     c: Iterable[float],
-# ) -> Matrix:
-#     """Lambdification of the gradient of the symbolic shape function."""
-#     return Matrix(
-#         _shape_function_jacobian_lambdified(*area_coordinates, *b, *c).tolist()
-#     )
 
 
 # _shape_function_hessian_symbolic = sp.Array(
