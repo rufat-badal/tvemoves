@@ -109,6 +109,15 @@ _N = _N_first_third + _N_second_third + _N_third_third
 _N_lambdified = sp.lambdify(_L + _b + _c, _N)
 
 
+def _get_a(triangle_vertices: TriangleVertices) -> tuple[float, float, float]:
+    p1, p2, p3 = triangle_vertices
+    return (
+        p2[0] * p3[1] - p3[0] * p2[1],
+        p3[0] * p1[1] - p1[0] * p3[1],
+        p1[0] * p2[1] - p2[0] * p1[1],
+    )
+
+
 def _get_b(triangle_vertices: TriangleVertices) -> tuple[float, float, float]:
     p1, p2, p3 = triangle_vertices
     return (p2[1] - p3[1], p3[1] - p1[1], p1[1] - p2[1])
@@ -205,3 +214,20 @@ def shape_function_on_edge(edge_vertices: EdgeVertices, t: float) -> Vector:
     b3 = p1[1] - p2[1]
     c3 = p2[0] - p1[0]
     return _N_on_edge_lambdified(t, b3, c3)
+
+
+def transform_gradient(
+    triangle_vertices: TriangleVertices,
+    barycentric_gradient: Vector,
+) -> Vector:
+    """Transforms gradient with respect to barycentric coordinates to Euclidean gradient
+
+    barycentric_gradient should be a vector of size 3.
+    Returns a vector of size 2.
+    """
+    a = _get_a(triangle_vertices)
+    delta = sum(a) / 2
+    b = _get_b(triangle_vertices)
+    c = _get_c(triangle_vertices)
+    trafo_matrix = Matrix([[b[0], b[1], b[2]], [c[0], c[1], c[2]]]) / (2 * delta)
+    return trafo_matrix.dot(barycentric_gradient)
