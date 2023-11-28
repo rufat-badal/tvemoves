@@ -4,7 +4,11 @@
 
 import sympy as sp
 from tvemoves_rufbad.tensors import Vector, Matrix
-from tvemoves_rufbad.domain import BarycentricCoordinates, TriangleVertices
+from tvemoves_rufbad.domain import (
+    BarycentricCoordinates,
+    TriangleVertices,
+    EdgeVertices,
+)
 
 
 _L1, _L2, _L3 = sp.symbols("L1 L2 L3")
@@ -118,7 +122,10 @@ def _get_c(triangle_vertices: TriangleVertices) -> tuple[float, float, float]:
 def shape_function(
     triangle_vertices: TriangleVertices, barycentric_coordinates: BarycentricCoordinates
 ) -> Vector:
-    """Shape function for a given triangle."""
+    """Shape function for a given triangle.
+
+    Returns a vector of size 18.
+    """
     return Vector(
         _N_lambdified(
             *barycentric_coordinates,
@@ -138,7 +145,10 @@ def shape_function_jacobian(
     triangle_vertices: TriangleVertices,
     barycentric_coordinates: BarycentricCoordinates,
 ) -> Matrix:
-    """Lambdification of the gradient of the symbolic shape function."""
+    """Gradient of the symbolic shape function.
+
+    Returns a matrix of shape (18,3).
+    """
     return Matrix(
         _N_jacobian_lambdified(
             *barycentric_coordinates,
@@ -164,7 +174,13 @@ def shape_function_hessian_vectorized(
     triangle_vertices: TriangleVertices,
     barycentric_coordinates: BarycentricCoordinates,
 ) -> Matrix:
-    """Lambdification of the hessian of the symbolic shape function."""
+    """Vectorized Hessian of the symbolic shape function.
+
+    Returns a matrix of shape (18, 6).
+    Row i of the matrix contains entries the Hessian matrix H (of shape (3, 3)) of
+    the i-th component of the shape function in the following order:
+    H[0, 0], H[1, 1], H[2, 2], H[0, 1], H[0, 2], H[1, 2]
+    """
     return Matrix(
         _N_hessian_vectorized_lambdified(
             *barycentric_coordinates,
@@ -174,40 +190,18 @@ def shape_function_hessian_vectorized(
     )
 
 
-# _t = sp.symbols("t")
-# _N_on_edge = [Ni.subs(_L1, _t).subs(_L2, 1 - _t).subs(_L3, 0) for Ni in _N]
-# _N_shifted_on_edge = [Ni.subs(_L1, 1 - _t).subs(_L2, 0).subs(_L3, _t) for Ni in _N]
-# print(
-#     [
-#         Ni_shifted == Ni.subs(_t, 1 - _t)
-#         for Ni, Ni_shifted in zip(_N_on_edge, _N_shifted_on_edge)
-#     ]
-# )
-
-# _l1_t = sp.symbols("L1_t")
-# _shape_function_on_edge_left_symbolic = [
-#     Ni.subs(_L1, _l1_t).subs(_L2, 1 - _l1_t).subs(_L3, 0)
-#     for Ni in _shape_function_symbolic
-# ]
-# _shape_function_on_edge_left_lambdified = sp.lambdify(
-#     [_l1_t, _b3, _c3], _shape_function_on_edge_left_symbolic
-# )
+_t = sp.Symbol("t")
+_N_on_edge = [_N[i].subs([(_L1, _t), (_L2, 1 - _t), (_L3, 0)]) for i in range(12)]
+_N_on_edge_lambdified = sp.lambdify([_t, _b3, _c3], _N_on_edge)
 
 
-# def shape_function_on_edge_left(l1_on_edge: float, b3: float, c3: float):
-#     """Lambdification of the symbolic shape function on an edge for the left point."""
-#     return Vector(_shape_function_on_edge_left_lambdified(l1_on_edge, b3, c3))
+def shape_function_on_edge(edge_vertices: EdgeVertices, t: float) -> Vector:
+    """Shape function on an edge.
 
-
-# _shape_function_on_edge_right_symbolic = [
-#     Ni.subs(_L1, 1 - _l1_t).subs(_L2, 0).subs(_L3, _l1_t)
-#     for Ni in _shape_function_symbolic
-# ]
-# _shape_function_on_edge_right_lambdified = sp.lambdify(
-#     [_l1_t, _b2, _c2], _shape_function_on_edge_right_symbolic
-# )
-
-
-# def shape_function_on_edge_right(l1_on_edge: float, b2: float, c2: float):
-#     """Lambdification of the symbolic shape function on an edge for the right point."""
-#     return Vector(_shape_function_on_edge_right_lambdified(l1_on_edge, b2, c2))
+    Returns a vector of size 6.
+    Note that the last 6 components of the full shape function vanish on the edge.
+    """
+    p1, p2 = edge_vertices
+    b3 = p1[1] - p2[1]
+    c3 = p2[0] - p1[0]
+    return _N_on_edge_lambdified(t, b3, c3)

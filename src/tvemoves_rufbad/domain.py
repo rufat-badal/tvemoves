@@ -53,6 +53,7 @@ class Boundary:
 
 
 TriangleVertices = tuple[Vector, Vector, Vector]
+EdgeVertices = tuple[Vector, Vector]
 
 
 def _sign(triangle_vertices: TriangleVertices):
