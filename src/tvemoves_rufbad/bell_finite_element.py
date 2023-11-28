@@ -220,7 +220,7 @@ def transform_gradient(
     triangle_vertices: TriangleVertices,
     barycentric_gradient: Vector,
 ) -> Vector:
-    """Transforms gradient with respect to barycentric coordinates to Euclidean gradient
+    """Transforms gradient with respect to barycentric coordinates to Euclidean gradient.
 
     barycentric_gradient should be a vector of size 3.
     Returns a vector of size 2.
@@ -231,3 +231,57 @@ def transform_gradient(
     c = _get_c(triangle_vertices)
     trafo_matrix = Matrix([[b[0], b[1], b[2]], [c[0], c[1], c[2]]]) / (2 * delta)
     return trafo_matrix.dot(barycentric_gradient)
+
+
+def transform_hessian(
+    triangle_vertices: TriangleVertices,
+    barycentric_hessian_vectorized: Vector,
+) -> Matrix:
+    """Transforms vectorized hessian with respect to barycentric coordinates to Euclidean
+    vectorized hessian.
+
+    barycentric_hessian_vectorized should be a vector of size 6 whose entries encode the
+    barycentric Hessian H_bary (matrix of shape (3, 3)) in the following way:
+    H_bary[0, 0], H_bary[1, 1], H_bary[2, 2], H_bary[0, 1], H_bary[0, 2], H_bary[1, 2]
+
+    Returns the Euclidean Hessian H (matrix of shape (2, 2))
+    """
+    a = _get_a(triangle_vertices)
+    delta = sum(a) / 2
+    b = _get_b(triangle_vertices)
+    c = _get_c(triangle_vertices)
+    trafo_matrix = Matrix(
+        [
+            [
+                b[0] ** 2,
+                b[1] ** 2,
+                b[2] ** 2,
+                2 * b[0] * b[1],
+                2 * b[0] * b[2],
+                2 * b[1] * b[2],
+            ],
+            [
+                c[0] ** 2,
+                c[1] ** 2,
+                c[2] ** 2,
+                2 * c[0] * c[1],
+                2 * c[0] * c[2],
+                2 * c[1] * c[2],
+            ],
+            [
+                b[0] * c[0],
+                b[1] * c[1],
+                b[2] * c[2],
+                b[0] * c[1] + b[1] * c[0],
+                b[0] * c[2] + b[2] * c[0],
+                b[1] * c[2] + b[2] * c[1],
+            ],
+        ]
+    ) / (4 * delta**2)
+    hessian_vectorized = trafo_matrix.dot(barycentric_hessian_vectorized)
+    return Matrix(
+        [
+            [hessian_vectorized[0], hessian_vectorized[2]],
+            [hessian_vectorized[2], hessian_vectorized[1]],
+        ]
+    )
