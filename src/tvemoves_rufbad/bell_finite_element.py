@@ -2,7 +2,6 @@
 
 # see also: https://doi.org/10.1002/nme.1620300303
 
-from typing import Iterable
 import sympy as sp
 from tvemoves_rufbad.tensors import Vector, Matrix
 from tvemoves_rufbad.domain import BarycentricCoordinates, TriangleVertices
@@ -10,7 +9,6 @@ from tvemoves_rufbad.domain import BarycentricCoordinates, TriangleVertices
 
 _L1, _L2, _L3 = sp.symbols("L1 L2 L3")
 _L = [_L1, _L2, _L3]
-_t = sp.symbols("t")
 _b1, _b2, _b3 = sp.symbols("b1 b2 b3")
 _b = [_b1, _b2, _b3]
 _c1, _c2, _c3 = sp.symbols("c1 c2 c3")
@@ -74,7 +72,35 @@ _N6 = (
     + (_b1 * _b3 + 5 / 2 * _r31 * _b3**2) * _L3 * _L2**2 * _L1**2
 )
 
-_N = [_N1, _N2, _N3, _N4, _N5, _N6]
+_N_first_third = [_N1, _N2, _N3, _N4, _N5, _N6]
+
+
+def _single_cyclic_permutation(
+    expr: sp.core.expr.Expr, variable: list[sp.Symbol]
+) -> sp.core.expr.Expr:
+    if len(variable) <= 1:
+        return expr
+
+    s = sp.Symbol("s")
+    replacements = [(variable[-1], s)]
+    replacements.extend(
+        [(variable[i - 1], variable[i]) for i in range(len(variable) - 1, 0, -1)]
+    )
+    replacements.append((s, variable[0]))
+    return expr.subs(replacements)
+
+
+def _cyclic_permutation(
+    expr: sp.core.expr.Expr, *variables: list[sp.Symbol]
+) -> sp.core.expr.Expr:
+    for variable in variables:
+        expr = _single_cyclic_permutation(expr, variable)
+    return expr
+
+
+_N_second_third = [_cyclic_permutation(ni, _L, _b, _c) for ni in _N_first_third]
+_N_third_third = [_cyclic_permutation(ni, _L, _b, _c) for ni in _N_second_third]
+_N = _N_first_third + _N_second_third + _N_third_third
 
 _N_lambdified = sp.lambdify(_L + _b + _c, _N)
 
@@ -102,7 +128,9 @@ def shape_function(
     )
 
 
-_N_jacobian = sp.Matrix([[sp.diff(_N[i], _L[j]) for j in range(3)] for i in range(6)])
+_N_jacobian = sp.Matrix(
+    [[sp.diff(_N[i], _L[j]) for j in range(3)] for i in range(3 * 6)]
+)
 _N_jacobian_lambdified = sp.lambdify(_L + _b + _c, _N_jacobian)
 
 
@@ -119,10 +147,11 @@ def shape_function_jacobian(
         ).tolist()
     )
 
+
 _N_hessian = sp.Array(
     [
         [[sp.diff(_N[i], _L[j], _L[k]) for k in range(3)] for j in range(3)]
-        for i in range(6)
+        for i in range(3 * 6)
     ]
 )
 _N_hessian_vectorized = sp.Matrix(
@@ -144,6 +173,16 @@ def shape_function_hessian_vectorized(
         ).tolist()
     )
 
+
+# _t = sp.symbols("t")
+# _N_on_edge = [Ni.subs(_L1, _t).subs(_L2, 1 - _t).subs(_L3, 0) for Ni in _N]
+# _N_shifted_on_edge = [Ni.subs(_L1, 1 - _t).subs(_L2, 0).subs(_L3, _t) for Ni in _N]
+# print(
+#     [
+#         Ni_shifted == Ni.subs(_t, 1 - _t)
+#         for Ni, Ni_shifted in zip(_N_on_edge, _N_shifted_on_edge)
+#     ]
+# )
 
 # _l1_t = sp.symbols("L1_t")
 # _shape_function_on_edge_left_symbolic = [
