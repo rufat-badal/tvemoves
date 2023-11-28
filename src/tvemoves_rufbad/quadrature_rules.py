@@ -23,6 +23,9 @@ class TriangleQuadratureRule:
 
 CENTROID = TriangleQuadratureRule([(1 / 3, 1 / 3)], [1])
 VERTEX = TriangleQuadratureRule([(1, 0), (0, 1), (0, 0)], [1 / 3, 1 / 3, 1 / 3])
+
+# see https://doi.org/10.1002/nme.1620210612
+
 DUNAVANT2 = TriangleQuadratureRule(
     [(2 / 3, 1 / 6), (1 / 6, 2 / 3), (1 / 6, 1 / 6)], [1 / 3, 1 / 3, 1 / 3]
 )
@@ -48,6 +51,7 @@ DUNAVANT4 = TriangleQuadratureRule(
         0.109951743655322,
     ],
 )
+# This rule suffices to integrate Bell finite elements precisely
 DUNAVANT5 = TriangleQuadratureRule(
     [
         (1 / 3, 1 / 3),
@@ -69,9 +73,9 @@ DUNAVANT5 = TriangleQuadratureRule(
     ],
 )
 
-TRIANGLE_QUADRATURE_RULES = [
+# CENTROID coincides with DUNAVANT1
+DUNAVANT_QUADRATURE_RULES = [
     CENTROID,
-    VERTEX,
     DUNAVANT2,
     DUNAVANT3,
     DUNAVANT4,
