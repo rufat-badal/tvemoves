@@ -12,7 +12,8 @@ from tvemoves_rufbad.bell_finite_element import (
     _t,
 )
 from tvemoves_rufbad.tensors import Vector
-from helpers import random_symbolic_polynomial_2d
+from tvemoves_rufbad.bell_finite_element import shape_function
+from .helpers import random_symbolic_polynomial_2d, random_barycentric_coordinates
 
 
 def test_cyclic_permutation() -> None:
@@ -38,11 +39,19 @@ def test_independence_of_opposite_point() -> None:
 
 
 def test_shape_function() -> None:
-    """Assure that the shape function can recover a degree 5 polynomial in a triangle."""
-    x, y = sp.symbols("x y")
-    triangle_vertices = (Vector([1.0, 2.0]), Vector([2.0, 2.2]), Vector([1.5, 3.4]))
+    """Assure that the shape function can recover a degree 4 polynomial in a triangle.
 
-    poly_symbolic = random_symbolic_polynomial_2d(5, x, y)
+    see e.g.: https://people.sc.fsu.edu/~jburkardt/classes/fem_2011/chapter6.pdf
+    """
+
+    num_evaluations = 10
+    eps = 1e-10
+
+    x, y = sp.symbols("x y")
+    triangle_vertices = (Vector([1.0, 2.0]), Vector([5.0, 2.4]), Vector([4.5, 8.2]))
+    p1, p2, p3 = triangle_vertices
+
+    poly_symbolic = random_symbolic_polynomial_2d(4, x, y)
     poly_dx_symbolic = sp.diff(poly_symbolic, x)
     poly_dy_symbolic = sp.diff(poly_symbolic, y)
     poly_dxx_symbolic = sp.diff(poly_dx_symbolic, x)
@@ -71,5 +80,8 @@ def test_shape_function() -> None:
         )
     parameters = Vector(parameters)
 
-
-test_shape_function()
+    for c in random_barycentric_coordinates(num_evaluations):
+        value_approx = shape_function(triangle_vertices, c).dot(parameters)
+        c_euclidean = c.u * p1 + c.v * p2 + c.w * p3
+        value = poly(*c_euclidean)
+        assert abs(value - value_approx) < eps
