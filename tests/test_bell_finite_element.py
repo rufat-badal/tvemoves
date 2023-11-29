@@ -17,8 +17,9 @@ from tvemoves_rufbad.bell_finite_element import (
     shape_function_jacobian,
     shape_function_hessian_vectorized,
     transform_gradient,
+    transform_hessian,
 )
-from helpers import random_symbolic_polynomial_2d, random_barycentric_coordinates
+from .helpers import random_symbolic_polynomial_2d, random_barycentric_coordinates
 
 
 def test_cyclic_permutation() -> None:
@@ -108,5 +109,13 @@ def test_shape_function() -> None:
         )
         assert (jacobian - jacobian_approx).norm() < eps
 
-
-test_shape_function()
+        hessian = poly_hessian(*c_euclidean)
+        barycentric_hessian_vectorized_approx = (
+            shape_function_hessian_vectorized(triangle_vertices, c)
+            .transpose()
+            .dot(parameters)
+        )
+        hessian_approx = transform_hessian(
+            triangle_vertices, barycentric_hessian_vectorized_approx
+        )
+        assert (hessian - hessian_approx).norm() < eps
