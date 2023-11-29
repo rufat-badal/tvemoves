@@ -218,7 +218,7 @@ def shape_function_on_edge(edge_vertices: EdgeVertices, t: float) -> Vector:
 
 def transform_gradient(
     triangle_vertices: TriangleVertices,
-    barycentric_gradient: Vector,
+    barycentric_jacobian: Vector,
 ) -> Vector:
     """Transforms gradient with respect to barycentric coordinates to Euclidean gradient.
 
@@ -230,7 +230,7 @@ def transform_gradient(
     b = _get_b(triangle_vertices)
     c = _get_c(triangle_vertices)
     trafo_matrix = Matrix([[b[0], b[1], b[2]], [c[0], c[1], c[2]]]) / (2 * delta)
-    return trafo_matrix.dot(barycentric_gradient)
+    return trafo_matrix.dot(barycentric_jacobian)
 
 
 def transform_hessian(

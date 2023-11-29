@@ -11,9 +11,14 @@ from tvemoves_rufbad.bell_finite_element import (
     _L,
     _t,
 )
-from tvemoves_rufbad.tensors import Vector
-from tvemoves_rufbad.bell_finite_element import shape_function
-from .helpers import random_symbolic_polynomial_2d, random_barycentric_coordinates
+from tvemoves_rufbad.tensors import Vector, Matrix
+from tvemoves_rufbad.bell_finite_element import (
+    shape_function,
+    shape_function_jacobian,
+    shape_function_hessian_vectorized,
+    transform_gradient,
+)
+from helpers import random_symbolic_polynomial_2d, random_barycentric_coordinates
 
 
 def test_cyclic_permutation() -> None:
@@ -80,8 +85,28 @@ def test_shape_function() -> None:
         )
     parameters = Vector(parameters_list)
 
+    def poly_jacobian(x: float, y: float) -> Vector:
+        return Vector([poly_dx(x, y), poly_dy(x, y)])
+
+    def poly_hessian(x: float, y: float) -> Matrix:
+        return Matrix(
+            [[poly_dxx(x, y), poly_dxy(x, y)], [poly_dxy(x, y), poly_dyy(x, y)]]
+        )
+
     for c in random_barycentric_coordinates(num_evaluations):
-        value_approx = shape_function(triangle_vertices, c).dot(parameters)
         c_euclidean = c.u * p1 + c.v * p2 + c.w * p3
         value = poly(*c_euclidean)
+        value_approx = shape_function(triangle_vertices, c).dot(parameters)
         assert abs(value - value_approx) < eps
+
+        jacobian = poly_jacobian(*c_euclidean)
+        barycentric_jacobian_approx = (
+            shape_function_jacobian(triangle_vertices, c).transpose().dot(parameters)
+        )
+        jacobian_approx = transform_gradient(
+            triangle_vertices, barycentric_jacobian_approx
+        )
+        assert (jacobian - jacobian_approx).norm() < eps
+
+
+test_shape_function()
