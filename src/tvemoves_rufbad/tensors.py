@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from itertools import permutations
-from typing import Callable
+from typing import Callable, Iterator
 import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
@@ -93,6 +93,9 @@ class Vector:
                 other.data,
             ]
         )
+
+    def __iter__(self) -> Iterator:
+        return iter(self.data)
 
     def reshape(self, num_rows: int, num_cols: int) -> Matrix:
         """Reshape vector of length num_rows x num_cols to a num_rows x num_cols matrix."""

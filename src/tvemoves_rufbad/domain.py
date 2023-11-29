@@ -1,6 +1,6 @@
 """"Domain class that in particular can create grids"""
 
-import typing
+from typing import Literal, Iterator
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from matplotlib import pyplot as plt
@@ -25,6 +25,9 @@ class BarycentricCoordinates:
 
     def __repr__(self) -> str:
         return f"BarycentricCoordinates{self.__str__()}"
+
+    def __iter__(self) -> Iterator[float]:
+        return iter([self.u, self.v, self.w])
 
 
 Vertex = int
@@ -209,7 +212,7 @@ class Domain(ABC):
         """Visualize the domain."""
 
 
-FixOption = typing.Literal[None, "all", "lower", "right", "upper", "left"]
+FixOption = Literal[None, "all", "lower", "right", "upper", "left"]
 
 
 class RectangleDomain(Domain):
