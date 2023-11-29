@@ -21,7 +21,7 @@ class TriangleQuadratureRule:
         self.points = [(p[0], p[1], 1 - p[0] - p[1]) for p in points]
         self.weights = weights
 
-    def __iter__(self) -> Iterator[tuple[float, tuple[float, float]]]:
+    def __iter__(self) -> Iterator[tuple[float, tuple[float, float, float]]]:
         return zip(self.weights, self.points)
 
 

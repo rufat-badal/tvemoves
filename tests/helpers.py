@@ -18,10 +18,11 @@ def random_symbolic_polynomial_2d(
         [random.uniform(-10.0, 10.0) for _ in range(i + 1)] for i in range(degree + 1)
     ]
 
-    poly = 0
-    for i, cs in enumerate(coefficients):
-        for j, c in enumerate(cs):
-            poly += c * x ** (i - j) * y**j
+    poly = sum(
+        c * x ** (i - j) * y**j
+        for i, cs in enumerate(coefficients)
+        for j, c in enumerate(cs)
+    )
 
     return poly
 
@@ -35,9 +36,7 @@ def random_symbolic_polynomial_1d(degree: int, x: sp.Symbol) -> sp.core.expr.Exp
 
     coefficients = [random.uniform(-10.0, 10.0) for _ in range(degree + 1)]
 
-    poly = 0
-    for i, c in enumerate(coefficients):
-        poly += c * x**i
+    poly = sum(c * x**i for i, c in enumerate(coefficients))
 
     return poly
 

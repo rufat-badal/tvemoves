@@ -41,7 +41,7 @@ def test_independence_of_opposite_point() -> None:
 def test_shape_function() -> None:
     """Assure that the shape function can recover a degree 4 polynomial in a triangle.
 
-    see e.g.: https://people.sc.fsu.edu/~jburkardt/classes/fem_2011/chapter6.pdf
+    see e.g. page 117 in https://people.sc.fsu.edu/~jburkardt/classes/fem_2011/chapter6.pdf
     """
 
     num_evaluations = 10
@@ -66,9 +66,9 @@ def test_shape_function() -> None:
     poly_dxy = sp.lambdify([x, y], poly_dxy_symbolic)
     poly_dyy = sp.lambdify([x, y], poly_dyy_symbolic)
 
-    parameters = []
+    parameters_list = []
     for v in triangle_vertices:
-        parameters.extend(
+        parameters_list.extend(
             [
                 poly(v[0], v[1]),
                 poly_dx(v[0], v[1]),
@@ -78,7 +78,7 @@ def test_shape_function() -> None:
                 poly_dyy(v[0], v[1]),
             ]
         )
-    parameters = Vector(parameters)
+    parameters = Vector(parameters_list)
 
     for c in random_barycentric_coordinates(num_evaluations):
         value_approx = shape_function(triangle_vertices, c).dot(parameters)
