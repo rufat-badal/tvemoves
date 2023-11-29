@@ -1,5 +1,6 @@
 """Test shape function code."""
 
+import sympy as sp
 from tvemoves_rufbad.bell_finite_element import (
     _cyclic_permutation,
     _N_first_third,
@@ -10,6 +11,8 @@ from tvemoves_rufbad.bell_finite_element import (
     _L,
     _t,
 )
+from tvemoves_rufbad.tensors import Vector
+from helpers import random_symbolic_polynomial_2d
 
 
 def test_cyclic_permutation() -> None:
@@ -32,3 +35,41 @@ def test_independence_of_opposite_point() -> None:
 
     for ni in _N_on_edge:
         assert ni.free_symbols.issubset({_t, _b[2], _c[2]})
+
+
+def test_shape_function() -> None:
+    """Assure that the shape function can recover a degree 5 polynomial in a triangle."""
+    x, y = sp.symbols("x y")
+    triangle_vertices = (Vector([1.0, 2.0]), Vector([2.0, 2.2]), Vector([1.5, 3.4]))
+
+    poly_symbolic = random_symbolic_polynomial_2d(5, x, y)
+    poly_dx_symbolic = sp.diff(poly_symbolic, x)
+    poly_dy_symbolic = sp.diff(poly_symbolic, y)
+    poly_dxx_symbolic = sp.diff(poly_dx_symbolic, x)
+    poly_dxy_symbolic = sp.diff(poly_dx_symbolic, y)
+    assert poly_dxy_symbolic == sp.diff(poly_dy_symbolic, x)
+    poly_dyy_symbolic = sp.diff(poly_dy_symbolic, y)
+
+    poly = sp.lambdify([x, y], poly_symbolic)
+    poly_dx = sp.lambdify([x, y], poly_dx_symbolic)
+    poly_dy = sp.lambdify([x, y], poly_dy_symbolic)
+    poly_dxx = sp.lambdify([x, y], poly_dxx_symbolic)
+    poly_dxy = sp.lambdify([x, y], poly_dxy_symbolic)
+    poly_dyy = sp.lambdify([x, y], poly_dyy_symbolic)
+
+    parameters = []
+    for v in triangle_vertices:
+        parameters.extend(
+            [
+                poly(v[0], v[1]),
+                poly_dx(v[0], v[1]),
+                poly_dy(v[0], v[1]),
+                poly_dxx(v[0], v[1]),
+                poly_dxy(v[0], v[1]),
+                poly_dyy(v[0], v[1]),
+            ]
+        )
+    parameters = Vector(parameters)
+
+
+test_shape_function()
