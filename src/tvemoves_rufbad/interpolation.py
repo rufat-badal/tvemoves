@@ -1,7 +1,8 @@
 """Module providing interpolations in triangles."""
 
 from tvemoves_rufbad.tensors import Vector, Matrix, Tensor3D
-from tvemoves_rufbad.grid import Grid, Triangle, BarycentricCoordinates, Edge
+from tvemoves_rufbad.domain import Grid, Triangle, Edge, BarycentricCoordinates
+from tvemoves_rufbad.bell_finite_element import transform_gradient
 
 
 class P1Interpolation:
@@ -19,8 +20,8 @@ class P1Interpolation:
         barycentric_coordinates: BarycentricCoordinates,
     ):
         i1, i2, i3 = triangle
-        t1, t2, t3 = barycentric_coordinates
-        return t1 * self._params[i1] + t2 * self._params[i2] + t3 * self._params[i3]
+        l1, l2, l3 = barycentric_coordinates
+        return l1 * self._params[i1] + l2 * self._params[i2] + l3 * self._params[i3]
 
     def on_boundary(self, edge: Edge, t: float):
         """Computes the interpolation on an edge."""
@@ -33,8 +34,11 @@ class P1Interpolation:
         # as in the case of the C1 interpolation
         del barycentric_coordinates
         i1, i2, i3 = triangle
-        area_gradient = Vector([self._params[i1], self._params[i2], self._params[i3]])
-        return self._grid.gradient_transform(triangle, area_gradient)
+        barycentric_gradient = Vector(
+            [self._params[i1], self._params[i2], self._params[i3]]
+        )
+        p1, p2, p3 = self._grid.points[i1], self._grid.points[i2], self._grid.points[i3]
+        return transform_gradient((p1, p2, p3), barycentric_gradient)
 
 
 class P1Deformation:
