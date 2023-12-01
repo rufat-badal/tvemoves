@@ -6,9 +6,9 @@ from pytest import approx
 import numpy as np
 from tvemoves_rufbad.interpolation import (
     P1Interpolation,
-    P1Deformation,
-    C1Interpolation,
-    C1Deformation,
+    # P1Deformation,
+    # C1Interpolation,
+    # C1Deformation,
 )
 from tvemoves_rufbad.tensors import Vector, Matrix, Tensor3D
 from tvemoves_rufbad.domain import RectangleDomain
@@ -438,23 +438,35 @@ barycentric_coordinates = random_barycentric_coordinates(len(grid.triangles))
 evaluation_points = evaluation_points(
     barycentric_coordinates, grid.triangles, grid.points
 )
-f = functions[1]
-grad_f = gradients[1]
-hessian_f = hessians[1]
+i = 0
+f = functions[i]
+grad_f = gradients[i]
+hessian_f = hessians[i]
 f_at_grid_points = [f(p[0], p[1]) for p in grid.points]
 grad_f_at_grid_points = [grad_f(p[0], p[1]) for p in grid.points]
 hessian_f_at_grid_points = [hessian_f(p[0], p[1]) for p in grid.points]
-params = [
-    [f, G[0], G[1], H[0, 0], H[0, 1], H[1, 1]]
-    for (f, G, H) in zip(
-        f_at_grid_points, grad_f_at_grid_points, hessian_f_at_grid_points
-    )
-]
-f_approx = C1Interpolation(grid, params)
+params = f_at_grid_points
+f_approx = P1Interpolation(grid, params)
 p = evaluation_points[0]
 print(f(p[0], p[1]))
 triangle = grid.triangles[0]
+edge = grid.edges[0]
 w = barycentric_coordinates[0]
 print(f_approx(triangle, w))
 print(grad_f(p[0], p[1]))
 print(f_approx.gradient(triangle, w))
+print(f_approx.on_edge(edge, 1 / 2))
+# params = [
+#     [f, G[0], G[1], H[0, 0], H[0, 1], H[1, 1]]
+#     for (f, G, H) in zip(
+#         f_at_grid_points, grad_f_at_grid_points, hessian_f_at_grid_points
+#     )
+# ]
+# f_approx = C1Interpolation(grid, params)
+# p = evaluation_points[0]
+# print(f(p[0], p[1]))
+# triangle = grid.triangles[0]
+# w = barycentric_coordinates[0]
+# print(f_approx(triangle, w))
+# print(grad_f(p[0], p[1]))
+# print(f_approx.gradient(triangle, w))
