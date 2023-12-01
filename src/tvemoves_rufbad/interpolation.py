@@ -30,7 +30,7 @@ class Interpolation(ABC):
 
     @abstractmethod
     def gradient(
-        self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
+        self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates | None
     ) -> Vector:
         """Compute the gradient of the interpolation in a triangle."""
 
@@ -43,6 +43,60 @@ class Interpolation(ABC):
         self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
     ) -> Matrix:
         """Compute the hessian of the interpolation in a triangle."""
+
+
+class Deformation(ABC):
+    """Abstract deformation class"""
+
+    def __init__(
+        self, y1_interpolation: Interpolation, y2_interpolation: Interpolation
+    ):
+        self._y = [y1_interpolation, y2_interpolation]
+
+    def __getitem__(self, i: int):
+        """Access the component interpolations directly."""
+        return self._y[i]
+
+    def __call__(
+        self,
+        triangle: Triangle,
+        barycentric_coordinates: BarycentricCoordinates,
+    ) -> Vector:
+        return Vector(
+            [
+                self._y[0](triangle, barycentric_coordinates),
+                self._y[1](triangle, barycentric_coordinates),
+            ]
+        )
+
+    def strain(
+        self,
+        triangle: Triangle,
+        barycentric_coordinates: BarycentricCoordinates | None = None,
+    ) -> Matrix:
+        """Compute the strain of the deformation in a triangle."""
+        return (
+            self._y[0]
+            .gradient(triangle, barycentric_coordinates)
+            .stack(self._y[1].gradient(triangle, barycentric_coordinates))
+        )
+
+    def on_edge(self, edge: Edge, t: float):
+        """Compute the deformation on an edge."""
+        return Vector(
+            [
+                self._y[0].on_edge(edge, t),
+                self._y[1].on_edge(edge, t),
+            ]
+        )
+
+    def hyper_strain(
+        self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
+    ) -> Tensor3D:
+        """Compute the hyper strain of the deformation in a triangle."""
+        hessian_y1 = self._y[0].hessian(triangle, barycentric_coordinates)
+        hessian_y2 = self._y[1].hessian(triangle, barycentric_coordinates)
+        return hessian_y1.stack(hessian_y2)
 
 
 class P1Interpolation(Interpolation):
@@ -77,43 +131,16 @@ class P1Interpolation(Interpolation):
     def hessian(
         self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
     ) -> Matrix:
-        return NotImplementedError("Hessian cannot be computed for a P1 interpolation")
+        raise NotImplementedError("Hessian cannot be computed for P1 interpolations")
 
 
-# class P1Deformaion:
-#     """Deformation computed via piecewise affine interpolation."""
+class P1Deformation(Deformation):
+    """Deformation computed via piecewise affine interpolation."""
 
-#     def __init__(self, grid, y1_params: list, y2_params: list):
-#         self._y = [P1Interpolation(grid, y1_params), P1Interpolation(grid, y2_params)]
-
-#     def __call__(
-#         self,
-#         triangle: Triangle,
-#         barycentric_coordinates: BarycentricCoordinates,
-#     ) -> Vector:
-#         return Vector(
-#             [
-#                 self._y[0](triangle, barycentric_coordinates),
-#                 self._y[1](triangle, barycentric_coordinates),
-#             ]
-#         )
-
-#     def on_edge(self, edge: Edge, t: float):
-#         """Computes deformation on an edge."""
-#         return Vector(
-#             [
-#                 self._y[0].on_boundary(edge, t),
-#                 self._y[1].on_boundary(edge, t),
-#             ]
-#         )
-
-#     def strain(self, triangle: Triangle, barycentric_coordinates=None) -> Matrix:
-#         """Computes strain of the deformation."""
-#         del barycentric_coordinates
-#         return self._y[0].gradient(triangle).stack(self._y[1].gradient(triangle))
-
-#     def __getitem__(self, i: int):
-#         return self._y[i]
+    def __init__(self, grid, y1_params: list, y2_params: list):
+        super().__init__(
+            P1Interpolation(grid, y1_params), P1Interpolation(grid, y2_params)
+        )
 
 
 # class C1Interpolation:

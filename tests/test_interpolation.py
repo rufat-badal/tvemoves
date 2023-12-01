@@ -6,7 +6,7 @@ from pytest import approx
 import numpy as np
 from tvemoves_rufbad.interpolation import (
     P1Interpolation,
-    # P1Deformation,
+    P1Deformation,
     # C1Interpolation,
     # C1Deformation,
 )
@@ -445,17 +445,24 @@ hessian_f = hessians[i]
 f_at_grid_points = [f(p[0], p[1]) for p in grid.points]
 grad_f_at_grid_points = [grad_f(p[0], p[1]) for p in grid.points]
 hessian_f_at_grid_points = [hessian_f(p[0], p[1]) for p in grid.points]
-params = f_at_grid_points
-f_approx = P1Interpolation(grid, params)
+deform = deformations[i]
+strain = strains[i]
+deformed_points = [deform(p[0], p[1]) for p in grid.points]
+params = (
+    [v[0] for v in deformed_points],
+    [v[1] for v in deformed_points],
+)
+deform_approx = P1Deformation(grid, *params)
 p = evaluation_points[0]
-print(f(p[0], p[1]))
 triangle = grid.triangles[0]
 edge = grid.edges[0]
 w = barycentric_coordinates[0]
-print(f_approx(triangle, w))
-print(grad_f(p[0], p[1]))
-print(f_approx.gradient(triangle, w))
-print(f_approx.on_edge(edge, 1 / 2))
+print(deform(p[0], p[1]))
+print(deform_approx(triangle, w))
+print(strain(p[0], p[1]))
+print(deform_approx.strain(triangle))
+print(deform_approx.on_edge(edge, 1 / 2))
+
 # params = [
 #     [f, G[0], G[1], H[0, 0], H[0, 1], H[1, 1]]
 #     for (f, G, H) in zip(
