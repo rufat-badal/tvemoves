@@ -6,7 +6,7 @@ from tvemoves_rufbad.bell_finite_element import (
     transform_gradient,
     transform_hessian,
     shape_function,
-    shape_function_jacobian,
+    shape_function_gradient,
     shape_function_hessian_vectorized,
     shape_function_on_edge,
 )
@@ -101,24 +101,32 @@ class C1Interpolation:
         self._grid = grid
         self._params = [Vector(p) for p in params]
 
+    def _triangle_params(self, triangle: Triangle) -> Vector:
+        i1, i2, i3 = triangle
+        return self._params[i1].extend(self._params[i2]).extend(self._params[i3])
+
     def __call__(
         self,
         triangle: Triangle,
         barycentric_coordinates: BarycentricCoordinates,
     ):
-        i1, i2, i3 = triangle
-        params = self._params[i1].extend(self._params[i2]).extend(self._params[i3])
+        """Compute the value of the interpolation in a triangle."""
         return shape_function(
             self._grid.triangle_vertices(triangle), barycentric_coordinates
-        ).dot(params)
+        ).dot(self._triangle_params(triangle))
 
-    # def gradient(
-    #     self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
-    # ) -> Vector:
-    #     """Computes gradient of the interpolation."""
-    #     return self._grid.gradient_transform(
-    #         triangle, self._area_gradient(triangle, barycentric_coordinates)
-    #     )
+    def gradient(
+        self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
+    ) -> Vector:
+        """Computes gradient of the interpolation."""
+        triangle_vertices = self._grid.triangle_vertices(triangle)
+        triangle_params = self._triangle_params(triangle)
+        barycentric_gradient = (
+            shape_function_gradient(triangle_vertices, barycentric_coordinates)
+            .transpose()
+            .dot(triangle_params)
+        )
+        return transform_gradient(triangle_vertices, barycentric_gradient)
 
     # def _area_hessian_vectorized(
     #     self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates

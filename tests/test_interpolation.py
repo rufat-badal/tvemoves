@@ -456,23 +456,5 @@ print(f(p[0], p[1]))
 triangle = grid.triangles[0]
 w = barycentric_coordinates[0]
 print(f_approx(triangle, w))
-# values = [f(p[0], p[1]) for p in evaluation_points]
-# values_approx = [
-#     f_approx(triangle, w)
-#     for (triangle, w) in zip(grid.triangles, barycentric_coordinates)
-# ]
-# mean_squared_error = sum(
-#     (value - value_approx) ** 2 for (value, value_approx) in zip(values, values_approx)
-# ) / len(grid.triangles)
-# print(mean_squared_error)
-
-# grad_values = [grad_f(p[0], p[1]) for p in evaluation_points]
-# grad_values_approx = [f_approx.gradient(triangle) for triangle in grid.triangles]
-# mean_squared_grad_error = sum(
-#     (grad_value - grad_value_approx).normsqr()
-#     for (grad_value, grad_value_approx) in zip(grad_values, grad_values_approx)
-# ) / len(grid.triangles)
-# print(mean_squared_grad_error)
-
-# edge = grid.edges[0]
-# print(f_approx.on_boundary(edge, 0))
+print(grad_f(p[0], p[1]))
+print(f_approx.gradient(triangle, w))

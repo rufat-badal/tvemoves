@@ -14,7 +14,7 @@ from tvemoves_rufbad.bell_finite_element import (
 from tvemoves_rufbad.tensors import Vector, Matrix
 from tvemoves_rufbad.bell_finite_element import (
     shape_function,
-    shape_function_jacobian,
+    shape_function_gradient,
     shape_function_hessian_vectorized,
     transform_gradient,
     transform_hessian,
@@ -86,7 +86,7 @@ def test_shape_function() -> None:
         )
     params = Vector(params_list)
 
-    def poly_jacobian(x: float, y: float) -> Vector:
+    def poly_gradient(x: float, y: float) -> Vector:
         return Vector([poly_dx(x, y), poly_dy(x, y)])
 
     def poly_hessian(x: float, y: float) -> Matrix:
@@ -100,14 +100,14 @@ def test_shape_function() -> None:
         value_approx = shape_function(triangle_vertices, c).dot(params)
         assert abs(value - value_approx) < eps
 
-        jacobian = poly_jacobian(*c_euclidean)
-        barycentric_jacobian_approx = (
-            shape_function_jacobian(triangle_vertices, c).transpose().dot(params)
+        gradient = poly_gradient(*c_euclidean)
+        barycentric_gradient_approx = (
+            shape_function_gradient(triangle_vertices, c).transpose().dot(params)
         )
-        jacobian_approx = transform_gradient(
-            triangle_vertices, barycentric_jacobian_approx
+        gradient_approx = transform_gradient(
+            triangle_vertices, barycentric_gradient_approx
         )
-        assert (jacobian - jacobian_approx).norm() < eps
+        assert (gradient - gradient_approx).norm() < eps
 
         hessian = poly_hessian(*c_euclidean)
         barycentric_hessian_vectorized_approx = (

@@ -144,13 +144,13 @@ def shape_function(
     )
 
 
-_N_jacobian = sp.Matrix(
+_N_gradient = sp.Matrix(
     [[sp.diff(_N[i], _L[j]) for j in range(3)] for i in range(3 * 6)]
 )
-_N_jacobian_lambdified = sp.lambdify(_L + _b + _c, _N_jacobian)
+_N_gradient_lambdified = sp.lambdify(_L + _b + _c, _N_gradient)
 
 
-def shape_function_jacobian(
+def shape_function_gradient(
     triangle_vertices: TriangleVertices,
     barycentric_coordinates: BarycentricCoordinates,
 ) -> Matrix:
@@ -159,7 +159,7 @@ def shape_function_jacobian(
     Returns a matrix of shape (18,3).
     """
     return Matrix(
-        _N_jacobian_lambdified(
+        _N_gradient_lambdified(
             *barycentric_coordinates,
             *_get_b(triangle_vertices),
             *_get_c(triangle_vertices),
@@ -218,7 +218,7 @@ def shape_function_on_edge(edge_vertices: EdgeVertices, t: float) -> Vector:
 
 def transform_gradient(
     triangle_vertices: TriangleVertices,
-    barycentric_jacobian: Vector,
+    barycentric_gradient: Vector,
 ) -> Vector:
     """Transforms gradient with respect to barycentric coordinates to Euclidean gradient.
 
@@ -230,7 +230,7 @@ def transform_gradient(
     b = _get_b(triangle_vertices)
     c = _get_c(triangle_vertices)
     trafo_matrix = Matrix([[b[0], b[1], b[2]], [c[0], c[1], c[2]]]) / (2 * delta)
-    return trafo_matrix.dot(barycentric_jacobian)
+    return trafo_matrix.dot(barycentric_gradient)
 
 
 def transform_hessian(
