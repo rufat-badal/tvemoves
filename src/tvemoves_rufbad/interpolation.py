@@ -208,42 +208,10 @@ class C1Interpolation(Interpolation):
         return shape_function_on_edge(edge_vertices, t).dot(edge_params)
 
 
-# class C1Deformation:
-#     """Deformation computed via C1 interpolation."""
+class C1Deformation(Deformation):
+    """Deformation computed via C1 interpolation."""
 
-#     def __init__(self, grid, y1_params: list[list], y2_params: list[list]):
-#         self._y = [C1Interpolation(grid, y1_params), C1Interpolation(grid, y2_params)]
-
-#     def __call__(
-#         self,
-#         triangle: Triangle,
-#         barycentric_coordinates: BarycentricCoordinates,
-#     ) -> Vector:
-#         return Vector(
-#             [
-#                 self._y[0](triangle, barycentric_coordinates),
-#                 self._y[1](triangle, barycentric_coordinates),
-#             ]
-#         )
-
-#     def strain(
-#         self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
-#     ) -> Matrix:
-#         """Computes strain of the deformation."""
-#         return (
-#             self._y[0]
-#             .gradient(triangle, barycentric_coordinates)
-#             .stack(self._y[1].gradient(triangle, barycentric_coordinates))
-#         )
-
-#     def hyper_strain(
-#         self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
-#     ) -> Tensor3D:
-#         """Computes the hyper strain of the deformation."""
-#         hessian_y1 = self._y[0].hessian(triangle, barycentric_coordinates)
-#         hessian_y2 = self._y[1].hessian(triangle, barycentric_coordinates)
-#         return hessian_y1.stack(hessian_y2)
-
-#     def on_edge(self, edge: Edge, t: float) -> Vector:
-#         """Computes deformation on an edge."""
-#         return Vector([self._y[0].on_edge(edge, t), self._y[1].on_edge(edge, t)])
+    def __init__(self, grid, y1_params: list[list], y2_params: list[list]):
+        super().__init__(
+            C1Interpolation(grid, y1_params), C1Interpolation(grid, y2_params)
+        )

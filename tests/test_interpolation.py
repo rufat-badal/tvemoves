@@ -8,7 +8,7 @@ from tvemoves_rufbad.interpolation import (
     P1Interpolation,
     P1Deformation,
     C1Interpolation,
-    # C1Deformation,
+    C1Deformation,
 )
 from tvemoves_rufbad.tensors import Vector, Matrix, Tensor3D
 from tvemoves_rufbad.domain import RectangleDomain
@@ -447,34 +447,36 @@ grad_f_at_grid_points = [grad_f(p[0], p[1]) for p in grid.points]
 hessian_f_at_grid_points = [hessian_f(p[0], p[1]) for p in grid.points]
 deform = deformations[i]
 strain = strains[i]
+hyper_strain = hyper_strains[i]
 deformed_points = [deform(p[0], p[1]) for p in grid.points]
 p = evaluation_points[0]
 triangle = grid.triangles[0]
 edge = grid.edges[0]
 w = barycentric_coordinates[0]
 
-# params = (
-#     [v[0] for v in deformed_points],
-#     [v[1] for v in deformed_points],
-# )
-# deform_approx = P1Deformation(grid, *params)
-# print(deform(p[0], p[1]))
-# print(deform_approx(triangle, w))
-# print(strain(p[0], p[1]))
-# print(deform_approx.strain(triangle))
-# print(deform_approx.on_edge(edge, 1 / 2))
-
-params = [
-    [f, G[0], G[1], H[0, 0], H[0, 1], H[1, 1]]
-    for (f, G, H) in zip(
-        f_at_grid_points, grad_f_at_grid_points, hessian_f_at_grid_points
+deformed_points = [deform(p[0], p[1]) for p in grid.points]
+strains_at_grid_points = [strain(p[0], p[1]) for p in grid.points]
+hyper_strains_at_grid_points = [hyper_strain(p[0], p[1]) for p in grid.points]
+params1 = [
+    [y[0], G[0, 0], G[0, 1], H[0, 0, 0], H[0, 0, 1], H[0, 1, 1]]
+    for (y, G, H) in zip(
+        deformed_points,
+        strains_at_grid_points,
+        hyper_strains_at_grid_points,
     )
 ]
-f_approx = C1Interpolation(grid, params)
-print(f(p[0], p[1]))
-print(f_approx(triangle, w))
-print(grad_f(p[0], p[1]))
-print(f_approx.gradient(triangle, w))
-print(hessian_f(p[0], p[1]))
-print(f_approx.hessian(triangle, w))
-print(f_approx.on_edge(edge, 1 / 2))
+params2 = [
+    [y[1], G[1, 0], G[1, 1], H[1, 0, 0], H[1, 0, 1], H[1, 1, 1]]
+    for (y, G, H) in zip(
+        deformed_points,
+        strains_at_grid_points,
+        hyper_strains_at_grid_points,
+    )
+]
+deform_approx = C1Deformation(grid, params1, params2)
+print(deform(*p))
+print(deform_approx(triangle, w))
+print(strain(*p))
+print(hyper_strain(*p))
+print(deform_approx.strain(triangle, w))
+print(deform_approx.on_edge(edge, 1 / 2))
