@@ -38,11 +38,11 @@ class Interpolation(ABC):
     # def on_edge(self, edge: Edge, t: float):
     #     """Computes the value of the interpolation on an edge."""
 
-    # @abstractmethod
-    # def hessian(
-    #     self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
-    # ) -> Matrix:
-    #     """Compute the hessian of the interpolation in a triangle."""
+    @abstractmethod
+    def hessian(
+        self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
+    ) -> Matrix:
+        """Compute the hessian of the interpolation in a triangle."""
 
 
 class Deformation(ABC):
@@ -124,7 +124,6 @@ class P1Interpolation(Interpolation):
         )
 
     def on_edge(self, edge: Edge, t: float):
-        """Computes the interpolation on an edge."""
         i1, i2 = edge
         return t * self._params[i1] + (1 - t) * self._params[i2]
 
@@ -187,6 +186,20 @@ class C1Interpolation(Interpolation):
             .dot(triangle_params)
         )
         return transform_gradient(triangle_vertices, barycentric_gradient)
+
+    def hessian(
+        self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
+    ) -> Matrix:
+        triangle_vertices = self._grid.triangle_vertices(triangle)
+        triangle_params = self._triangle_params(triangle)
+        barycentric_hessian_vectorized = (
+            shape_function_hessian_vectorized(
+                triangle_vertices, barycentric_coordinates
+            )
+            .transpose()
+            .dot(triangle_params)
+        )
+        return transform_hessian(triangle_vertices, barycentric_hessian_vectorized)
 
 
 # class C1Deformation:
