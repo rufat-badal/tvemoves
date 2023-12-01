@@ -72,9 +72,9 @@ def test_shape_function() -> None:
     poly_dxy = sp.lambdify([x, y], poly_dxy_symbolic)
     poly_dyy = sp.lambdify([x, y], poly_dyy_symbolic)
 
-    parameters_list = []
+    params_list = []
     for v in triangle_vertices:
-        parameters_list.extend(
+        params_list.extend(
             [
                 poly(v[0], v[1]),
                 poly_dx(v[0], v[1]),
@@ -84,7 +84,7 @@ def test_shape_function() -> None:
                 poly_dyy(v[0], v[1]),
             ]
         )
-    parameters = Vector(parameters_list)
+    params = Vector(params_list)
 
     def poly_jacobian(x: float, y: float) -> Vector:
         return Vector([poly_dx(x, y), poly_dy(x, y)])
@@ -97,12 +97,12 @@ def test_shape_function() -> None:
     for c in random_barycentric_coordinates(num_evaluations):
         c_euclidean = c.u * p1 + c.v * p2 + c.w * p3
         value = poly(*c_euclidean)
-        value_approx = shape_function(triangle_vertices, c).dot(parameters)
+        value_approx = shape_function(triangle_vertices, c).dot(params)
         assert abs(value - value_approx) < eps
 
         jacobian = poly_jacobian(*c_euclidean)
         barycentric_jacobian_approx = (
-            shape_function_jacobian(triangle_vertices, c).transpose().dot(parameters)
+            shape_function_jacobian(triangle_vertices, c).transpose().dot(params)
         )
         jacobian_approx = transform_gradient(
             triangle_vertices, barycentric_jacobian_approx
@@ -113,7 +113,7 @@ def test_shape_function() -> None:
         barycentric_hessian_vectorized_approx = (
             shape_function_hessian_vectorized(triangle_vertices, c)
             .transpose()
-            .dot(parameters)
+            .dot(params)
         )
         hessian_approx = transform_hessian(
             triangle_vertices, barycentric_hessian_vectorized_approx

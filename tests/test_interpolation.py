@@ -10,8 +10,8 @@ from tvemoves_rufbad.interpolation import (
     C1Interpolation,
     C1Deformation,
 )
-from tvemoves_rufbad.grid import SquareEquilateralGrid
 from tvemoves_rufbad.tensors import Vector, Matrix, Tensor3D
+from tvemoves_rufbad.domain import RectangleDomain
 
 
 def affine(x: float, y: float) -> float:
@@ -163,7 +163,7 @@ strains = [affine_strain, bend_strain, squeeze_strain]
 hyper_strains = [affine_hyper_strain, bend_hyper_strain, squeeze_hyper_strain]
 
 
-def create_random_barycentric_coordinates(
+def random_barycentric_coordinates(
     num_coordinates,
 ) -> list[tuple[float, float, float]]:
     """Determines random barycentric coordinates for each provided triangle."""
@@ -179,7 +179,7 @@ def create_random_barycentric_coordinates(
     return res
 
 
-def create_evaluation_points(
+def evaluation_points(
     barycentric_coordinates: list[tuple[float, float, float]],
     triangles: list[tuple[int, int, int]],
     points: list[Vector],
@@ -196,8 +196,8 @@ def test_p1_interpolation() -> None:
     eps = 1e-6
     grad_eps = 1e-2
     grid = SquareEquilateralGrid(num_horizontal_points=200)
-    barycentric_coordinates = create_random_barycentric_coordinates(len(grid.triangles))
-    evaluation_points = create_evaluation_points(
+    barycentric_coordinates = random_barycentric_coordinates(len(grid.triangles))
+    evaluation_points = evaluation_points(
         barycentric_coordinates, grid.triangles, grid.points
     )
 
@@ -230,7 +230,7 @@ def test_p1_interpolation() -> None:
 def test_p1_interpolation_with_pyomo_params() -> None:
     """Test piecewise affine interpolation with values given as pyomo paramters."""
     grid = SquareEquilateralGrid(num_horizontal_points=50)
-    barycentric_coordinates = create_random_barycentric_coordinates(len(grid.triangles))
+    barycentric_coordinates = random_barycentric_coordinates(len(grid.triangles))
 
     for f in functions:
         params = [f(p[0], p[1]) for p in grid.points]
@@ -267,8 +267,8 @@ def test_p1_deformation() -> None:
     eps = 1e-6
     grad_eps = 1e-3
     grid = SquareEquilateralGrid(num_horizontal_points=100)
-    barycentric_coordinates = create_random_barycentric_coordinates(len(grid.triangles))
-    evaluation_points = create_evaluation_points(
+    barycentric_coordinates = random_barycentric_coordinates(len(grid.triangles))
+    evaluation_points = evaluation_points(
         barycentric_coordinates, grid.triangles, grid.points
     )
 
@@ -310,8 +310,8 @@ def test_c1_interpolation() -> None:
     grad_eps = 1e-4
     hessian_eps = 1e-2
     grid = SquareEquilateralGrid(num_horizontal_points=14)
-    barycentric_coordinates = create_random_barycentric_coordinates(len(grid.triangles))
-    evaluation_points = create_evaluation_points(
+    barycentric_coordinates = random_barycentric_coordinates(len(grid.triangles))
+    evaluation_points = evaluation_points(
         barycentric_coordinates, grid.triangles, grid.points
     )
 
@@ -367,8 +367,8 @@ def test_c1_deformation() -> None:
     """Test C1 deformation."""
     eps = 1e-6
     grid = SquareEquilateralGrid(num_horizontal_points=7)
-    barycentric_coordinates = create_random_barycentric_coordinates(len(grid.triangles))
-    evaluation_points = create_evaluation_points(
+    barycentric_coordinates = random_barycentric_coordinates(len(grid.triangles))
+    evaluation_points = evaluation_points(
         barycentric_coordinates, grid.triangles, grid.points
     )
 
@@ -430,3 +430,49 @@ def test_c1_deformation() -> None:
             )
         ) / len(grid.triangles)
         assert mean_squared_hyper_strain_error < eps
+
+
+square = RectangleDomain(1, 1)
+grid = square.grid(scale=1 / 10)
+barycentric_coordinates = random_barycentric_coordinates(len(grid.triangles))
+evaluation_points = evaluation_points(
+    barycentric_coordinates, grid.triangles, grid.points
+)
+f = functions[1]
+grad_f = gradients[1]
+hessian_f = hessians[1]
+f_at_grid_points = [f(p[0], p[1]) for p in grid.points]
+grad_f_at_grid_points = [grad_f(p[0], p[1]) for p in grid.points]
+hessian_f_at_grid_points = [hessian_f(p[0], p[1]) for p in grid.points]
+params = [
+    [f, G[0], G[1], H[0, 0], H[0, 1], H[1, 1]]
+    for (f, G, H) in zip(
+        f_at_grid_points, grad_f_at_grid_points, hessian_f_at_grid_points
+    )
+]
+f_approx = C1Interpolation(grid, params)
+p = evaluation_points[0]
+print(f(p[0], p[1]))
+triangle = grid.triangles[0]
+w = barycentric_coordinates[0]
+print(f_approx(triangle, w))
+# values = [f(p[0], p[1]) for p in evaluation_points]
+# values_approx = [
+#     f_approx(triangle, w)
+#     for (triangle, w) in zip(grid.triangles, barycentric_coordinates)
+# ]
+# mean_squared_error = sum(
+#     (value - value_approx) ** 2 for (value, value_approx) in zip(values, values_approx)
+# ) / len(grid.triangles)
+# print(mean_squared_error)
+
+# grad_values = [grad_f(p[0], p[1]) for p in evaluation_points]
+# grad_values_approx = [f_approx.gradient(triangle) for triangle in grid.triangles]
+# mean_squared_grad_error = sum(
+#     (grad_value - grad_value_approx).normsqr()
+#     for (grad_value, grad_value_approx) in zip(grad_values, grad_values_approx)
+# ) / len(grid.triangles)
+# print(mean_squared_grad_error)
+
+# edge = grid.edges[0]
+# print(f_approx.on_boundary(edge, 0))

@@ -114,6 +114,13 @@ class Vector:
         """Return copy of the vector as numpy array."""
         return np.array(self.data)
 
+    def extend(self, other: Vector) -> Vector:
+        """Extend vector with components of another vector."""
+        return Vector(self.data + other.data)
+
+    def __len__(self) -> int:
+        return self.size
+
 
 def sign(p):
     """Compute the sign of a permutation."""
@@ -312,7 +319,7 @@ class Matrix:
 
     def numpy(self) -> npt.NDArray:
         """Return copy of the matrix as numpy array."""
-        return np.array(self.data)
+        return np.array(self.data) 
 
 
 class Tensor3D:

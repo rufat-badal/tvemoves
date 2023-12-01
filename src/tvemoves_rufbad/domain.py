@@ -186,6 +186,14 @@ class Grid:
 
         return ax
 
+    def triangle_vertices(self, triangle) -> TriangleVertices:
+        """Transform triangle indices into points."""
+        if triangle not in self.triangles:
+            raise ValueError("Provided triangle is not in the list of triangles")
+
+        i1, i2, i3 = triangle
+        return (self.points[i1], self.points[i2], self.points[i3])
+
 
 class Domain(ABC):
     """Interface of a domain"""
