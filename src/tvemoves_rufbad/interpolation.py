@@ -34,15 +34,15 @@ class Interpolation(ABC):
     ) -> Vector:
         """Compute the gradient of the interpolation in a triangle."""
 
-    @abstractmethod
-    def on_edge(self, edge: Edge, t: float):
-        """Computes the value of the interpolation on an edge."""
+    # @abstractmethod
+    # def on_edge(self, edge: Edge, t: float):
+    #     """Computes the value of the interpolation on an edge."""
 
-    @abstractmethod
-    def hessian(
-        self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
-    ) -> Matrix:
-        """Compute the hessian of the interpolation in a triangle."""
+    # @abstractmethod
+    # def hessian(
+    #     self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
+    # ) -> Matrix:
+    #     """Compute the hessian of the interpolation in a triangle."""
 
 
 class Deformation(ABC):
@@ -143,113 +143,50 @@ class P1Deformation(Deformation):
         )
 
 
-# class C1Interpolation:
-#     """Interpolation using degree 5 polynomials assuring C1 regularity."""
+class C1Interpolation(Interpolation):
+    """Interpolation using degree 5 polynomials assuring C1 regularity along the edges."""
 
-#     def __init__(self, grid: Grid, params: list[list]):
-#         """params is a list of C1 parameters. Its length is equal to the number of
-#         grid vertices.
+    def __init__(self, grid: Grid, params: list[list]):
+        """params is a list of C1 parameters. Its length is equal to the number of
+        grid vertices.
 
-#         Each C1 parameter is a list of 6 values corresponding to
-#         u, u_x, u_y, u_xx, u_xy, u_yy,
-#         where u denotes the function wish to interpolate.
-#         """
-#         if any(len(p) != 6 for p in params):
-#             raise ValueError("each parameter provided must be a list of 6 elements")
+        Each C1 parameter is a list of 6 values corresponding to
+        u, u_x, u_y, u_xx, u_xy, u_yy,
+        where u denotes the function wish to interpolate.
+        """
+        if any(len(p) != 6 for p in params):
+            raise ValueError("each parameter provided must be a list of 6 elements")
 
-#         self._grid = grid
-#         self._params = [Vector(p) for p in params]
+        params = [Vector(p) for p in params]
 
-#     def _triangle_params(self, triangle: Triangle) -> Vector:
-#         i1, i2, i3 = triangle
-#         return self._params[i1].extend(self._params[i2]).extend(self._params[i3])
+        super().__init__(grid, params)
 
-#     def __call__(
-#         self,
-#         triangle: Triangle,
-#         barycentric_coordinates: BarycentricCoordinates,
-#     ):
-#         """Compute the value of the interpolation in a triangle."""
-#         return shape_function(
-#             self._grid.triangle_vertices(triangle), barycentric_coordinates
-#         ).dot(self._triangle_params(triangle))
+    def _triangle_params(self, triangle: Triangle) -> Vector:
+        i1, i2, i3 = triangle
+        return self._params[i1].extend(self._params[i2]).extend(self._params[i3])
 
-#     def gradient(
-#         self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
-#     ) -> Vector:
-#         """Computes gradient of the interpolation."""
-#         triangle_vertices = self._grid.triangle_vertices(triangle)
-#         triangle_params = self._triangle_params(triangle)
-#         barycentric_gradient = (
-#             shape_function_gradient(triangle_vertices, barycentric_coordinates)
-#             .transpose()
-#             .dot(triangle_params)
-#         )
-#         return transform_gradient(triangle_vertices, barycentric_gradient)
+    def __call__(
+        self,
+        triangle: Triangle,
+        barycentric_coordinates: BarycentricCoordinates,
+    ):
+        """Compute the value of the interpolation in a triangle."""
+        return shape_function(
+            self._grid.triangle_vertices(triangle), barycentric_coordinates
+        ).dot(self._triangle_params(triangle))
 
-# def _area_hessian_vectorized(
-#     self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
-# ) -> Vector:
-#     i1, i2, i3 = triangle
-#     l1, l2, l3 = barycentric_coordinates
-
-#     hessian1 = (
-#         self._grid.shape_function_hessian_vectorized((i1, i2, i3), (l1, l2, l3))
-#         .transpose()
-#         .dot(self._params[i1])
-#     )
-#     hessian2 = (
-#         (
-#             self._grid.shape_function_hessian_vectorized((i2, i3, i1), (l2, l3, l1))
-#             @ Matrix(
-#                 [
-#                     [0, 1, 0, 0, 0, 0],
-#                     [0, 0, 1, 0, 0, 0],
-#                     [1, 0, 0, 0, 0, 0],
-#                     [0, 0, 0, 0, 0, 1],
-#                     [0, 0, 0, 1, 0, 0],
-#                     [0, 0, 0, 0, 1, 0],
-#                 ]
-#             )
-#         )
-#         .transpose()
-#         .dot(self._params[i2])
-#     )
-#     hessian3 = (
-#         (
-#             self._grid.shape_function_hessian_vectorized((i3, i1, i2), (l3, l1, l2))
-#             @ Matrix(
-#                 [
-#                     [0, 0, 1, 0, 0, 0],
-#                     [1, 0, 0, 0, 0, 0],
-#                     [0, 1, 0, 0, 0, 0],
-#                     [0, 0, 0, 0, 1, 0],
-#                     [0, 0, 0, 0, 0, 1],
-#                     [0, 0, 0, 1, 0, 0],
-#                 ]
-#             )
-#         )
-#         .transpose()
-#         .dot(self._params[i3])
-#     )
-#     return hessian1 + hessian2 + hessian3
-
-# def hessian(
-#     self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
-# ) -> Matrix:
-#     """Computes hessian of the interpolation."""
-#     return self._grid.hessian_transform(
-#         triangle,
-#         self._area_hessian_vectorized(triangle, barycentric_coordinates),
-#     )
-
-# def on_edge(self, edge: Edge, t: float):
-#     """Computes the interpolation on an edge."""
-#     i, j = edge
-#     p, q = self._params[i], self._params[j]
-#     return self._grid.shape_function_on_edge_left(edge, t).dot(
-#         p
-#     ) + self._grid.shape_function_on_edge_right(edge, t).dot(q)
+    def gradient(
+        self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
+    ) -> Vector:
+        """Computes gradient of the interpolation."""
+        triangle_vertices = self._grid.triangle_vertices(triangle)
+        triangle_params = self._triangle_params(triangle)
+        barycentric_gradient = (
+            shape_function_gradient(triangle_vertices, barycentric_coordinates)
+            .transpose()
+            .dot(triangle_params)
+        )
+        return transform_gradient(triangle_vertices, barycentric_gradient)
 
 
 # class C1Deformation:
