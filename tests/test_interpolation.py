@@ -6,9 +6,9 @@ from pytest import approx
 import numpy as np
 from tvemoves_rufbad.interpolation import (
     P1Interpolation,
-    P1Deformation,
     C1Interpolation,
-    C1Deformation,
+    p1_deformation,
+    c1_deformation
 )
 from tvemoves_rufbad.tensors import Vector, Matrix, Tensor3D
 from tvemoves_rufbad.domain import RectangleDomain
@@ -473,7 +473,7 @@ params2 = [
         hyper_strains_at_grid_points,
     )
 ]
-deform_approx = C1Deformation(grid, params1, params2)
+deform_approx = c1_deformation(grid, params1, params2)
 print(deform(*p))
 print(deform_approx(triangle, w))
 print(strain(*p))
