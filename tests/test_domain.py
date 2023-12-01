@@ -9,7 +9,7 @@ from tvemoves_rufbad.domain import (
 )
 
 
-def test_rectangle_domain_create_grid() -> None:
+def test_rectangle_domain_grid() -> None:
     """Test grid factory of a rectangle domain"""
     width = 3
     height = 2
@@ -31,7 +31,7 @@ def test_rectangle_domain_create_grid() -> None:
     num_boundary_edges = num_boundary_vertices
 
     rectangle = RectangleDomain(width, height)
-    grid = rectangle.create_grid(scale)
+    grid = rectangle.grid(scale)
     assert grid.vertices == list(range(num_vertices))
     assert all(0 <= p[0] <= width and 0 <= p[1] <= height for p in grid.points)
     assert len(grid.edges) == num_edges
@@ -85,36 +85,36 @@ def test_rectangle_domain_create_grid() -> None:
     assert not grid.dirichlet_boundary.edges
 
     rectangle_lower_fixed = RectangleDomain(width, height, fix="lower")
-    grid_lower_fixed = rectangle_lower_fixed.create_grid(scale)
+    grid_lower_fixed = rectangle_lower_fixed.grid(scale)
     assert all(
         grid_lower_fixed.points[v][1] == approx(0)
         for v in grid_lower_fixed.dirichlet_boundary.vertices
     )
 
     rectangle_right_fixed = RectangleDomain(width, height, fix="right")
-    grid_right_fixed = rectangle_right_fixed.create_grid(scale)
+    grid_right_fixed = rectangle_right_fixed.grid(scale)
     assert all(
         grid_right_fixed.points[v][0] == approx(grid_width)
         for v in grid_right_fixed.dirichlet_boundary.vertices
     )
 
     rectangle_upper_fixed = RectangleDomain(width, height, fix="upper")
-    grid_upper_fixed = rectangle_upper_fixed.create_grid(scale)
+    grid_upper_fixed = rectangle_upper_fixed.grid(scale)
     assert all(
         grid_upper_fixed.points[v][1] == approx(grid_height)
         for v in grid_upper_fixed.dirichlet_boundary.vertices
     )
 
     rectangle_left_fixed = RectangleDomain(width, height, fix="left")
-    grid_left_fixed = rectangle_left_fixed.create_grid(scale)
+    grid_left_fixed = rectangle_left_fixed.grid(scale)
     assert all(
         grid_left_fixed.points[v][0] == approx(0)
         for v in grid_left_fixed.dirichlet_boundary.vertices
     )
 
 
-def test_rectangle_domain_create_curves() -> None:
-    """Test create_curves of rectangle domains."""
+def test_rectangle_domain_curves() -> None:
+    """Test curves of rectangle domains."""
     width = 3
     height = 2
     num_points_per_curve = 100
@@ -122,7 +122,7 @@ def test_rectangle_domain_create_curves() -> None:
     num_vertical_curves = 5
 
     rectangle = RectangleDomain(width, height)
-    curves = rectangle.create_curves(
+    curves = rectangle.curves(
         num_points_per_curve, num_horizontal_curves, num_vertical_curves
     )
     horizontal_step = [width / (num_points_per_curve - 1), 0]
@@ -158,11 +158,11 @@ def test_to_barycentric_curve() -> None:
     num_vertical_curves = 0
 
     rectangle = RectangleDomain(width, height)
-    curves = rectangle.create_curves(
+    curves = rectangle.curves(
         num_points_per_curve, num_horizontal_curves, num_vertical_curves
     )
     scale = 1 / 5
-    grid = rectangle.create_grid(scale)
+    grid = rectangle.grid(scale)
     barycentric_curves = [grid.to_barycentric_curve(curve) for curve in curves]
     for barycentric_curve, curve in zip(barycentric_curves, curves):
         assert len(barycentric_curve) == len(curve)

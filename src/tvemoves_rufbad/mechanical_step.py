@@ -11,7 +11,7 @@ from tvemoves_rufbad.tensors import Matrix
 from tvemoves_rufbad.integrators import Integrator
 from tvemoves_rufbad.grid import Grid
 from tvemoves_rufbad.utils import (
-    create_martensite_potential,
+    martensite_potential,
     austenite_percentage,
     austenite_potential,
     compose_to_integrand,
@@ -31,7 +31,7 @@ class MechanicalStepParams:
 
 
 class AbstractMechanicalStep(ABC):
-    """Abstract base class of a mechanical step returned by the create_mechanical_step factory."""
+    """Abstract base class of a mechanical step returned by the mechanical_step factory."""
 
     @abstractmethod
     def solve(self) -> None:
@@ -50,11 +50,11 @@ class AbstractMechanicalStep(ABC):
         """Return the previous temperature as numpy array."""
 
 
-def _create_total_elastic_integrand(shape_memory_scaling, strain, prev_temp):
+def _total_elastic_integrand(shape_memory_scaling, strain, prev_temp):
     """Construct integrand of the total elastic energy without regularizing terms."""
 
     scaling_matrix = Matrix([[1 / shape_memory_scaling, 0], [0, 1]])
-    martensite_potential = create_martensite_potential(scaling_matrix)
+    martensite_potential = martensite_potential(scaling_matrix)
 
     def martensite_percentage(theta):
         return 1 - austenite_percentage(theta)
@@ -71,7 +71,7 @@ def _create_total_elastic_integrand(shape_memory_scaling, strain, prev_temp):
     return total_elastic_integrand
 
 
-def _create_model(
+def _model(
     grid: Grid,
     initial_temperature: float,
     search_radius: float,
@@ -128,7 +128,7 @@ def _create_model(
     prev_temp = P1Interpolation(grid, m.prev_theta)
 
     m.total_elastic_energy = integrator(
-        _create_total_elastic_integrand(shape_memory_scaling, deform.strain, prev_temp)
+        _total_elastic_integrand(shape_memory_scaling, deform.strain, prev_temp)
     )
     m.dissipation = integrator_for_piecewise_constant(
         compose_to_integrand(dissipation_potential, prev_deform.strain, deform.strain)
@@ -152,7 +152,7 @@ class _MechanicalStep(AbstractMechanicalStep):
     ):
         self._solver = solver
         self._num_vertices = len(grid.vertices)
-        self._model = _create_model(
+        self._model = _model(
             grid,
             initial_temperature,
             search_radius,
@@ -188,7 +188,7 @@ class _MechanicalStep(AbstractMechanicalStep):
         )
 
 
-def _create_model_regularized_bell_finite_elements(
+def _model_regularized_bell_finite_elements(
     grid: Grid,
     initial_temperature: float,
     search_radius: float,
@@ -196,7 +196,7 @@ def _create_model_regularized_bell_finite_elements(
     fps: int,
     regularization: float,
 ) -> pyo.ConcreteModel:
-    print("Hello from _create_model_regularized_bell_finite_elements")
+    print("Hello from _model_regularized_bell_finite_elements")
     m = pyo.ConcreteModel("Mechanical Step with Regularization")
     m.vertices = pyo.RangeSet(len(grid.vertices))
     m.deformation_indices = m.vertices * pyo.RangeSet(6)
@@ -254,7 +254,7 @@ class _MechanicalStepRegularizedBellFiniteElements(AbstractMechanicalStep):
     ):
         self._solver = solver
         self._num_vertices = len(grid.vertices)
-        self._model = _create_model_regularized_bell_finite_elements(
+        self._model = _model_regularized_bell_finite_elements(
             grid,
             initial_temperature,
             search_radius,
@@ -291,7 +291,7 @@ class _MechanicalStepRegularizedBellFiniteElements(AbstractMechanicalStep):
         )
 
 
-def create_mechanical_step(
+def mechanical_step(
     solver, grid: Grid, params: MechanicalStepParams
 ) -> AbstractMechanicalStep:
     """Mechanical step factory."""

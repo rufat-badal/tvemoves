@@ -44,7 +44,7 @@ def austenite_potential(strain: Matrix):
     return neo_hook(strain)
 
 
-def create_martensite_potential(scaling_matrix: Matrix):
+def martensite_potential(scaling_matrix: Matrix):
     """Create martensite potential for a given scaling matrix."""
     return lambda strain: austenite_potential(strain @ scaling_matrix)
 
@@ -58,7 +58,7 @@ def gradient_austenite_potential(strain: Matrix):
     return 2 * (strain + (det_of_strain - 1 / det_of_strain - 1) * gradient_of_det)
 
 
-def create_gradient_martensite_potential(scaling_matrix: Matrix):
+def gradient_martensite_potential(scaling_matrix: Matrix):
     """Create gradient of the martensite potential for a given scaling matrix."""
     # chain rule
     return (

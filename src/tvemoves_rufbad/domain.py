@@ -101,7 +101,7 @@ def _to_barycentric_coordinates(
     return BarycentricCoordinates(u, v)
 
 
-def _create_axes() -> plt.Axes:
+def _axes() -> plt.Axes:
     _, ax = plt.subplots()
     ax.axis("off")
     ax.set_aspect(1)
@@ -173,7 +173,7 @@ class Grid:
     def plot(self, ax: plt.Axes | None = None) -> plt.Axes:
         """Returns matplotlib plot of the grid."""
         if ax is None:
-            ax = _create_axes()
+            ax = _axes()
 
         new_xlim = (-PLOT_BORDER, max(p[0] for p in self.points) + PLOT_BORDER)
         _adjust_xlim(ax, new_xlim)
@@ -191,11 +191,11 @@ class Domain(ABC):
     """Interface of a domain"""
 
     @abstractmethod
-    def create_grid(self, scale: float) -> Grid:
+    def grid(self, scale: float) -> Grid:
         """ "Create a grid adapted to the current domain."""
 
     @abstractmethod
-    def create_curves(
+    def curves(
         self,
         num_points_per_curve: int,
         num_horizontal_curves: int = 0,
@@ -228,7 +228,7 @@ class RectangleDomain(Domain):
         self.height = height
         self.fix = fix
 
-    def create_grid(self, scale: float) -> Grid:
+    def grid(self, scale: float) -> Grid:
         """Return a grid of equilateral right triangles inside the rectangle.
 
         If `scale` does not evenly divide the width or height of the rectangle (only) the rightmost
@@ -409,7 +409,7 @@ class RectangleDomain(Domain):
             points,
         )
 
-    def create_curves(
+    def curves(
         self,
         num_points_per_curve: int,
         num_horizontal_curves: int = 0,
@@ -458,7 +458,7 @@ class RectangleDomain(Domain):
 
     def plot(self, ax: plt.Axes | None = None):
         if ax is None:
-            ax = _create_axes()
+            ax = _axes()
 
         plt.xlim(-PLOT_BORDER, self.width + PLOT_BORDER)
         plt.ylim(-PLOT_BORDER, self.height + PLOT_BORDER)

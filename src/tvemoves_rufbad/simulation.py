@@ -5,7 +5,7 @@ import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
 from tvemoves_rufbad.grid import Grid
-from tvemoves_rufbad.mechanical_step import MechanicalStepParams, create_mechanical_step
+from tvemoves_rufbad.mechanical_step import MechanicalStepParams, mechanical_step
 
 
 @dataclass(frozen=True)
@@ -53,7 +53,7 @@ class Simulation:
         self._grid = grid
         self._solver = pyo.SolverFactory("ipopt")
         self.params = params
-        self._mechanical_step = create_mechanical_step(
+        self._mechanical_step = mechanical_step(
             self._solver, grid, self.params.get_mechanical_step_params()
         )
         # self._mechanical_step.solve()
