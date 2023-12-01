@@ -213,7 +213,7 @@ def shape_function_on_edge(edge_vertices: EdgeVertices, t: float) -> Vector:
     p1, p2 = edge_vertices
     b3 = p1[1] - p2[1]
     c3 = p2[0] - p1[0]
-    return _N_on_edge_lambdified(t, b3, c3)
+    return Vector(_N_on_edge_lambdified(t, b3, c3))
 
 
 def transform_gradient(
