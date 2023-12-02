@@ -1,6 +1,7 @@
 """Test shape function code."""
 
 import sympy as sp
+import random
 from tvemoves_rufbad.bell_finite_element import (
     _cyclic_permutation,
     _N_first_third,
@@ -43,7 +44,7 @@ def test_independence_of_opposite_point() -> None:
         assert ni.free_symbols.issubset({_t, _b[2], _c[2]})
 
 
-def test_shape_function() -> None:
+def test_bell_interpolation() -> None:
     """Assure that the shape function can recover a degree 4 polynomial in a triangle.
 
     see e.g. page 117 in https://people.sc.fsu.edu/~jburkardt/classes/fem_2011/chapter6.pdf
@@ -106,3 +107,11 @@ def test_shape_function() -> None:
         hessian = poly_hessian(*c_euclidean)
         hessian_approx = bell_interpolation_hessian(triangle_vertices, c, params)
         assert (hessian - hessian_approx).norm() < eps
+
+    edge_vertices = (p1, p2)
+    for _ in range(num_evaluations):
+        t = random.random()
+        p = t * p1 + (1 - t) * p2
+        value = poly(*p)
+        value_approx = bell_interpolation_on_edge(edge_vertices, t, params[:12])
+        assert abs(value - value_approx) < eps
