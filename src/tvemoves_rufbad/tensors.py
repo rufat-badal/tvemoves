@@ -24,12 +24,15 @@ class Vector:
     def __str__(self) -> str:
         return "[" + " ".join([str(self.data[i]) for i in range(self.size)]) + "]"
 
-    def __getitem__(self, i: int):
-        if i < 0 or i >= self.size:
-            raise IndexError(
-                f"index {i} is out of bounds for vector of size {self.size}"
-            )
-        return self.data[i]
+    def __getitem__(self, i: int | slice):
+        if isinstance(i, int):
+            if i < 0 or i >= self.size:
+                raise IndexError(
+                    f"index {i} is out of bounds for vector of size {self.size}"
+                )
+            return self.data[i]
+        else:
+            return Vector(self.data[i])
 
     def __neg__(self) -> Vector:
         return Vector([-x for x in self.data])
@@ -319,7 +322,7 @@ class Matrix:
 
     def numpy(self) -> npt.NDArray:
         """Return copy of the matrix as numpy array."""
-        return np.array(self.data) 
+        return np.array(self.data)
 
 
 class Tensor3D:
