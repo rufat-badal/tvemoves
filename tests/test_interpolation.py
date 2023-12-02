@@ -8,7 +8,7 @@ from tvemoves_rufbad.interpolation import (
     P1Interpolation,
     C1Interpolation,
     p1_deformation,
-    c1_deformation
+    c1_deformation,
 )
 from tvemoves_rufbad.tensors import Vector, Matrix, Tensor3D
 from tvemoves_rufbad.domain import RectangleDomain
@@ -477,6 +477,6 @@ deform_approx = c1_deformation(grid, params1, params2)
 print(deform(*p))
 print(deform_approx(triangle, w))
 print(strain(*p))
-print(hyper_strain(*p))
 print(deform_approx.strain(triangle, w))
+print(hyper_strain(*p))
 print(deform_approx.on_edge(edge, 1 / 2))

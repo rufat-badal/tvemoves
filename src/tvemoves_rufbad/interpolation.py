@@ -4,12 +4,11 @@ from abc import ABC, abstractmethod
 from tvemoves_rufbad.tensors import Vector, Matrix, Tensor3D
 from tvemoves_rufbad.domain import Grid, Triangle, Edge, BarycentricCoordinates
 from tvemoves_rufbad.bell_finite_element import (
+    bell_interpolation,
+    bell_interpolation_gradient,
+    bell_interpolation_hessian,
+    bell_interpolation_on_edge,
     transform_gradient,
-    transform_hessian,
-    shape_function,
-    shape_function_gradient,
-    shape_function_hessian_vectorized,
-    shape_function_on_edge,
 )
 
 
@@ -107,42 +106,36 @@ class C1Interpolation(Interpolation):
         barycentric_coordinates: BarycentricCoordinates,
     ):
         """Compute the value of the interpolation in a triangle."""
-        return shape_function(
-            self._grid.triangle_vertices(triangle), barycentric_coordinates
-        ).dot(self._triangle_params(triangle))
+        return bell_interpolation(
+            self._grid.triangle_vertices(triangle),
+            barycentric_coordinates,
+            self._triangle_params(triangle),
+        )
 
     def gradient(
         self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
     ) -> Vector:
         """Computes gradient of the interpolation."""
-        triangle_vertices = self._grid.triangle_vertices(triangle)
-        triangle_params = self._triangle_params(triangle)
-        barycentric_gradient = (
-            shape_function_gradient(triangle_vertices, barycentric_coordinates)
-            .transpose()
-            .dot(triangle_params)
+        return bell_interpolation_gradient(
+            self._grid.triangle_vertices(triangle),
+            barycentric_coordinates,
+            self._triangle_params(triangle),
         )
-        return transform_gradient(triangle_vertices, barycentric_gradient)
 
     def hessian(
         self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
     ) -> Matrix:
-        triangle_vertices = self._grid.triangle_vertices(triangle)
-        triangle_params = self._triangle_params(triangle)
-        barycentric_hessian_vectorized = (
-            shape_function_hessian_vectorized(
-                triangle_vertices, barycentric_coordinates
-            )
-            .transpose()
-            .dot(triangle_params)
+        return bell_interpolation_hessian(
+            self._grid.triangle_vertices(triangle),
+            barycentric_coordinates,
+            self._triangle_params(triangle),
         )
-        return transform_hessian(triangle_vertices, barycentric_hessian_vectorized)
 
     def on_edge(self, edge: Edge, t: float):
         i1, i2 = edge
-        edge_params = self._params[i1].extend(self._params[i2])
         edge_vertices = (self._grid.points[i1], self._grid.points[i2])
-        return shape_function_on_edge(edge_vertices, t).dot(edge_params)
+        edge_params = self._params[i1].extend(self._params[i2])
+        return bell_interpolation_on_edge(edge_vertices, t, edge_params)
 
 
 class Deformation:

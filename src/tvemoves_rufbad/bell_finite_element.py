@@ -128,7 +128,7 @@ def _get_c(triangle_vertices: TriangleVertices) -> tuple[float, float, float]:
     return (p3[0] - p2[0], p1[0] - p3[0], p2[0] - p1[0])
 
 
-def shape_function(
+def _shape_function(
     triangle_vertices: TriangleVertices, barycentric_coordinates: BarycentricCoordinates
 ) -> Vector:
     """Shape function for a given triangle.
@@ -150,7 +150,7 @@ _N_gradient = sp.Matrix(
 _N_gradient_lambdified = sp.lambdify(_L + _b + _c, _N_gradient)
 
 
-def shape_function_gradient(
+def _shape_function_gradient(
     triangle_vertices: TriangleVertices,
     barycentric_coordinates: BarycentricCoordinates,
 ) -> Matrix:
@@ -179,7 +179,7 @@ _N_hessian_vectorized = sp.Matrix(
 _N_hessian_vectorized_lambdified = sp.lambdify(_L + _b + _c, _N_hessian_vectorized)
 
 
-def shape_function_hessian_vectorized(
+def _shape_function_hessian_vectorized(
     triangle_vertices: TriangleVertices,
     barycentric_coordinates: BarycentricCoordinates,
 ) -> Matrix:
@@ -204,7 +204,7 @@ _N_on_edge = [_N[i].subs([(_L1, _t), (_L2, 1 - _t), (_L3, 0)]) for i in range(12
 _N_on_edge_lambdified = sp.lambdify([_t, _b3, _c3], _N_on_edge)
 
 
-def shape_function_on_edge(edge_vertices: EdgeVertices, t: float) -> Vector:
+def _shape_function_on_edge(edge_vertices: EdgeVertices, t: float) -> Vector:
     """Shape function on an edge.
 
     Returns a vector of size 6.
@@ -285,3 +285,66 @@ def transform_hessian(
             [hessian_vectorized[2], hessian_vectorized[1]],
         ]
     )
+
+
+def bell_interpolation(
+    triangle_vertices: TriangleVertices,
+    barycentric_coordinates: BarycentricCoordinates,
+    params: Vector,
+):
+    """Compute interpolaton via Bell's finite elements inside a triangle."""
+    if params.size != 18:
+        raise ValueError(
+            f"params must be a vector of size 18, but a vector of size {params.size} was provided"
+        )
+
+    return _shape_function(triangle_vertices, barycentric_coordinates).dot(params)
+
+
+def bell_interpolation_gradient(
+    triangle_vertices: TriangleVertices,
+    barycentric_coordinates: BarycentricCoordinates,
+    params: Vector,
+) -> Vector:
+    """Compute gradient of interpolaton via Bell's finite elements inside a triangle.
+
+    Returns a vector of size 2.
+    """
+    if params.size != 18:
+        raise ValueError(
+            f"params must be a vector of size 18, but a vector of size {params.size} was provided"
+        )
+
+    barycentric_gradient = (
+        _shape_function_gradient(triangle_vertices, barycentric_coordinates)
+        .transpose()
+        .dot(params)
+    )
+    return transform_gradient(triangle_vertices, barycentric_gradient)
+
+
+def bell_interpolation_hessian(
+    triangle_vertices: TriangleVertices,
+    barycentric_coordinates: BarycentricCoordinates,
+    params: Vector,
+) -> Matrix:
+    """Compute gradient of interpolaton via Bell's finite elements inside a triangle.
+
+    Returns a matrix of shape (2, 2).
+    """
+    if params.size != 18:
+        raise ValueError(
+            f"params must be a vector of size 18, but a vector of size {params.size} was provided"
+        )
+
+    barycentric_hessian_vectorized = (
+        _shape_function_hessian_vectorized(triangle_vertices, barycentric_coordinates)
+        .transpose()
+        .dot(params)
+    )
+    return transform_hessian(triangle_vertices, barycentric_hessian_vectorized)
+
+
+def bell_interpolation_on_edge(edge_vertices: EdgeVertices, t: float, params: Vector):
+    """Compute interpolaton via Bell's finite elements on an edge."""
+    return _shape_function_on_edge(edge_vertices, t).dot(params)

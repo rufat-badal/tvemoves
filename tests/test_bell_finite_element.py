@@ -13,11 +13,10 @@ from tvemoves_rufbad.bell_finite_element import (
 )
 from tvemoves_rufbad.tensors import Vector, Matrix
 from tvemoves_rufbad.bell_finite_element import (
-    shape_function,
-    shape_function_gradient,
-    shape_function_hessian_vectorized,
-    transform_gradient,
-    transform_hessian,
+    bell_interpolation,
+    bell_interpolation_gradient,
+    bell_interpolation_hessian,
+    bell_interpolation_on_edge,
 )
 from .helpers import random_symbolic_polynomial_2d, random_barycentric_coordinates
 
@@ -97,25 +96,13 @@ def test_shape_function() -> None:
     for c in random_barycentric_coordinates(num_evaluations):
         c_euclidean = c.u * p1 + c.v * p2 + c.w * p3
         value = poly(*c_euclidean)
-        value_approx = shape_function(triangle_vertices, c).dot(params)
+        value_approx = bell_interpolation(triangle_vertices, c, params)
         assert abs(value - value_approx) < eps
 
         gradient = poly_gradient(*c_euclidean)
-        barycentric_gradient_approx = (
-            shape_function_gradient(triangle_vertices, c).transpose().dot(params)
-        )
-        gradient_approx = transform_gradient(
-            triangle_vertices, barycentric_gradient_approx
-        )
+        gradient_approx = bell_interpolation_gradient(triangle_vertices, c, params)
         assert (gradient - gradient_approx).norm() < eps
 
         hessian = poly_hessian(*c_euclidean)
-        barycentric_hessian_vectorized_approx = (
-            shape_function_hessian_vectorized(triangle_vertices, c)
-            .transpose()
-            .dot(params)
-        )
-        hessian_approx = transform_hessian(
-            triangle_vertices, barycentric_hessian_vectorized_approx
-        )
+        hessian_approx = bell_interpolation_hessian(triangle_vertices, c, params)
         assert (hessian - hessian_approx).norm() < eps
