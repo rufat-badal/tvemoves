@@ -1,6 +1,5 @@
 """Test shape function code."""
 
-import sympy as sp
 import random
 from tvemoves_rufbad.bell_finite_element import (
     _cyclic_permutation,
@@ -12,14 +11,14 @@ from tvemoves_rufbad.bell_finite_element import (
     _L,
     _t,
 )
-from tvemoves_rufbad.tensors import Vector, Matrix
+from tvemoves_rufbad.tensors import Vector
 from tvemoves_rufbad.bell_finite_element import (
     bell_interpolation,
     bell_interpolation_gradient,
     bell_interpolation_hessian,
     bell_interpolation_on_edge,
 )
-from .helpers import random_symbolic_polynomial_2d, random_barycentric_coordinates
+from .helpers import random_polynomial_2d, random_barycentric_coordinates
 
 
 def test_cyclic_permutation() -> None:
@@ -53,46 +52,29 @@ def test_bell_interpolation() -> None:
     num_evaluations = 10
     eps = 1e-10
 
-    x, y = sp.symbols("x y")
     triangle_vertices = (Vector([1.0, 2.0]), Vector([5.0, 2.4]), Vector([4.5, 8.2]))
     p1, p2, p3 = triangle_vertices
 
-    poly_symbolic = random_symbolic_polynomial_2d(4, x, y)
-    poly_dx_symbolic = sp.diff(poly_symbolic, x)
-    poly_dy_symbolic = sp.diff(poly_symbolic, y)
-    poly_dxx_symbolic = sp.diff(poly_dx_symbolic, x)
-    poly_dxy_symbolic = sp.diff(poly_dx_symbolic, y)
-    assert poly_dxy_symbolic == sp.diff(poly_dy_symbolic, x)
-    poly_dyy_symbolic = sp.diff(poly_dy_symbolic, y)
-
-    poly = sp.lambdify([x, y], poly_symbolic)
-    poly_dx = sp.lambdify([x, y], poly_dx_symbolic)
-    poly_dy = sp.lambdify([x, y], poly_dy_symbolic)
-    poly_dxx = sp.lambdify([x, y], poly_dxx_symbolic)
-    poly_dxy = sp.lambdify([x, y], poly_dxy_symbolic)
-    poly_dyy = sp.lambdify([x, y], poly_dyy_symbolic)
+    poly, poly_gradient, poly_hessian = random_polynomial_2d(
+        degree=4, num_derivatives=2
+    )
 
     params_list = []
     for v in triangle_vertices:
+        poly_value = poly(v[0], v[1])
+        poly_gradient_value = poly_gradient(v[0], v[1])
+        poly_hessian_value = poly_hessian(v[0], v[1])
         params_list.extend(
             [
-                poly(v[0], v[1]),
-                poly_dx(v[0], v[1]),
-                poly_dy(v[0], v[1]),
-                poly_dxx(v[0], v[1]),
-                poly_dxy(v[0], v[1]),
-                poly_dyy(v[0], v[1]),
+                poly_value,
+                poly_gradient_value[0],
+                poly_gradient_value[1],
+                poly_hessian_value[0, 0],
+                poly_hessian_value[0, 1],
+                poly_hessian_value[1, 1],
             ]
         )
     params = Vector(params_list)
-
-    def poly_gradient(x: float, y: float) -> Vector:
-        return Vector([poly_dx(x, y), poly_dy(x, y)])
-
-    def poly_hessian(x: float, y: float) -> Matrix:
-        return Matrix(
-            [[poly_dxx(x, y), poly_dxy(x, y)], [poly_dxy(x, y), poly_dyy(x, y)]]
-        )
 
     for c in random_barycentric_coordinates(num_evaluations):
         c_euclidean = c.u * p1 + c.v * p2 + c.w * p3
