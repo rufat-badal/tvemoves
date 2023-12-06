@@ -18,7 +18,11 @@ from tvemoves_rufbad.bell_finite_element import (
     bell_interpolation_hessian,
     bell_interpolation_on_edge,
 )
-from .helpers import random_polynomial_2d, random_barycentric_coordinates
+from .helpers import (
+    random_polynomial_2d,
+    random_barycentric_coordinates,
+    triangle_c1_params,
+)
 
 
 def test_cyclic_permutation() -> None:
@@ -59,22 +63,7 @@ def test_bell_interpolation() -> None:
         degree=4, num_derivatives=2
     )
 
-    params_list = []
-    for v in triangle_vertices:
-        poly_value = poly(v[0], v[1])
-        poly_gradient_value = poly_gradient(v[0], v[1])
-        poly_hessian_value = poly_hessian(v[0], v[1])
-        params_list.extend(
-            [
-                poly_value,
-                poly_gradient_value[0],
-                poly_gradient_value[1],
-                poly_hessian_value[0, 0],
-                poly_hessian_value[0, 1],
-                poly_hessian_value[1, 1],
-            ]
-        )
-    params = Vector(params_list)
+    params = triangle_c1_params(triangle_vertices, poly, poly_gradient, poly_hessian)
 
     for c in random_barycentric_coordinates(num_evaluations):
         c_euclidean = c.u * p1 + c.v * p2 + c.w * p3
