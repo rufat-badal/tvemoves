@@ -21,7 +21,7 @@ from tvemoves_rufbad.bell_finite_element import (
 from .helpers import (
     random_polynomial_2d,
     random_barycentric_coordinates,
-    triangle_c1_params,
+    point_c1_params,
 )
 
 
@@ -63,7 +63,10 @@ def test_bell_interpolation() -> None:
         degree=4, num_derivatives=2
     )
 
-    params = triangle_c1_params(triangle_vertices, poly, poly_gradient, poly_hessian)
+    params1 = point_c1_params(p1, poly, poly_gradient, poly_hessian)
+    params2 = point_c1_params(p2, poly, poly_gradient, poly_hessian)
+    params3 = point_c1_params(p3, poly, poly_gradient, poly_hessian)
+    params = params1.extend(params2).extend(params3)
 
     for c in random_barycentric_coordinates(num_evaluations):
         c_euclidean = c.u * p1 + c.v * p2 + c.w * p3

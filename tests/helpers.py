@@ -147,27 +147,23 @@ def random_barycentric_coordinates(
     return coordinates
 
 
-def triangle_c1_params(
-    triangle_vertices: TriangleVertices,
+def point_c1_params(
+    point: Vector,
     f: Callable[[float, float], float],
     grad_f: Callable[[float, float], Vector],
     hessian_f: Callable[[float, float], Matrix],
 ) -> Vector:
-    """Compute C1 parameters in a triangle"""
-    params = []
-    for v in triangle_vertices:
-        f_value = f(v[0], v[1])
-        grad_f_value = grad_f(v[0], v[1])
-        hessian_f_value = hessian_f(v[0], v[1])
-        params.extend(
-            [
-                f_value,
-                grad_f_value[0],
-                grad_f_value[1],
-                hessian_f_value[0, 0],
-                hessian_f_value[0, 1],
-                hessian_f_value[1, 1],
-            ]
-        )
-
-    return Vector(params)
+    """Compute C1 parameters in a point"""
+    f_value = f(*point)
+    grad_f_value = grad_f(*point)
+    hessian_f_value = hessian_f(*point)
+    return Vector(
+        [
+            f_value,
+            grad_f_value[0],
+            grad_f_value[1],
+            hessian_f_value[0, 0],
+            hessian_f_value[0, 1],
+            hessian_f_value[1, 1],
+        ]
+    )
