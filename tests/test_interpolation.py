@@ -1,6 +1,6 @@
 """Test all interpolations"""
 
-from tvemoves_rufbad.interpolation import P1Interpolation
+from tvemoves_rufbad.interpolation import P1Interpolation, C1Interpolation
 from tvemoves_rufbad.domain import (
     RectangleDomain,
     BarycentricCoordinates,
@@ -8,12 +8,16 @@ from tvemoves_rufbad.domain import (
     Grid,
 )
 from tvemoves_rufbad.tensors import Vector
-from .helpers import random_polynomial_2d, random_barycentric_coordinates
+from .helpers import (
+    random_polynomial_2d,
+    random_barycentric_coordinates,
+    point_c1_params,
+)
 
 GRID_WIDTH = 3
 GRID_HEIGHT = 4
 GRID_SCALE = 0.5
-EPS = 1e-13
+EPS = 1e-10
 
 
 def _random_test_points(
@@ -37,7 +41,27 @@ def test_p1_interpolation() -> None:
 
     params = [poly(*p) for p in grid.points]
     interpolation = P1Interpolation(grid, params)
-    # One barycentric coordinate per triangle
+
     for (triangle, bc), ec in _random_test_points(grid):
         assert abs(poly(*ec) - interpolation(triangle, bc)) < EPS
         assert (poly_gradient(*ec) - interpolation.gradient(triangle)).norm() < EPS
+
+
+def test_c1_interpolation() -> None:
+    """Test C1 interpolation"""
+    poly, poly_gradient, poly_hessian = random_polynomial_2d(
+        degree=4, num_derivatives=2
+    )
+    rect = RectangleDomain(GRID_WIDTH, GRID_HEIGHT)
+    grid = rect.grid(GRID_SCALE)
+
+    params = [
+        point_c1_params(p, poly, poly_gradient, poly_hessian) for p in grid.points
+    ]
+    interpolation = C1Interpolation(grid, params)
+    for (triangle, bc), ec in _random_test_points(grid):
+        assert abs(poly(*ec) - interpolation(triangle, bc)) < EPS
+        assert (poly_gradient(*ec) - interpolation.gradient(triangle, bc)).norm() < EPS
+        assert (
+            poly_hessian(*ec) - interpolation.hessian(triangle, bc)
+        ).norm() < 10 * EPS

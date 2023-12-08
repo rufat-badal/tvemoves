@@ -157,13 +157,11 @@ def point_c1_params(
     f_value = f(*point)
     grad_f_value = grad_f(*point)
     hessian_f_value = hessian_f(*point)
-    return Vector(
-        [
-            f_value,
-            grad_f_value[0],
-            grad_f_value[1],
-            hessian_f_value[0, 0],
-            hessian_f_value[0, 1],
-            hessian_f_value[1, 1],
-        ]
-    )
+    return [
+        f_value,
+        grad_f_value[0],
+        grad_f_value[1],
+        hessian_f_value[0, 0],
+        hessian_f_value[0, 1],
+        hessian_f_value[1, 1],
+    ]
