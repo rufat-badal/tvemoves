@@ -4,7 +4,7 @@
 import random
 from typing import Callable
 import sympy as sp
-from tvemoves_rufbad.domain import BarycentricCoordinates, TriangleVertices
+from tvemoves_rufbad.domain import BarycentricCoordinates
 from tvemoves_rufbad.tensors import Vector, Matrix
 
 Expr = sp.core.expr.Expr
@@ -48,12 +48,7 @@ def random_polynomial_symbolic_2d(degree: int, num_derivatives: int = 0):
     return random_poly_and_derivatives, [x, y]
 
 
-Func2d = Callable[[float, float], any]
-
-
-def random_polynomial_2d(
-    degree: int, num_derivatives: int = 0
-) -> Func2d | list[Func2d]:
+def random_polynomial_2d(degree: int, num_derivatives: int = 0):
     """Generate a random 2d polynomial and possibly some of its derivatives.
     The coefficients are uniformly random in the interval (-10, 10).
     """
@@ -114,12 +109,7 @@ def random_polynomial_symbolic_1d(degree: int, num_derivatives: int = 0):
     return random_poly_and_derivatives, x
 
 
-Func1d = Callable[[float], any]
-
-
-def random_polynomial_1d(
-    degree: int, num_derivatives: int = 0
-) -> Func1d | list[Func1d]:
+def random_polynomial_1d(degree: int, num_derivatives: int = 0):
     """Generate random 1d polynomial and possibly some of its derivatives.
     The coefficients are uniformly random in the interval (-10, 10).
     """
@@ -152,7 +142,7 @@ def point_c1_params(
     f: Callable[[float, float], float],
     grad_f: Callable[[float, float], Vector],
     hessian_f: Callable[[float, float], Matrix],
-) -> Vector:
+) -> list:
     """Compute C1 parameters in a point"""
     f_value = f(*point)
     grad_f_value = grad_f(*point)

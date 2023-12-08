@@ -63,9 +63,9 @@ def test_bell_interpolation() -> None:
         degree=4, num_derivatives=2
     )
 
-    params1 = point_c1_params(p1, poly, poly_gradient, poly_hessian)
-    params2 = point_c1_params(p2, poly, poly_gradient, poly_hessian)
-    params3 = point_c1_params(p3, poly, poly_gradient, poly_hessian)
+    params1 = Vector(point_c1_params(p1, poly, poly_gradient, poly_hessian))
+    params2 = Vector(point_c1_params(p2, poly, poly_gradient, poly_hessian))
+    params3 = Vector(point_c1_params(p3, poly, poly_gradient, poly_hessian))
     params = params1.extend(params2).extend(params3)
 
     for c in random_barycentric_coordinates(num_evaluations):

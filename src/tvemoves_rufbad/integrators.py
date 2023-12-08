@@ -32,7 +32,7 @@ class Integrator:
             triangle_area
             * sum(
                 weight * integrand(triangle, point)
-                for (point, weight) in zip(
+                for point, weight in zip(
                     self._quadrature.points, self._quadrature.weights
                 )
             )

@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 import pyomo.environ as pyo
 import numpy.typing as npt
 import numpy as np
-from tvemoves_rufbad.interpolation import P1Deformation, P1Interpolation
+from tvemoves_rufbad.interpolation import Deformation, P1Interpolation
 from tvemoves_rufbad.quadrature_rules import DUNAVANT2, CENTROID
 from tvemoves_rufbad.tensors import Matrix
 from tvemoves_rufbad.integrators import Integrator

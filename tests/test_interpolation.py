@@ -44,7 +44,7 @@ def test_p1_interpolation() -> None:
 
     for (triangle, bc), ec in _random_test_points(grid):
         assert abs(poly(*ec) - interpolation(triangle, bc)) < EPS
-        assert (poly_gradient(*ec) - interpolation.gradient(triangle)).norm() < EPS
+        assert (poly_gradient(*ec) - interpolation.gradient(triangle, bc)).norm() < EPS
 
 
 def test_c1_interpolation() -> None:

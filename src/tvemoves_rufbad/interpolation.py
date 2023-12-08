@@ -29,7 +29,7 @@ class Interpolation(ABC):
 
     @abstractmethod
     def gradient(
-        self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates | None
+        self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
     ) -> Vector:
         """Compute the gradient of the interpolation in a triangle."""
 
@@ -56,10 +56,11 @@ class P1Interpolation(Interpolation):
         l1, l2, l3 = barycentric_coordinates
         return l1 * self._params[i1] + l2 * self._params[i2] + l3 * self._params[i3]
 
-    def gradient(self, triangle: Triangle, barycentric_coordinates=None) -> Vector:
+    def gradient(
+        self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
+    ) -> Vector:
         # Unused argument 'barycentric_coordinates' assures the same calling convention
         # as in the case of the C1 interpolation
-        del barycentric_coordinates
         i1, i2, i3 = triangle
         barycentric_gradient = Vector(
             [self._params[i1], self._params[i2], self._params[i3]]
@@ -92,9 +93,7 @@ class C1Interpolation(Interpolation):
         if any(len(p) != 6 for p in params):
             raise ValueError("each parameter provided must be a list of 6 elements")
 
-        params = [Vector(p) for p in params]
-
-        super().__init__(grid, params)
+        super().__init__(grid, [Vector(p) for p in params])
 
     def _triangle_params(self, triangle: Triangle) -> Vector:
         i1, i2, i3 = triangle
@@ -165,7 +164,7 @@ class Deformation:
     def strain(
         self,
         triangle: Triangle,
-        barycentric_coordinates: BarycentricCoordinates | None = None,
+        barycentric_coordinates: BarycentricCoordinates,
     ) -> Matrix:
         """Compute the strain of the deformation in a triangle."""
         return (
@@ -192,24 +191,19 @@ class Deformation:
         return hessian_y1.stack(hessian_y2)
 
 
-def _deformation_general(
-    grid: Grid,
-    y1_params: list[list],
-    y2_params: list[list],
-    interpolation: Interpolation,
-) -> Deformation:
-    return Deformation(interpolation(grid, y1_params), interpolation(grid, y2_params))
-
-
 def p1_deformation(
     grid: Grid, y1_params: list[list], y2_params: list[list]
 ) -> Deformation:
     """Deformation computed via piecewise affine interpolation."""
-    return _deformation_general(grid, y1_params, y2_params, P1Interpolation)
+    return Deformation(
+        P1Interpolation(grid, y1_params), P1Interpolation(grid, y2_params)
+    )
 
 
 def c1_deformation(
     grid: Grid, y1_params: list[list], y2_params: list[list]
 ) -> Deformation:
     """Deformation computed via C1 interpolation."""
-    return _deformation_general(grid, y1_params, y2_params, C1Interpolation)
+    return Deformation(
+        C1Interpolation(grid, y1_params), C1Interpolation(grid, y2_params)
+    )

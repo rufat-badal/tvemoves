@@ -3,6 +3,7 @@
 from math import isclose
 from typing import Iterator
 from numpy.polynomial.legendre import leggauss
+from tvemoves_rufbad.domain import BarycentricCoordinates
 
 
 class TriangleQuadratureRule:
@@ -18,10 +19,10 @@ class TriangleQuadratureRule:
         if not isclose(sum(w for w in weights), 1):
             raise ValueError("weights must sum up to 1")
 
-        self.points = [(p[0], p[1], 1 - p[0] - p[1]) for p in points]
+        self.points = [BarycentricCoordinates(p[0], p[1]) for p in points]
         self.weights = weights
 
-    def __iter__(self) -> Iterator[tuple[float, tuple[float, float, float]]]:
+    def __iter__(self) -> Iterator[tuple[float, BarycentricCoordinates]]:
         return zip(self.weights, self.points)
 
 
