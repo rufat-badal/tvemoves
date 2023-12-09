@@ -136,7 +136,7 @@ def _to_cartesian_point(barycentric_point: BarycentricPoint, grid: Grid) -> Vect
     i1, i2, i3 = barycentric_point.triangle
     p1, p2, p3 = grid.points[i1], grid.points[i2], grid.points[i3]
     coords = barycentric_point.coordinates
-    return coords.u * p1 + coords.v * p2 + coords.w * p3
+    return coords.l1 * p1 + coords.l2 * p2 + coords.l3 * p3
 
 
 def test_to_barycentric_curve() -> None:
