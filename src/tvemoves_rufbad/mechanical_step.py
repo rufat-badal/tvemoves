@@ -227,7 +227,7 @@ def _model_regularized(
     return m
 
 
-class _MechanicalStepRegularizedBellFiniteElements(AbstractMechanicalStep):
+class _MechanicalStepRegularized(AbstractMechanicalStep):
     """Mechanical step with regularization using Bell finite elements for the deformation."""
 
     def __init__(
@@ -284,7 +284,7 @@ def mechanical_step(solver, grid: Grid, params: MechanicalStepParams) -> Abstrac
             params.fps,
         )
 
-    return _MechanicalStepRegularizedBellFiniteElements(
+    return _MechanicalStepRegularized(
         solver,
         grid,
         params.initial_temperature,
@@ -293,3 +293,16 @@ def mechanical_step(solver, grid: Grid, params: MechanicalStepParams) -> Abstrac
         params.fps,
         params.regularization,
     )
+
+
+_params = MechanicalStepParams(
+    initial_temperature=0, search_radius=10, shape_memory_scaling=2, fps=3, regularization=1
+)
+print(_params)
+_solver = pyo.SolverFactory("ipopt")
+from tvemoves_rufbad.domain import RectangleDomain
+
+_square = RectangleDomain(1, 1)
+_grid = _square.grid(1)
+_mech_step = mechanical_step(_solver, _grid, _params)
+_mech_step._model.display()
