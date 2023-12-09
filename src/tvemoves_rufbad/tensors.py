@@ -121,8 +121,10 @@ class BarycentricCoordinates:
     size: int = 3
 
     def __init__(self, l1, l2):
-        l3 = 1 - l1 - l2
-        self._data = [l1, l2, l3]
+        self.l1 = l1
+        self.l2 = l2
+        self.l3 = 1 - self.l1 - self.l2
+        self._data = [self.l1, self.l2, self.l3]
 
     def __repr__(self) -> str:
         return "BarycentricCoordinates(" + ", ".join([repr(x) for x in self._data]) + ")"
@@ -143,6 +145,24 @@ class BarycentricCoordinates:
 
     def __len__(self) -> int:
         return BarycentricCoordinates.size
+
+
+class Vector2D(Vector):
+    """Special vector class for 2D vectors.
+
+    All operations use the corresponding ones of the Vector class.
+    """
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        super().__init__([self.x, self.y])
+
+    def __str__(self) -> str:
+        return f"{self.x}, {self.y}"
+
+    def __repr__(self) -> str:
+        return f"Vector2D({self.x}, {self.y})"
 
 
 def sign(p):
