@@ -164,13 +164,21 @@ class Grid:
 
         return ax
 
-    def triangle_vertices(self, triangle) -> TriangleVertices:
+    def triangle_vertices(self, triangle: Triangle) -> TriangleVertices:
         """Transform triangle indices into points."""
         if triangle not in self.triangles:
             raise ValueError("Provided triangle is not in the list of triangles")
 
         i1, i2, i3 = triangle
         return (self.points[i1], self.points[i2], self.points[i3])
+
+    def edge_vertices(self, edge: Edge) -> EdgeVertices:
+        """Transform triangle indices into points."""
+        if edge not in self.edges:
+            raise ValueError("Provided triangle is not in the list of triangles")
+
+        i1, i2 = edge
+        return (self.points[i1], self.points[i2])
 
 
 class Domain(ABC):

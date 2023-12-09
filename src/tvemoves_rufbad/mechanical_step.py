@@ -187,7 +187,9 @@ def _model_regularized(
 ) -> pyo.ConcreteModel:
     m = pyo.ConcreteModel("Mechanical Step with Regularization")
     m.vertices = pyo.RangeSet(len(grid.vertices))
+    m.dirichlet_edges = pyo.RangeSet(len(grid.dirichlet_boundary.edges))
     m.deformation_indices = m.vertices * pyo.RangeSet(6)
+    m.dirichlet_constraint_indices = m.dirichlet_edges * pyo.RangeSet(6)
 
     initial_y1 = [[p[0], 1, 0, 0, 0, 0] for p in grid.points]
     initial_y2 = [[p[1], 0, 1, 0, 0, 0] for p in grid.points]
@@ -224,7 +226,55 @@ def _model_regularized(
         m.y1[v + 1, 1].fix()
         m.y2[v + 1, 1].fix()
 
+    # Add dirichlet constraints.
+    # We use the fact that y should be the identity map on any Dirichlet edge
+    # and that C1 params encode all partial derivatives up to second order.
+    # This way we can formulate for each component of y 3 conditions per edge vertex:
+    # one for the value of the restriction of y to the edge, on for its first derivative,
+    # and one for its second derivative.
+    m.y1_constraints = pyo.Constraint(
+        m.dirichlet_constraint_indices,
+        rule=lambda model, i, j: _dirichlet_constraint_regularized(
+            model.y1,
+            grid.dirichlet_boundary.edges[i - 1],
+            grid.edge_vertices(grid.dirichlet_boundary.edges[i - 1]),
+            constraint_id=j,
+            y_component=0,
+        ),
+    )
+    m.y2_constraints = pyo.Constraint(
+        m.dirichlet_constraint_indices,
+        rule=lambda model, i, j: _dirichlet_constraint_regularized(
+            model.y2,
+            grid.dirichlet_boundary.edges[i - 1],
+            grid.edge_vertices(grid.dirichlet_boundary.edges[i - 1]),
+            constraint_id=j,
+            y_component=1,
+        ),
+    )
+
     return m
+
+
+def _dirichlet_constraint_regularized(y, edge, edge_vertices, constraint_id, y_component):
+    p, q = edge_vertices
+    d = q - p
+    i, j = edge
+    i += 1
+    j += 1
+    match constraint_id:
+        case 1:
+            return y[i, 1] == p[y_component]
+        case 2:
+            return y[i, 2] * d[0] + y[i, 3] * d[1] == d[y_component]
+        case 3:
+            return y[i, 4] * d[0] ** 2 + 2 * y[i, 5] * d[0] * d[1] + y[i, 6] * d[1] ** 2 == 0
+        case 4:
+            return y[j, 1] == q[y_component]
+        case 5:
+            return y[j, 2] * d[0] + y[j, 3] * d[1] == d[y_component]
+        case 6:
+            return y[j, 4] * d[0] ** 2 + 2 * y[j, 5] * d[0] * d[1] + y[j, 6] * d[1] ** 2 == 0
 
 
 class _MechanicalStepRegularized(AbstractMechanicalStep):
@@ -255,20 +305,20 @@ class _MechanicalStepRegularized(AbstractMechanicalStep):
         self._solver.solve(self._model)
 
     def prev_y(self) -> npt.NDArray[np.float64]:
-        """Return the previous deformation as Nx2x6 numpy array, where N is the number of vertices."""
+        """Return the previous deformation as a Nx2x6 numpy array, where N is the number of vertices."""
         return np.array([
             [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
             for i in range(self._num_vertices)
         ])
 
     def y(self) -> npt.NDArray[np.float64]:
-        """Return the current deformation as Nx2x6 numpy array, where N is the number of vertices."""
+        """Return the current deformation as a Nx2x6 numpy array, where N is the number of vertices."""
         return np.array([
             [self._model.y1[i].value, self._model.y2[i].value] for i in range(self._num_vertices)
         ])
 
     def prev_theta(self) -> npt.NDArray[np.float64]:
-        """Return the previous temperature as vector of length N, where N is the number of vertices."""
+        """Return the previous temperature as a vector of length N, where N is the number of vertices."""
         return np.array([self._model.prev_theta[i].value for i in range(self._num_vertices)])
 
 
@@ -298,11 +348,13 @@ def mechanical_step(solver, grid: Grid, params: MechanicalStepParams) -> Abstrac
 _params = MechanicalStepParams(
     initial_temperature=0, search_radius=10, shape_memory_scaling=2, fps=3, regularization=1
 )
-print(_params)
 _solver = pyo.SolverFactory("ipopt")
 from tvemoves_rufbad.domain import RectangleDomain
 
-_square = RectangleDomain(1, 1)
+_square = RectangleDomain(1, 1, fix="left")
 _grid = _square.grid(1)
 _mech_step = mechanical_step(_solver, _grid, _params)
-_mech_step._model.display()
+for i, j in _mech_step._model.y1_constraints:
+    print(_mech_step._model.y1_constraints[i, j].expr)
+for i, j in _mech_step._model.y2_constraints:
+    print(_mech_step._model.y2_constraints[i, j].expr)
