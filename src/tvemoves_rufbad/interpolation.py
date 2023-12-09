@@ -1,8 +1,8 @@
 """Module providing interpolations in triangles."""
 
 from abc import ABC, abstractmethod
-from tvemoves_rufbad.tensors import Vector, Matrix, Tensor3D
-from tvemoves_rufbad.domain import Grid, Triangle, Edge, BarycentricCoordinates
+from tvemoves_rufbad.tensors import Vector, BarycentricCoordinates, Matrix, Tensor3D
+from tvemoves_rufbad.domain import Grid, Triangle, Edge
 from tvemoves_rufbad.bell_finite_element import (
     bell_interpolation,
     bell_interpolation_gradient,
@@ -22,9 +22,7 @@ class Interpolation(ABC):
         self._params = params
 
     @abstractmethod
-    def __call__(
-        self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
-    ):
+    def __call__(self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates):
         """Compute the value of the interpolation in a triangle."""
 
     @abstractmethod
@@ -62,12 +60,8 @@ class P1Interpolation(Interpolation):
         # Unused argument 'barycentric_coordinates' assures the same calling convention
         # as in the case of the C1 interpolation
         i1, i2, i3 = triangle
-        barycentric_gradient = Vector(
-            [self._params[i1], self._params[i2], self._params[i3]]
-        )
-        return transform_gradient(
-            self._grid.triangle_vertices(triangle), barycentric_gradient
-        )
+        barycentric_gradient = Vector([self._params[i1], self._params[i2], self._params[i3]])
+        return transform_gradient(self._grid.triangle_vertices(triangle), barycentric_gradient)
 
     def on_edge(self, edge: Edge, t: float):
         i1, i2 = edge
@@ -140,9 +134,7 @@ class C1Interpolation(Interpolation):
 class Deformation:
     """Interpolation of a deformation."""
 
-    def __init__(
-        self, y1_interpolation: Interpolation, y2_interpolation: Interpolation
-    ):
+    def __init__(self, y1_interpolation: Interpolation, y2_interpolation: Interpolation):
         self._y = [y1_interpolation, y2_interpolation]
 
     def __getitem__(self, i: int):
@@ -154,12 +146,10 @@ class Deformation:
         triangle: Triangle,
         barycentric_coordinates: BarycentricCoordinates,
     ) -> Vector:
-        return Vector(
-            [
-                self._y[0](triangle, barycentric_coordinates),
-                self._y[1](triangle, barycentric_coordinates),
-            ]
-        )
+        return Vector([
+            self._y[0](triangle, barycentric_coordinates),
+            self._y[1](triangle, barycentric_coordinates),
+        ])
 
     def strain(
         self,
@@ -175,12 +165,10 @@ class Deformation:
 
     def on_edge(self, edge: Edge, t: float):
         """Compute the deformation on an edge."""
-        return Vector(
-            [
-                self._y[0].on_edge(edge, t),
-                self._y[1].on_edge(edge, t),
-            ]
-        )
+        return Vector([
+            self._y[0].on_edge(edge, t),
+            self._y[1].on_edge(edge, t),
+        ])
 
     def hyper_strain(
         self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
@@ -191,19 +179,11 @@ class Deformation:
         return hessian_y1.stack(hessian_y2)
 
 
-def p1_deformation(
-    grid: Grid, y1_params: list[list], y2_params: list[list]
-) -> Deformation:
+def p1_deformation(grid: Grid, y1_params: list[list], y2_params: list[list]) -> Deformation:
     """Deformation computed via piecewise affine interpolation."""
-    return Deformation(
-        P1Interpolation(grid, y1_params), P1Interpolation(grid, y2_params)
-    )
+    return Deformation(P1Interpolation(grid, y1_params), P1Interpolation(grid, y2_params))
 
 
-def c1_deformation(
-    grid: Grid, y1_params: list[list], y2_params: list[list]
-) -> Deformation:
+def c1_deformation(grid: Grid, y1_params: list[list], y2_params: list[list]) -> Deformation:
     """Deformation computed via C1 interpolation."""
-    return Deformation(
-        C1Interpolation(grid, y1_params), C1Interpolation(grid, y2_params)
-    )
+    return Deformation(C1Interpolation(grid, y1_params), C1Interpolation(grid, y2_params))

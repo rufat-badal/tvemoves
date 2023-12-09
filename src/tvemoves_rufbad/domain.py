@@ -1,38 +1,23 @@
 """"Domain class that in particular can create grids"""
 
-from typing import Literal, Iterator
 from dataclasses import dataclass
+from typing import Literal
 from abc import ABC, abstractmethod
 from matplotlib import pyplot as plt
 from matplotlib import patches
-from tvemoves_rufbad.tensors import Vector
+from tvemoves_rufbad.tensors import Vector, BarycentricCoordinates
 
 PLOT_BORDER = 0.05
 PLOT_LINEWIDTH = 1.5
 PLOT_VERTEX_SIZE = 15
 
 
-class BarycentricCoordinates:
-    """Barycentric coordinates"""
-
-    def __init__(self, u: float, v: float):
-        self.u = u
-        self.v = v
-        self.w = 1 - u - v
-
-    def __str__(self) -> str:
-        return f"({self.u}, {self.v}, {self.w})"
-
-    def __repr__(self) -> str:
-        return f"BarycentricCoordinates{self.__str__()}"
-
-    def __iter__(self) -> Iterator[float]:
-        return iter([self.u, self.v, self.w])
-
-
 Vertex = int
 Edge = tuple[Vertex, Vertex]
 Triangle = tuple[Vertex, Vertex, Vertex]
+Curve = list[Vector]
+TriangleVertices = tuple[Vector, Vector, Vector]
+EdgeVertices = tuple[Vector, Vector]
 
 
 @dataclass
@@ -43,7 +28,6 @@ class BarycentricPoint:
     coordinates: BarycentricCoordinates
 
 
-Curve = list[Vector]
 BarycentricCurve = list[BarycentricPoint]
 
 
@@ -53,10 +37,6 @@ class Boundary:
 
     vertices: list[Vertex]
     edges: list[Edge]
-
-
-TriangleVertices = tuple[Vector, Vector, Vector]
-EdgeVertices = tuple[Vector, Vector]
 
 
 def _sign(triangle_vertices: TriangleVertices):
@@ -141,9 +121,7 @@ class Grid:
             i1, i2, i3 = triangle
             triangle_vertices = (self.points[i1], self.points[i2], self.points[i3])
             if _triangle_contains_point(triangle_vertices, p):
-                return BarycentricPoint(
-                    triangle, _to_barycentric_coordinates(triangle_vertices, p)
-                )
+                return BarycentricPoint(triangle, _to_barycentric_coordinates(triangle_vertices, p))
         return None
 
     def to_barycentric_curve(self, curve: Curve) -> BarycentricCurve:
@@ -288,16 +266,13 @@ class RectangleDomain(Domain):
         ]
         triangles = lower_triangles + upper_triangles
 
-        lower_boundary_vertices = set(
-            pair_to_vertex(i, 0) for i in range(num_horizontal_vertices)
-        )
+        lower_boundary_vertices = set(pair_to_vertex(i, 0) for i in range(num_horizontal_vertices))
         lower_boundary_edges = [
             (pair_to_vertex(i, 0), pair_to_vertex(i + 1, 0))
             for i in range(num_horizontal_vertices - 1)
         ]
         right_boundary_vertices = set(
-            pair_to_vertex(num_horizontal_vertices - 1, j)
-            for j in range(num_vertical_vertices)
+            pair_to_vertex(num_horizontal_vertices - 1, j) for j in range(num_vertical_vertices)
         )
         right_boundary_edges = [
             (
@@ -307,8 +282,7 @@ class RectangleDomain(Domain):
             for j in range(num_vertical_vertices - 1)
         ]
         upper_boundary_vertices = set(
-            pair_to_vertex(i, num_vertical_vertices - 1)
-            for i in range(num_horizontal_vertices)
+            pair_to_vertex(i, num_vertical_vertices - 1) for i in range(num_horizontal_vertices)
         )
         upper_boundary_edges = [
             (
@@ -317,9 +291,7 @@ class RectangleDomain(Domain):
             )
             for i in range(num_horizontal_vertices - 1)
         ]
-        left_boundary_vertices = set(
-            pair_to_vertex(0, j) for j in range(num_vertical_vertices)
-        )
+        left_boundary_vertices = set(pair_to_vertex(0, j) for j in range(num_vertical_vertices))
         left_boundary_edges = [
             (pair_to_vertex(0, j), pair_to_vertex(0, j + 1))
             for j in range(num_vertical_vertices - 1)
@@ -331,10 +303,7 @@ class RectangleDomain(Domain):
             .union(left_boundary_vertices)
         )
         boundary_edges = (
-            lower_boundary_edges
-            + right_boundary_edges
-            + upper_boundary_edges
-            + left_boundary_edges
+            lower_boundary_edges + right_boundary_edges + upper_boundary_edges + left_boundary_edges
         )
         boundary = Boundary(boundary_vertices, boundary_edges)
 
@@ -357,9 +326,7 @@ class RectangleDomain(Domain):
                         left_boundary_vertices
                     )
                 )
-                neumann_edges = (
-                    right_boundary_edges + upper_boundary_edges + left_boundary_edges
-                )
+                neumann_edges = right_boundary_edges + upper_boundary_edges + left_boundary_edges
             case "right":
                 dirichlet_vertices = list(right_boundary_vertices)
                 dirichlet_edges = right_boundary_edges
@@ -368,9 +335,7 @@ class RectangleDomain(Domain):
                         lower_boundary_vertices
                     )
                 )
-                neumann_edges = (
-                    upper_boundary_edges + left_boundary_edges + lower_boundary_edges
-                )
+                neumann_edges = upper_boundary_edges + left_boundary_edges + lower_boundary_edges
             case "upper":
                 dirichlet_vertices = list(upper_boundary_vertices)
                 dirichlet_edges = upper_boundary_edges
@@ -379,9 +344,7 @@ class RectangleDomain(Domain):
                         right_boundary_vertices
                     )
                 )
-                neumann_edges = (
-                    left_boundary_edges + lower_boundary_edges + right_boundary_edges
-                )
+                neumann_edges = left_boundary_edges + lower_boundary_edges + right_boundary_edges
             case "left":
                 dirichlet_vertices = list(left_boundary_vertices)
                 dirichlet_edges = left_boundary_edges
@@ -390,20 +353,16 @@ class RectangleDomain(Domain):
                         upper_boundary_vertices
                     )
                 )
-                neumann_edges = (
-                    lower_boundary_edges + right_boundary_edges + upper_boundary_edges
-                )
+                neumann_edges = lower_boundary_edges + right_boundary_edges + upper_boundary_edges
 
         dirichlet_boundary = Boundary(dirichlet_vertices, dirichlet_edges)
         neumann_boundary = Boundary(neumann_vertices, neumann_edges)
 
         points = [
-            Vector(
-                [
-                    v % num_horizontal_vertices * scale,
-                    v // num_horizontal_vertices * scale,
-                ]
-            )
+            Vector([
+                v % num_horizontal_vertices * scale,
+                v // num_horizontal_vertices * scale,
+            ])
             for v in vertices
         ]
 
@@ -438,12 +397,10 @@ class RectangleDomain(Domain):
 
         horizontal_curves = [
             [
-                Vector(
-                    [
-                        i * self.width / (num_points_per_curve - 1),
-                        j * self.height / (num_all_horizontal_curves - 1),
-                    ]
-                )
+                Vector([
+                    i * self.width / (num_points_per_curve - 1),
+                    j * self.height / (num_all_horizontal_curves - 1),
+                ])
                 for i in range(num_points_per_curve)
             ]
             for j in range(num_all_horizontal_curves)
@@ -451,12 +408,10 @@ class RectangleDomain(Domain):
 
         vertical_curves = [
             [
-                Vector(
-                    [
-                        j * self.width / (num_all_vertical_curves - 1),
-                        i * self.height / (num_points_per_curve - 1),
-                    ]
-                )
+                Vector([
+                    j * self.width / (num_all_vertical_curves - 1),
+                    i * self.height / (num_points_per_curve - 1),
+                ])
                 for i in range(num_points_per_curve)
             ]
             for j in range(num_all_vertical_curves)

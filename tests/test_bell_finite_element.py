@@ -18,20 +18,14 @@ from tvemoves_rufbad.bell_finite_element import (
     bell_interpolation_hessian,
     bell_interpolation_on_edge,
 )
-from .helpers import (
-    random_polynomial_2d,
-    random_barycentric_coordinates,
-    point_c1_params,
-)
+from .helpers import random_polynomial_2d, random_barycentric_coordinates, point_c1_params
 
 
 def test_cyclic_permutation() -> None:
     """Assure that cyclic permutation restores the original expression."""
     n_first_third_new = _N_first_third
     for _ in range(3):
-        n_first_third_new = [
-            _cyclic_permutation(ni, _L, _b, _c) for ni in n_first_third_new
-        ]
+        n_first_third_new = [_cyclic_permutation(ni, _L, _b, _c) for ni in n_first_third_new]
     assert all(ni_new == ni for ni_new, ni in zip(n_first_third_new, _N_first_third))
 
 
@@ -59,9 +53,7 @@ def test_bell_interpolation() -> None:
     triangle_vertices = (Vector([1.0, 2.0]), Vector([5.0, 2.4]), Vector([4.5, 8.2]))
     p1, p2, p3 = triangle_vertices
 
-    poly, poly_gradient, poly_hessian = random_polynomial_2d(
-        degree=4, num_derivatives=2
-    )
+    poly, poly_gradient, poly_hessian = random_polynomial_2d(degree=4, num_derivatives=2)
 
     params1 = Vector(point_c1_params(p1, poly, poly_gradient, poly_hessian))
     params2 = Vector(point_c1_params(p2, poly, poly_gradient, poly_hessian))
@@ -69,7 +61,7 @@ def test_bell_interpolation() -> None:
     params = params1.extend(params2).extend(params3)
 
     for c in random_barycentric_coordinates(num_evaluations):
-        c_euclidean = c.u * p1 + c.v * p2 + c.w * p3
+        c_euclidean = c.l1 * p1 + c.l2 * p2 + c.l3 * p3
         value = poly(*c_euclidean)
         value_approx = bell_interpolation(triangle_vertices, c, params)
         assert abs(value - value_approx) < eps

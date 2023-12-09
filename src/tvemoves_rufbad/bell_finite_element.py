@@ -3,12 +3,8 @@
 # see also: https://doi.org/10.1002/nme.1620300303
 
 import sympy as sp
-from tvemoves_rufbad.tensors import Vector, Matrix
-from tvemoves_rufbad.domain import (
-    BarycentricCoordinates,
-    TriangleVertices,
-    EdgeVertices,
-)
+from tvemoves_rufbad.tensors import Vector, Matrix, BarycentricCoordinates
+from tvemoves_rufbad.domain import TriangleVertices, EdgeVertices
 
 
 _L1, _L2, _L3 = sp.symbols("L1 L2 L3")
@@ -17,12 +13,10 @@ _b1, _b2, _b3 = sp.symbols("b1 b2 b3")
 _b = [_b1, _b2, _b3]
 _c1, _c2, _c3 = sp.symbols("c1 c2 c3")
 _c = [_c1, _c2, _c3]
-_r = sp.Matrix(
-    [
-        [-(_b[i] * _b[j] + _c[i] * _c[j]) / (_b[i] ** 2 + _c[i] ** 2) for j in range(3)]
-        for i in range(3)
-    ]
-)
+_r = sp.Matrix([
+    [-(_b[i] * _b[j] + _c[i] * _c[j]) / (_b[i] ** 2 + _c[i] ** 2) for j in range(3)]
+    for i in range(3)
+])
 _r21 = _r[1, 0]
 _r31 = _r[2, 0]
 
@@ -87,16 +81,12 @@ def _single_cyclic_permutation(
 
     s = sp.Symbol("s")
     replacements = [(variable[-1], s)]
-    replacements.extend(
-        [(variable[i - 1], variable[i]) for i in range(len(variable) - 1, 0, -1)]
-    )
+    replacements.extend([(variable[i - 1], variable[i]) for i in range(len(variable) - 1, 0, -1)])
     replacements.append((s, variable[0]))
     return expr.subs(replacements)
 
 
-def _cyclic_permutation(
-    expr: sp.core.expr.Expr, *variables: list[sp.Symbol]
-) -> sp.core.expr.Expr:
+def _cyclic_permutation(expr: sp.core.expr.Expr, *variables: list[sp.Symbol]) -> sp.core.expr.Expr:
     for variable in variables:
         expr = _single_cyclic_permutation(expr, variable)
     return expr
@@ -144,9 +134,7 @@ def _shape_function(
     )
 
 
-_N_gradient = sp.Matrix(
-    [[sp.diff(_N[i], _L[j]) for j in range(3)] for i in range(3 * 6)]
-)
+_N_gradient = sp.Matrix([[sp.diff(_N[i], _L[j]) for j in range(3)] for i in range(3 * 6)])
 _N_gradient_lambdified = sp.lambdify(_L + _b + _c, _N_gradient)
 
 
@@ -167,15 +155,12 @@ def _shape_function_gradient(
     )
 
 
-_N_hessian = sp.Array(
-    [
-        [[sp.diff(_N[i], _L[j], _L[k]) for k in range(3)] for j in range(3)]
-        for i in range(3 * 6)
-    ]
-)
-_N_hessian_vectorized = sp.Matrix(
-    [[H[0, 0], H[1, 1], H[2, 2], H[0, 1], H[0, 2], H[1, 2]] for H in _N_hessian]
-)
+_N_hessian = sp.Array([
+    [[sp.diff(_N[i], _L[j], _L[k]) for k in range(3)] for j in range(3)] for i in range(3 * 6)
+])
+_N_hessian_vectorized = sp.Matrix([
+    [H[0, 0], H[1, 1], H[2, 2], H[0, 1], H[0, 2], H[1, 2]] for H in _N_hessian
+])
 _N_hessian_vectorized_lambdified = sp.lambdify(_L + _b + _c, _N_hessian_vectorized)
 
 
@@ -250,41 +235,37 @@ def transform_hessian(
     delta = sum(a) / 2
     b = _get_b(triangle_vertices)
     c = _get_c(triangle_vertices)
-    trafo_matrix = Matrix(
+    trafo_matrix = Matrix([
         [
-            [
-                b[0] ** 2,
-                b[1] ** 2,
-                b[2] ** 2,
-                2 * b[0] * b[1],
-                2 * b[0] * b[2],
-                2 * b[1] * b[2],
-            ],
-            [
-                c[0] ** 2,
-                c[1] ** 2,
-                c[2] ** 2,
-                2 * c[0] * c[1],
-                2 * c[0] * c[2],
-                2 * c[1] * c[2],
-            ],
-            [
-                b[0] * c[0],
-                b[1] * c[1],
-                b[2] * c[2],
-                b[0] * c[1] + b[1] * c[0],
-                b[0] * c[2] + b[2] * c[0],
-                b[1] * c[2] + b[2] * c[1],
-            ],
-        ]
-    ) / (4 * delta**2)
+            b[0] ** 2,
+            b[1] ** 2,
+            b[2] ** 2,
+            2 * b[0] * b[1],
+            2 * b[0] * b[2],
+            2 * b[1] * b[2],
+        ],
+        [
+            c[0] ** 2,
+            c[1] ** 2,
+            c[2] ** 2,
+            2 * c[0] * c[1],
+            2 * c[0] * c[2],
+            2 * c[1] * c[2],
+        ],
+        [
+            b[0] * c[0],
+            b[1] * c[1],
+            b[2] * c[2],
+            b[0] * c[1] + b[1] * c[0],
+            b[0] * c[2] + b[2] * c[0],
+            b[1] * c[2] + b[2] * c[1],
+        ],
+    ]) / (4 * delta**2)
     hessian_vectorized = trafo_matrix.dot(barycentric_hessian_vectorized)
-    return Matrix(
-        [
-            [hessian_vectorized[0], hessian_vectorized[2]],
-            [hessian_vectorized[2], hessian_vectorized[1]],
-        ]
-    )
+    return Matrix([
+        [hessian_vectorized[0], hessian_vectorized[2]],
+        [hessian_vectorized[2], hessian_vectorized[1]],
+    ])
 
 
 def bell_interpolation(
@@ -316,9 +297,7 @@ def bell_interpolation_gradient(
         )
 
     barycentric_gradient = (
-        _shape_function_gradient(triangle_vertices, barycentric_coordinates)
-        .transpose()
-        .dot(params)
+        _shape_function_gradient(triangle_vertices, barycentric_coordinates).transpose().dot(params)
     )
     return transform_gradient(triangle_vertices, barycentric_gradient)
 

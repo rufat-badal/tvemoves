@@ -1,11 +1,9 @@
 """"Helper functions used in some of the tests."""
 
-
 import random
 from typing import Callable
 import sympy as sp
-from tvemoves_rufbad.domain import BarycentricCoordinates
-from tvemoves_rufbad.tensors import Vector, Matrix
+from tvemoves_rufbad.tensors import Vector, Matrix, BarycentricCoordinates
 
 Expr = sp.core.expr.Expr
 
@@ -25,15 +23,11 @@ def random_polynomial_symbolic_2d(degree: int, num_derivatives: int = 0):
     if degree < 0:
         raise ValueError("degree must be non-negative")
 
-    coefficients = [
-        [random.uniform(-10.0, 10.0) for _ in range(i + 1)] for i in range(degree + 1)
-    ]
+    coefficients = [[random.uniform(-10.0, 10.0) for _ in range(i + 1)] for i in range(degree + 1)]
 
     x, y = sp.symbols("x y")
     poly = sum(
-        c * x ** (i - j) * y**j
-        for i, cs in enumerate(coefficients)
-        for j, c in enumerate(cs)
+        c * x ** (i - j) * y**j for i, cs in enumerate(coefficients) for j, c in enumerate(cs)
     )
 
     if num_derivatives == 0:
@@ -113,9 +107,7 @@ def random_polynomial_1d(degree: int, num_derivatives: int = 0):
     """Generate random 1d polynomial and possibly some of its derivatives.
     The coefficients are uniformly random in the interval (-10, 10).
     """
-    random_poly_and_derivatives_symbolic, x = random_polynomial_symbolic_1d(
-        degree, num_derivatives
-    )
+    random_poly_and_derivatives_symbolic, x = random_polynomial_symbolic_1d(degree, num_derivatives)
 
     return [sp.lambdify(x, f) for f in random_poly_and_derivatives_symbolic]
 

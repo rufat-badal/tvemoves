@@ -3,7 +3,7 @@
 from math import isclose
 from typing import Iterator
 from numpy.polynomial.legendre import leggauss
-from tvemoves_rufbad.domain import BarycentricCoordinates
+from tvemoves_rufbad.tensors import BarycentricCoordinates
 
 
 class TriangleQuadratureRule:

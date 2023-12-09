@@ -147,24 +147,6 @@ class BarycentricCoordinates:
         return BarycentricCoordinates.size
 
 
-class Vector2D(Vector):
-    """Special vector class for 2D vectors.
-
-    All operations use the corresponding ones of the Vector class.
-    """
-
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        super().__init__([self.x, self.y])
-
-    def __str__(self) -> str:
-        return f"{self.x}, {self.y}"
-
-    def __repr__(self) -> str:
-        return f"Vector2D({self.x}, {self.y})"
-
-
 def sign(p):
     """Compute the sign of a permutation."""
     num_misplaced = 0

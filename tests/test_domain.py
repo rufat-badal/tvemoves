@@ -2,11 +2,7 @@
 
 from pytest import approx
 from tvemoves_rufbad.tensors import Vector
-from tvemoves_rufbad.domain import (
-    RectangleDomain,
-    Grid,
-    BarycentricPoint,
-)
+from tvemoves_rufbad.domain import RectangleDomain, Grid, BarycentricPoint
 
 
 def test_rectangle_domain_grid() -> None:
@@ -25,9 +21,7 @@ def test_rectangle_domain_grid() -> None:
     num_diagonal_edges = (num_vertical_vertices - 1) * (num_horizontal_vertices - 1)
     num_edges = num_vertical_edges + num_horizontal_edges + num_diagonal_edges
     num_triangles = 2 * num_diagonal_edges
-    num_boundary_vertices = 2 * (num_vertical_vertices - 1) + 2 * (
-        num_horizontal_vertices - 1
-    )
+    num_boundary_vertices = 2 * (num_vertical_vertices - 1) + 2 * (num_horizontal_vertices - 1)
     num_boundary_edges = num_boundary_vertices
 
     rectangle = RectangleDomain(width, height)
@@ -122,18 +116,14 @@ def test_rectangle_domain_curves() -> None:
     num_vertical_curves = 5
 
     rectangle = RectangleDomain(width, height)
-    curves = rectangle.curves(
-        num_points_per_curve, num_horizontal_curves, num_vertical_curves
-    )
+    curves = rectangle.curves(num_points_per_curve, num_horizontal_curves, num_vertical_curves)
     horizontal_step = [width / (num_points_per_curve - 1), 0]
     vertical_step = [0, height / (num_points_per_curve - 1)]
 
     for curve in curves:
         assert len(curve) == num_points_per_curve
         first_step = (curve[1] - curve[0]).data
-        assert first_step == approx(horizontal_step) or first_step == approx(
-            vertical_step
-        )
+        assert first_step == approx(horizontal_step) or first_step == approx(vertical_step)
         assert all(
             (curve[i + 1] - curve[i]).data == approx(first_step)
             for i in range(2, num_points_per_curve - 1)
@@ -158,9 +148,7 @@ def test_to_barycentric_curve() -> None:
     num_vertical_curves = 0
 
     rectangle = RectangleDomain(width, height)
-    curves = rectangle.curves(
-        num_points_per_curve, num_horizontal_curves, num_vertical_curves
-    )
+    curves = rectangle.curves(num_points_per_curve, num_horizontal_curves, num_vertical_curves)
     scale = 1 / 5
     grid = rectangle.grid(scale)
     barycentric_curves = [grid.to_barycentric_curve(curve) for curve in curves]
@@ -168,6 +156,4 @@ def test_to_barycentric_curve() -> None:
         assert len(barycentric_curve) == len(curve)
         if len(barycentric_curve) < len(curve):
             for barycentric_point, point in zip(barycentric_curve, curve):
-                assert (
-                    _to_cartesian_point(barycentric_point, grid) - point
-                ).norm() == approx(0)
+                assert (_to_cartesian_point(barycentric_point, grid) - point).norm() == approx(0)

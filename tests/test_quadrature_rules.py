@@ -1,6 +1,5 @@
 """Test quadrature rules."""
 
-
 import sympy as sp
 from tvemoves_rufbad.quadrature_rules import (
     DUNAVANT_QUADRATURE_RULES,
@@ -22,7 +21,7 @@ def test_dunavant() -> None:
         poly_symbolic, [x, y] = random_polynomial_symbolic_2d(degree)
         poly_integral = sp.integrate(poly_symbolic, (y, 0, 1 - x), (x, 0, 1))
         poly = sp.lambdify([x, y], poly_symbolic)
-        poly_quadrature = 0.5 * sum(w * poly(p.v, p.w) for w, p in rule)
+        poly_quadrature = 0.5 * sum(w * poly(p.l2, p.l3) for w, p in rule)
         assert abs(poly_quadrature - poly_integral) < eps
 
 
