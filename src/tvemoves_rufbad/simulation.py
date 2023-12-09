@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
-from tvemoves_rufbad.grid import Grid
+from tvemoves_rufbad.domain import Grid
 from tvemoves_rufbad.mechanical_step import MechanicalStepParams, mechanical_step
 
 

@@ -5,13 +5,13 @@ from abc import ABC, abstractmethod
 import pyomo.environ as pyo
 import numpy.typing as npt
 import numpy as np
-from tvemoves_rufbad.interpolation import Deformation, P1Interpolation
-from tvemoves_rufbad.quadrature_rules import DUNAVANT2, CENTROID
+from tvemoves_rufbad.interpolation import p1_deformation, P1Interpolation
+from tvemoves_rufbad.quadrature_rules import CENTROID, DUNAVANT2
 from tvemoves_rufbad.tensors import Matrix
 from tvemoves_rufbad.integrators import Integrator
-from tvemoves_rufbad.grid import Grid
-from tvemoves_rufbad.utils import (
-    martensite_potential,
+from tvemoves_rufbad.domain import Grid
+from tvemoves_rufbad.helpers import (
+    create_martensite_potential,
     austenite_percentage,
     austenite_potential,
     compose_to_integrand,
@@ -54,19 +54,17 @@ def _total_elastic_integrand(shape_memory_scaling, strain, prev_temp):
     """Construct integrand of the total elastic energy without regularizing terms."""
 
     scaling_matrix = Matrix([[1 / shape_memory_scaling, 0], [0, 1]])
-    martensite_potential = martensite_potential(scaling_matrix)
+    martensite_potential = create_martensite_potential(scaling_matrix)
 
     def martensite_percentage(theta):
         return 1 - austenite_percentage(theta)
 
     def total_elastic_potential(strain, theta):
-        return austenite_percentage(theta) * austenite_potential(
-            strain
-        ) + martensite_percentage(theta) * martensite_potential(strain)
+        return austenite_percentage(theta) * austenite_potential(strain) + martensite_percentage(
+            theta
+        ) * martensite_potential(strain)
 
-    total_elastic_integrand = compose_to_integrand(
-        total_elastic_potential, strain, prev_temp
-    )
+    total_elastic_integrand = compose_to_integrand(total_elastic_potential, strain, prev_temp)
 
     return total_elastic_integrand
 
@@ -119,12 +117,10 @@ def _model(
         m.y2[v].fix()
 
     integrator = Integrator(DUNAVANT2, grid.triangles, grid.points)
-    integrator_for_piecewise_constant = Integrator(
-        CENTROID, grid.triangles, grid.points
-    )
+    integrator_for_piecewise_constant = Integrator(CENTROID, grid.triangles, grid.points)
 
-    prev_deform = P1Deformation(grid, m.prev_y1, m.prev_y2)
-    deform = P1Deformation(grid, m.y1, m.y2)
+    prev_deform = p1_deformation(grid, m.prev_y1, m.prev_y2)
+    deform = p1_deformation(grid, m.y1, m.y2)
     prev_temp = P1Interpolation(grid, m.prev_theta)
 
     m.total_elastic_energy = integrator(
@@ -165,30 +161,23 @@ class _MechanicalStep(AbstractMechanicalStep):
 
     def prev_y(self) -> npt.NDArray[np.float64]:
         """Return the previous deformation as Nx2 numpy array, where N is the number of vertices."""
-        return np.array(
-            [
-                [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
-                for i in range(self._num_vertices)
-            ]
-        )
+        return np.array([
+            [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
+            for i in range(self._num_vertices)
+        ])
 
     def y(self) -> npt.NDArray[np.float64]:
         """Return the current deformation as Nx2 numpy array, where N is the number of vertices."""
-        return np.array(
-            [
-                [self._model.y1[i].value, self._model.y2[i].value]
-                for i in range(self._num_vertices)
-            ]
-        )
+        return np.array([
+            [self._model.y1[i].value, self._model.y2[i].value] for i in range(self._num_vertices)
+        ])
 
     def prev_theta(self) -> npt.NDArray[np.float64]:
         """Return the previous temperature as vector of length N, where N is the number of vertices."""
-        return np.array(
-            [self._model.prev_theta[i].value for i in range(self._num_vertices)]
-        )
+        return np.array([self._model.prev_theta[i].value for i in range(self._num_vertices)])
 
 
-def _model_regularized_bell_finite_elements(
+def _model_regularized(
     grid: Grid,
     initial_temperature: float,
     search_radius: float,
@@ -196,7 +185,6 @@ def _model_regularized_bell_finite_elements(
     fps: int,
     regularization: float,
 ) -> pyo.ConcreteModel:
-    print("Hello from _model_regularized_bell_finite_elements")
     m = pyo.ConcreteModel("Mechanical Step with Regularization")
     m.vertices = pyo.RangeSet(len(grid.vertices))
     m.deformation_indices = m.vertices * pyo.RangeSet(6)
@@ -254,7 +242,7 @@ class _MechanicalStepRegularizedBellFiniteElements(AbstractMechanicalStep):
     ):
         self._solver = solver
         self._num_vertices = len(grid.vertices)
-        self._model = _model_regularized_bell_finite_elements(
+        self._model = _model_regularized(
             grid,
             initial_temperature,
             search_radius,
@@ -268,32 +256,23 @@ class _MechanicalStepRegularizedBellFiniteElements(AbstractMechanicalStep):
 
     def prev_y(self) -> npt.NDArray[np.float64]:
         """Return the previous deformation as Nx2x6 numpy array, where N is the number of vertices."""
-        return np.array(
-            [
-                [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
-                for i in range(self._num_vertices)
-            ]
-        )
+        return np.array([
+            [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
+            for i in range(self._num_vertices)
+        ])
 
     def y(self) -> npt.NDArray[np.float64]:
         """Return the current deformation as Nx2x6 numpy array, where N is the number of vertices."""
-        return np.array(
-            [
-                [self._model.y1[i].value, self._model.y2[i].value]
-                for i in range(self._num_vertices)
-            ]
-        )
+        return np.array([
+            [self._model.y1[i].value, self._model.y2[i].value] for i in range(self._num_vertices)
+        ])
 
     def prev_theta(self) -> npt.NDArray[np.float64]:
         """Return the previous temperature as vector of length N, where N is the number of vertices."""
-        return np.array(
-            [self._model.prev_theta[i].value for i in range(self._num_vertices)]
-        )
+        return np.array([self._model.prev_theta[i].value for i in range(self._num_vertices)])
 
 
-def mechanical_step(
-    solver, grid: Grid, params: MechanicalStepParams
-) -> AbstractMechanicalStep:
+def mechanical_step(solver, grid: Grid, params: MechanicalStepParams) -> AbstractMechanicalStep:
     """Mechanical step factory."""
     if params.regularization is None:
         return _MechanicalStep(
