@@ -17,10 +17,10 @@ class Vector:
         self.data = data
 
     def __repr__(self) -> str:
-        return "Vector([" + ", ".join([str(self.data[i]) for i in range(self.size)]) + "])"
+        return "Vector([" + ", ".join([repr(x) for x in self.data]) + "])"
 
     def __str__(self) -> str:
-        return "[" + " ".join([str(self.data[i]) for i in range(self.size)]) + "]"
+        return "[" + " ".join([str(x) for x in self.data]) + "]"
 
     def __getitem__(self, i: int | slice):
         if isinstance(i, int):
@@ -177,7 +177,7 @@ class Matrix:
 
     def __str__(self):
         lines = [
-            "[" + " ".join([repr(self.data[i][j]) for j in range(self.shape[1])]) + "]"
+            "[" + " ".join([str(self.data[i][j]) for j in range(self.shape[1])]) + "]"
             for i in range(self.shape[0])
         ]
         start = "["
@@ -347,7 +347,7 @@ class Tensor3D:
         matrices = []
         for i in range(self.shape[0]):
             matrix_rows = [
-                "[" + ", ".join([repr(self.data[i][j][k]) for k in range(self.shape[2])]) + "]"
+                "[" + ", ".join([str(self.data[i][j][k]) for k in range(self.shape[2])]) + "]"
                 for j in range(self.shape[1])
             ]
             matrices.append("[" + (",\n " + len(start) * " ").join(matrix_rows) + "]")
