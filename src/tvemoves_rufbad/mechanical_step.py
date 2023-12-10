@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 import pyomo.environ as pyo
 import numpy.typing as npt
 import numpy as np
-from tvemoves_rufbad.interpolation import p1_deformation, P1Interpolation, c1_deformation
+from tvemoves_rufbad.interpolation import P1Interpolation, C1Interpolation, Deformation
 from tvemoves_rufbad.quadrature_rules import CENTROID, DUNAVANT2, DUNAVANT5
 from tvemoves_rufbad.tensors import Matrix
 from tvemoves_rufbad.integrators import Integrator
@@ -114,8 +114,12 @@ def _model(
     integrator = Integrator(DUNAVANT2, grid.triangles, grid.points)
     integrator_for_piecewise_constant = Integrator(CENTROID, grid.triangles, grid.points)
 
-    prev_deform = p1_deformation(grid, m.prev_y1, m.prev_y2)
-    deform = p1_deformation(grid, m.y1, m.y2)
+    prev_y1 = P1Interpolation(grid, m.prev_y1)
+    prev_y2 = P1Interpolation(grid, m.prev_y2)
+    prev_deform = Deformation(prev_y1, prev_y2)
+    y1 = P1Interpolation(grid, m.y1)
+    y2 = P1Interpolation(grid, m.y2)
+    deform = Deformation(y1, y2)
     prev_temp = P1Interpolation(grid, m.prev_theta)
 
     m.total_elastic_energy = integrator(
@@ -252,11 +256,15 @@ def _model_regularized(
     integrator = Integrator(DUNAVANT5, grid.triangles, grid.points)
 
     prev_y1_params = [[m.prev_y1[i, j] for j in list(m.c1_indices)] for i in list(m.vertices)]
+    prev_y1 = C1Interpolation(grid, prev_y1_params)
     prev_y2_params = [[m.prev_y2[i, j] for j in list(m.c1_indices)] for i in list(m.vertices)]
+    prev_y2 = C1Interpolation(grid, prev_y2_params)
+    prev_deform = Deformation(prev_y1, prev_y2)
     y1_params = [[m.y1[i, j] for j in list(m.c1_indices)] for i in list(m.vertices)]
+    y1 = C1Interpolation(grid, y1_params)
     y2_params = [[m.y2[i, j] for j in list(m.c1_indices)] for i in list(m.vertices)]
-    prev_deform = c1_deformation(grid, prev_y1_params, prev_y2_params)
-    deform = c1_deformation(grid, y1_params, y2_params)
+    y2 = C1Interpolation(grid, y2_params)
+    deform = Deformation(y1, y2)
 
     return m
 

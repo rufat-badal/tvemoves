@@ -1,6 +1,6 @@
 """Module providing interpolations in triangles."""
 
-from abc import ABC, abstractmethod
+from typing import Protocol
 from tvemoves_rufbad.tensors import Vector, BarycentricCoordinates, Matrix, Tensor3D
 from tvemoves_rufbad.domain import Grid, Triangle, Edge
 from tvemoves_rufbad.bell_finite_element import (
@@ -12,30 +12,20 @@ from tvemoves_rufbad.bell_finite_element import (
 )
 
 
-class Interpolation(ABC):
-    """Abstract interpolation class."""
+class Interpolation(Protocol):
+    """Interpolation protocol."""
 
-    def __init__(self, grid: Grid, params: list):
-        if len(params) != len(grid.vertices):
-            raise ValueError("number of params must equal to the number of vertices")
-        self._grid = grid
-        self._params = params
-
-    @abstractmethod
     def __call__(self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates):
         """Compute the value of the interpolation in a triangle."""
 
-    @abstractmethod
     def gradient(
         self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
     ) -> Vector:
         """Compute the gradient of the interpolation in a triangle."""
 
-    @abstractmethod
     def on_edge(self, edge: Edge, t: float):
         """Computes the value of the interpolation on an edge."""
 
-    @abstractmethod
     def hessian(
         self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
     ) -> Matrix:
@@ -44,6 +34,12 @@ class Interpolation(ABC):
 
 class P1Interpolation(Interpolation):
     """Piecewise affine interpolation."""
+
+    def __init__(self, grid: Grid, params: list):
+        if len(params) != len(grid.vertices):
+            raise ValueError("number of params must equal to the number of vertices")
+        self._grid = grid
+        self._params = params
 
     def __call__(
         self,
@@ -86,8 +82,11 @@ class C1Interpolation(Interpolation):
         """
         if any(len(p) != 6 for p in params):
             raise ValueError("each parameter provided must be a list of 6 elements")
+        if len(params) != len(grid.vertices):
+            raise ValueError("number of params must equal to the number of vertices")
 
-        super().__init__(grid, [Vector(p) for p in params])
+        self._grid = grid
+        self._params = params
 
     def _triangle_params(self, triangle: Triangle) -> Vector:
         i1, i2, i3 = triangle
@@ -177,13 +176,3 @@ class Deformation:
         hessian_y1 = self._y[0].hessian(triangle, barycentric_coordinates)
         hessian_y2 = self._y[1].hessian(triangle, barycentric_coordinates)
         return hessian_y1.stack(hessian_y2)
-
-
-def p1_deformation(grid: Grid, y1_params: list[list], y2_params: list[list]) -> Deformation:
-    """Deformation computed via piecewise affine interpolation."""
-    return Deformation(P1Interpolation(grid, y1_params), P1Interpolation(grid, y2_params))
-
-
-def c1_deformation(grid: Grid, y1_params: list[list], y2_params: list[list]) -> Deformation:
-    """Deformation computed via C1 interpolation."""
-    return Deformation(C1Interpolation(grid, y1_params), C1Interpolation(grid, y2_params))
