@@ -5,8 +5,8 @@ from abc import ABC, abstractmethod
 import pyomo.environ as pyo
 import numpy.typing as npt
 import numpy as np
-from tvemoves_rufbad.interpolation import p1_deformation, P1Interpolation
-from tvemoves_rufbad.quadrature_rules import CENTROID, DUNAVANT2
+from tvemoves_rufbad.interpolation import p1_deformation, P1Interpolation, c1_deformation
+from tvemoves_rufbad.quadrature_rules import CENTROID, DUNAVANT2, DUNAVANT5
 from tvemoves_rufbad.tensors import Matrix
 from tvemoves_rufbad.integrators import Integrator
 from tvemoves_rufbad.domain import Grid
@@ -56,17 +56,12 @@ def _total_elastic_integrand(shape_memory_scaling, strain, prev_temp):
     scaling_matrix = Matrix([[1 / shape_memory_scaling, 0], [0, 1]])
     martensite_potential = create_martensite_potential(scaling_matrix)
 
-    def martensite_percentage(theta):
-        return 1 - austenite_percentage(theta)
-
     def total_elastic_potential(strain, theta):
-        return austenite_percentage(theta) * austenite_potential(strain) + martensite_percentage(
-            theta
+        return austenite_percentage(theta) * austenite_potential(strain) + (
+            1 - austenite_percentage(theta)
         ) * martensite_potential(strain)
 
-    total_elastic_integrand = compose_to_integrand(total_elastic_potential, strain, prev_temp)
-
-    return total_elastic_integrand
+    return compose_to_integrand(total_elastic_potential, strain, prev_temp)
 
 
 def _model(
@@ -187,9 +182,10 @@ def _model_regularized(
 ) -> pyo.ConcreteModel:
     m = pyo.ConcreteModel("Mechanical Step with Regularization")
     m.vertices = pyo.RangeSet(len(grid.vertices))
+    m.c1_indices = pyo.RangeSet(6)
     m.dirichlet_edges = pyo.RangeSet(len(grid.dirichlet_boundary.edges))
-    m.deformation_indices = m.vertices * pyo.RangeSet(6)
-    m.dirichlet_constraint_indices = m.dirichlet_edges * pyo.RangeSet(6)
+    m.deformation_indices = m.vertices * m.c1_indices
+    m.dirichlet_constraint_indices = m.dirichlet_edges * m.c1_indices
 
     initial_y1 = [[p[0], 1, 0, 0, 0, 0] for p in grid.points]
     initial_y2 = [[p[1], 0, 1, 0, 0, 0] for p in grid.points]
@@ -252,6 +248,15 @@ def _model_regularized(
             y_component=1,
         ),
     )
+
+    integrator = Integrator(DUNAVANT5, grid.triangles, grid.points)
+
+    prev_y1_params = [[m.prev_y1[i, j] for j in list(m.c1_indices)] for i in list(m.vertices)]
+    prev_y2_params = [[m.prev_y2[i, j] for j in list(m.c1_indices)] for i in list(m.vertices)]
+    y1_params = [[m.y1[i, j] for j in list(m.c1_indices)] for i in list(m.vertices)]
+    y2_params = [[m.y2[i, j] for j in list(m.c1_indices)] for i in list(m.vertices)]
+    prev_deform = c1_deformation(grid, prev_y1_params, prev_y2_params)
+    deform = c1_deformation(grid, y1_params, y2_params)
 
     return m
 
@@ -354,7 +359,4 @@ from tvemoves_rufbad.domain import RectangleDomain
 _square = RectangleDomain(1, 1, fix="left")
 _grid = _square.grid(1)
 _mech_step = mechanical_step(_solver, _grid, _params)
-for i, j in _mech_step._model.y1_constraints:
-    print(_mech_step._model.y1_constraints[i, j].expr)
-for i, j in _mech_step._model.y2_constraints:
-    print(_mech_step._model.y2_constraints[i, j].expr)
+# _mech_step._model.display()
