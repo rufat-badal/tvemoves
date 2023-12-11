@@ -548,15 +548,16 @@ def _refine_equilateral_triangle(
     # Add lower triangles
     for l in range(refinement_factor):
         for k in range(refinement_factor - l):
-            refined_grid.triangles.append(
-                (
-                    triangle_vertices[(k, l)],
-                    triangle_vertices[(k + l + 1, l)],
-                    triangle_vertices[(k + l + 1, l + 1)],
-                )
-            )
+            print(((k, l), (k + 1, l), (k - l, l + 1)))
+            # refined_grid.triangles.append(
+            #     (
+            #         triangle_vertices[(k, l)],
+            #         triangle_vertices[(k + 1, l)],
+            #         triangle_vertices[(k + 1 - l, l + 1)],
+            #     )
+            # )
 
 
 _square = RectangleDomain(1, 1)
 _grid = _square.grid(1)
-_square.refine(_grid, refinement_factor=3)
+_square.refine(_grid, refinement_factor=4)
