@@ -33,7 +33,7 @@ class BarycentricPoint:
 BarycentricCurve = list[BarycentricPoint]
 
 
-@dataclass
+@dataclass(frozen=True)
 class Boundary:
     """(Part of) the boundary edges and their vertices of a grid"""
 
@@ -493,25 +493,62 @@ class RectangleDomain(Domain):
             raise ValueError(
                 f"only positive refinement factors allowed, but {refinement_factor} was provided"
             )
-        refined_grid = deepcopy(grid)
+
+        refined_vertices = deepcopy(grid.vertices)
+        refined_edges: list[Edge] = []
+        refined_triangles: list[Triangle] = []
+        refined_boundary_vertices = deepcopy(grid.boundary.vertices)
+        refined_boundary_edges: list[Edge] = []
+        refined_dirichlet_boundary_vertices = deepcopy(grid.dirichlet_boundary.vertices)
+        refined_dirichlet_boundary_edges: list[Edge] = []
+        refined_neumann_boundary_vertices = deepcopy(grid.neumann_boundary.vertices)
+        refined_neumann_boundary_edges: list[Edge] = []
+        refined_points = deepcopy(grid.points)
+
         for triangle in grid.triangles:
-            _refine_equilateral_triangle(triangle, grid, refined_grid, refinement_factor)
+            _refine_equilateral_triangle(
+                triangle,
+                grid,
+                refinement_factor,
+                refined_vertices,
+                refined_edges,
+                refined_triangles,
+                refined_boundary_vertices,
+                refined_boundary_edges,
+                refined_dirichlet_boundary_vertices,
+                refined_dirichlet_boundary_edges,
+                refined_neumann_boundary_vertices,
+                refined_neumann_boundary_edges,
+                refined_points,
+            )
             break
 
         return RefinedGrid(
-            refined_grid.vertices,
-            refined_grid.edges,
-            refined_grid.triangles,
-            refined_grid.boundary,
-            refined_grid.dirichlet_boundary,
-            refined_grid.neumann_boundary,
-            refined_grid.points,
+            refined_vertices,
+            refined_edges,
+            refined_triangles,
+            Boundary(refined_boundary_vertices, refined_boundary_edges),
+            Boundary(refined_dirichlet_boundary_vertices, refined_dirichlet_boundary_edges),
+            Boundary(refined_neumann_boundary_vertices, refined_neumann_boundary_edges),
+            refined_points,
             grid,
         )
 
 
 def _refine_equilateral_triangle(
-    triangle: Triangle, grid: Grid, refined_grid, refinement_factor: int
+    triangle: Triangle,
+    grid: Grid,
+    refinement_factor: int,
+    refined_vertices: list[Vertex],
+    refined_edges: list[Edge],
+    refined_triangles: list[Triangle],
+    refined_boundary_vertices: list[Vertex],
+    refined_boundary_edges: list[Edge],
+    refined_dirichlet_boundary_vertices: list[Vertex],
+    refined_dirichlet_boundary_edges: list[Edge],
+    refined_neumann_boundary_vertices: list[Vertex],
+    refined_neumann_boundary_edges: list[Edge],
+    refined_points: list[Vector],
 ):
     """Refine a single equlateral triangle of the coarse grid. This function modifies refined_grid!
 
@@ -523,11 +560,11 @@ def _refine_equilateral_triangle(
     assert isclose(p2[0], p3[0]), "Second edge of an equilateral triangle must be vertical"
 
     # Create new vertex indices and points
-    next_vertex = refined_grid.vertices[-1] + 1
+    next_vertex = refined_vertices[-1] + 1
     triangle_vertices = {}
     triangle_vertices[(0, 0)] = i1
     triangle_vertices[(refinement_factor, 0)] = i2
-    triangle_vertices[(refinement_factor, refinement_factor)] = i3
+    triangle_vertices[(0, refinement_factor)] = i3
     for l in range(refinement_factor + 1):
         for k in range(refinement_factor + 1 - l):
             # ignore endpoints
@@ -538,7 +575,7 @@ def _refine_equilateral_triangle(
             if k == 0 and l == refinement_factor:
                 continue
             triangle_vertices[(k, l)] = next_vertex
-            refined_grid.points.append(
+            refined_points.append(
                 (1 - k / refinement_factor - l / refinement_factor) * p1
                 + k / refinement_factor * p2
                 + l / refinement_factor * p3
@@ -548,14 +585,11 @@ def _refine_equilateral_triangle(
     # Add lower triangles
     for l in range(refinement_factor):
         for k in range(refinement_factor - l):
-            print(((k, l), (k + 1, l), (k - l, l + 1)))
-            # refined_grid.triangles.append(
-            #     (
-            #         triangle_vertices[(k, l)],
-            #         triangle_vertices[(k + 1, l)],
-            #         triangle_vertices[(k + 1 - l, l + 1)],
-            #     )
-            # )
+            refined_triangles.append((
+                triangle_vertices[(k, l)],
+                triangle_vertices[(k + 1, l)],
+                triangle_vertices[(k, l + 1)],
+            ))
 
 
 _square = RectangleDomain(1, 1)
