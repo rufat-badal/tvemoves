@@ -83,7 +83,7 @@ def _to_barycentric_coordinates(
     return BarycentricCoordinates(u, v)
 
 
-def _axes() -> plt.Axes:
+def _axes():
     _, ax = plt.subplots()
     ax.axis("off")
     ax.set_aspect(1)
@@ -91,12 +91,12 @@ def _axes() -> plt.Axes:
     return ax
 
 
-def _adjust_xlim(ax: plt.Axes, xlim=tuple[float, float]) -> None:
+def _adjust_xlim(ax, xlim=tuple[float, float]) -> None:
     old_xlim = ax.get_xlim()
     ax.set_xlim(min(old_xlim[0], xlim[0]), max(old_xlim[1], xlim[1]))
 
 
-def _adjust_ylim(ax: plt.Axes, ylim=tuple[float, float]) -> None:
+def _adjust_ylim(ax, ylim=tuple[float, float]) -> None:
     old_ylim = ax.get_ylim()
     ax.set_ylim(min(old_ylim[0], ylim[0]), max(old_ylim[1], ylim[1]))
 
@@ -148,18 +148,18 @@ class Grid(ABC):
                 barycentric_curve.append(p_barycentric)
         return barycentric_curve
 
-    def _plot_vertices(self, ax: plt.Axes) -> None:
+    def _plot_vertices(self, ax) -> None:
         x = [p[0] for p in self.points]
         y = [p[1] for p in self.points]
         ax.scatter(x, y, color="black", s=PLOT_VERTEX_SIZE)
 
-    def _plot_edges(self, ax: plt.Axes) -> None:
+    def _plot_edges(self, ax) -> None:
         for edge in self.edges:
             i, j = edge
             p, q = self.points[i], self.points[j]
             ax.plot([p[0], q[0]], [p[1], q[1]], color="black", linewidth=PLOT_LINEWIDTH)
 
-    def plot(self, ax: plt.Axes | None = None) -> plt.Axes:
+    def plot(self, ax):
         """Returns matplotlib plot of the grid."""
         if ax is None:
             ax = _axes()
@@ -226,7 +226,7 @@ class Domain(Protocol):
     """Abstract domain"""
 
     def grid(self, scale: float) -> Grid:
-        """ "Create a grid adapted to the current domain."""
+        """Create a grid adapted to the current domain."""
 
     def curves(
         self,
@@ -240,7 +240,7 @@ class Domain(Protocol):
         points.
         """
 
-    def plot(self, ax: plt.Axes | None = None) -> plt.Axes:
+    def plot(self, ax):
         """Visualize the domain."""
 
     def refine(self, grid: Grid, refinement_factor: int) -> RefinedGrid:
@@ -469,7 +469,7 @@ class RectangleDomain(Domain):
 
         return horizontal_curves + vertical_curves
 
-    def plot(self, ax: plt.Axes | None = None):
+    def plot(self, ax):
         if ax is None:
             ax = _axes()
 
