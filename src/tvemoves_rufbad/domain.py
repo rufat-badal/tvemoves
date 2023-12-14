@@ -659,7 +659,7 @@ def _refine_equilateral_triangle(
     triangle_vertices[(0, 0)] = i1
     triangle_vertices[(refinement_factor, 0)] = i2
     triangle_vertices[(0, refinement_factor)] = i3
-    triangle_points: Dict[tuple[int, int], Vertex] = {}
+    triangle_points: Dict[tuple[int, int], Vector] = {}
     triangle_points[(0, 0)] = p1
     triangle_points[(refinement_factor, 0)] = p2
     triangle_points[(0, refinement_factor)] = p3

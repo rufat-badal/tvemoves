@@ -90,7 +90,10 @@ class C1Interpolation(Interpolation):
 
     def _triangle_params(self, triangle: Triangle) -> Vector:
         i1, i2, i3 = triangle
-        return self._params[i1].extend(self._params[i2]).extend(self._params[i3])
+        params_vec1 = Vector(self._params[i1])
+        params_vec2 = Vector(self._params[i2])
+        params_vec3 = Vector(self._params[i3])
+        return params_vec1.extend(params_vec2).extend(params_vec3)
 
     def __call__(
         self,
@@ -125,8 +128,10 @@ class C1Interpolation(Interpolation):
 
     def on_edge(self, edge: Edge, t: float):
         i1, i2 = edge
+        params_vec1 = Vector(self._params[i1])
+        params_vec2 = Vector(self._params[i2])
+        edge_params = params_vec1.extend(params_vec2)
         edge_vertices = (self._grid.points[i1], self._grid.points[i2])
-        edge_params = self._params[i1].extend(self._params[i2])
         return bell_interpolation_on_edge(edge_vertices, t, edge_params)
 
 
