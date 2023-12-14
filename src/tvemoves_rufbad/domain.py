@@ -278,14 +278,28 @@ class Grid(ABC):
         ):
             return False
 
+        if (
+            not _boundaries_coincide(self.boundary, other.boundary, other_to_self_vertex)
+            or not _boundaries_coincide(
+                self.dirichlet_boundary, other.dirichlet_boundary, other_to_self_vertex
+            )
+            or not _boundaries_coincide(
+                self.neumann_boundary, other.neumann_boundary, other_to_self_vertex
+            )
+        ):
+            return False
+
         return True
 
 
 def _boundaries_coincide(
     boundary: Boundary, other_boundary: Boundary, other_to_self_vertex: Dict[Vertex, Vertex]
 ) -> bool:
-    if sorted(boundary.vertices) != sorted([other_to_self_vertex[])
-    
+    if sorted(boundary.vertices) != sorted(
+        [other_to_self_vertex[other_vertex] for other_vertex in other_boundary.vertices]
+    ):
+        return False
+
     return True
 
 
@@ -506,12 +520,10 @@ class RectangleDomain(Domain):
         neumann_boundary = Boundary(neumann_vertices, neumann_edges)
 
         points = [
-            Vector(
-                [
-                    v % num_horizontal_vertices * scale,
-                    v // num_horizontal_vertices * scale,
-                ]
-            )
+            Vector([
+                v % num_horizontal_vertices * scale,
+                v // num_horizontal_vertices * scale,
+            ])
             for v in vertices
         ]
 
@@ -546,12 +558,10 @@ class RectangleDomain(Domain):
 
         horizontal_curves = [
             [
-                Vector(
-                    [
-                        i * self.width / (num_points_per_curve - 1),
-                        j * self.height / (num_all_horizontal_curves - 1),
-                    ]
-                )
+                Vector([
+                    i * self.width / (num_points_per_curve - 1),
+                    j * self.height / (num_all_horizontal_curves - 1),
+                ])
                 for i in range(num_points_per_curve)
             ]
             for j in range(num_all_horizontal_curves)
@@ -559,12 +569,10 @@ class RectangleDomain(Domain):
 
         vertical_curves = [
             [
-                Vector(
-                    [
-                        j * self.width / (num_all_vertical_curves - 1),
-                        i * self.height / (num_points_per_curve - 1),
-                    ]
-                )
+                Vector([
+                    j * self.width / (num_all_vertical_curves - 1),
+                    i * self.height / (num_points_per_curve - 1),
+                ])
                 for i in range(num_points_per_curve)
             ]
             for j in range(num_all_vertical_curves)
@@ -673,24 +681,20 @@ def _refine_equilateral_triangle(
     # Refined triangles are unique for each refinement step!
     for l in range(refinement_factor):
         for k in range(refinement_factor - l):
-            intermediate_grid.triangles.append(
-                (
-                    triangle_vertices[(k, l)],
-                    triangle_vertices[(k + 1, l)],
-                    triangle_vertices[(k, l + 1)],
-                )
-            )
+            intermediate_grid.triangles.append((
+                triangle_vertices[(k, l)],
+                triangle_vertices[(k + 1, l)],
+                triangle_vertices[(k, l + 1)],
+            ))
 
     # Add upper triangles
     for l in range(refinement_factor - 1):
         for k in range(1, refinement_factor - l):
-            intermediate_grid.triangles.append(
-                (
-                    triangle_vertices[(k, l + 1)],
-                    triangle_vertices[(k - 1, l + 1)],
-                    triangle_vertices[(k, l)],
-                )
-            )
+            intermediate_grid.triangles.append((
+                triangle_vertices[(k, l + 1)],
+                triangle_vertices[(k - 1, l + 1)],
+                triangle_vertices[(k, l)],
+            ))
 
     for l in range(refinement_factor):
         for k in range(refinement_factor - l):
