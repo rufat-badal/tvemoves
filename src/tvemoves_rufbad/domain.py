@@ -281,6 +281,14 @@ class Grid(ABC):
         return True
 
 
+def _boundaries_coincide(
+    boundary: Boundary, other_boundary: Boundary, other_to_self_vertex: Dict[Vertex, Vertex]
+) -> bool:
+    if sorted(boundary.vertices) != sorted([other_to_self_vertex[])
+    
+    return True
+
+
 class RefinedGrid(Grid):
     """Refinement of a grid."""
 
