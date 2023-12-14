@@ -167,8 +167,7 @@ def test_equilateral_grid_refine() -> None:
     grid = square.grid(coarse_scale)
     refined_grid = square.refine(grid, refinement_factor)
     refine_grid_target = square.grid(coarse_scale / refinement_factor)
-    print(len(refined_grid.edges))
-    print(len(refine_grid_target.edges))
+    print(refined_grid == refine_grid_target)
 
 
 test_equilateral_grid_refine()

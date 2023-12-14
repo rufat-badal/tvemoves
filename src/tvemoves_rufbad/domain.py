@@ -224,6 +224,15 @@ class Grid(ABC):
 
             self.edges.append(edge)
 
+    def __eq__(self, other):
+        """Equality for two grids. We ignore reordering of vertices, edges, and triangles."""
+        if isinstance(other, Grid):
+            if sorted(self.vertices) != sorted(other.vertices):
+                return False
+
+            return True
+        return False
+
 
 class RefinedGrid(Grid):
     """Refinement of a grid."""
