@@ -591,7 +591,7 @@ def _refine_equilateral_triangle(
                 triangle_vertices[(k, l + 1)],
             ))
 
-    # Add lower triangles
+    # Add upper triangles
     for l in range(refinement_factor - 1):
         for k in range(1, refinement_factor - l):
             refined_triangles.append((
@@ -599,6 +599,17 @@ def _refine_equilateral_triangle(
                 triangle_vertices[(k - 1, l + 1)],
                 triangle_vertices[(k, l)],
             ))
+
+    # Add horizontal and diagonal edges
+    for l in range(refinement_factor):
+        for k in range(refinement_factor - l):
+            refined_edges.append((triangle_vertices[(k, l)], triangle_vertices[(k + 1, l)]))
+            refined_edges.append((triangle_vertices[(k, l)], triangle_vertices[(k, l + 1)]))
+
+    # Add vertical edges
+    for l in range(refinement_factor - 1):
+        for k in range(1, refinement_factor - l):
+            refined_edges.append((triangle_vertices[(k, l)], triangle_vertices[(k - 1, l + 1)]))
 
 
 _square = RectangleDomain(1, 1)
