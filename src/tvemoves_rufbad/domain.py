@@ -198,20 +198,28 @@ class Grid(ABC):
 
     def point_to_vertex(self, point: Vector) -> Vertex | None:
         """Return vertex id of the point or None if point is not in the grid."""
-        eps = self._mean_edge_length / 1e7 if self._mean_edge_length is not None else 1e-15
         return next(
             (
                 i
                 for i, grid_point in enumerate(self.points)
-                # if isclose(0, (point - grid_point).norm())
-                if (point - grid_point).norm() < eps
+                if self._points_coincide(point, grid_point)
             ),
             None,
         )
 
+    def _contains_point(self, point: Vector):
+        return self.point_to_vertex(point) is not None
+
+    def _contains_edge(self, edge: Edge):
+        return edge in self.edges or (edge[1], edge[0]) in self.edges
+
+    def _points_coincide(self, p1: Vector, p2: Vector) -> bool:
+        eps = self._mean_edge_length / 1e7 if self._mean_edge_length is not None else 1e-15
+        return (p1 - p2).norm() < eps
+
     def append_edge(self, edge: Edge) -> None:
         """Append an edge if it is not already present."""
-        if edge not in self.edges and (edge[-1], edge[0]) not in self.edges:
+        if edge not in self.edges and (edge[1], edge[0]) not in self.edges:
             # Update mean edge length before adding the edge
             num_edges_old = len(self.edges)
             new_edge_length = (self.points[edge[0]] - self.points[edge[1]]).norm()
@@ -226,12 +234,31 @@ class Grid(ABC):
 
     def __eq__(self, other):
         """Equality for two grids. We ignore reordering of vertices, edges, and triangles."""
-        if isinstance(other, Grid):
-            if sorted(self.vertices) != sorted(other.vertices):
-                return False
+        if not isinstance(other, Grid):
+            return False
 
-            return True
-        return False
+        if sorted(self.vertices) != sorted(other.vertices):
+            return False
+
+        if len(self.points) != len(other.points):
+            return False
+        other_to_self_vertex: Dict[Vertex, Vertex] = {}
+        for other_vertex, p in enumerate(other.points):
+            self_vertex = self.point_to_vertex(p)
+            if self_vertex is None:
+                return False
+            other_to_self_vertex[other_vertex] = self_vertex
+        # As things went well up to this point we can assume that other_to_self_vertex is configured.
+
+        if len(self.edges) != len(other.edges):
+            return False
+        if any(
+            not self._contains_edge((other_to_self_vertex[i1], other_to_self_vertex[i2]))
+            for (i1, i2) in other.edges
+        ):
+            return False
+
+        return True
 
 
 class RefinedGrid(Grid):
