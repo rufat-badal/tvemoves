@@ -213,6 +213,16 @@ class Grid(ABC):
     def _contains_edge(self, edge: Edge):
         return edge in self.edges or (edge[1], edge[0]) in self.edges
 
+    def _contains_triangle(self, triangle: Triangle):
+        # Only cyclic permutations allowed.
+        # E.g. (2, 4, 7) and (4, 7, 2) represent the same triangle but (2, 4, 7) and (2, 7, 4) not.
+        i1, i2, i3 = triangle
+        return (
+            (i1, i2, i3) in self.triangles
+            or (i2, i3, i1) in self.triangles
+            or (i3, i1, i2) in self.triangles
+        )
+
     def _points_coincide(self, p1: Vector, p2: Vector) -> bool:
         eps = self._mean_edge_length / 1e7 if self._mean_edge_length is not None else 1e-15
         return (p1 - p2).norm() < eps
@@ -248,13 +258,23 @@ class Grid(ABC):
             if self_vertex is None:
                 return False
             other_to_self_vertex[other_vertex] = self_vertex
-        # As things went well up to this point we can assume that other_to_self_vertex is configured.
+        # As things went well up to this point we can assume that other_to_self_vertex is set up.
 
         if len(self.edges) != len(other.edges):
             return False
         if any(
             not self._contains_edge((other_to_self_vertex[i1], other_to_self_vertex[i2]))
             for (i1, i2) in other.edges
+        ):
+            return False
+
+        if len(self.triangles) != len(other.triangles):
+            return False
+        if any(
+            not self._contains_triangle(
+                (other_to_self_vertex[i1], other_to_self_vertex[i2], other_to_self_vertex[i3])
+            )
+            for (i1, i2, i3) in other.triangles
         ):
             return False
 
