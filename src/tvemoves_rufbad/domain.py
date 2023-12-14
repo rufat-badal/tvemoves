@@ -191,6 +191,34 @@ class Grid(ABC):
         i1, i2 = edge
         return (self.points[i1], self.points[i2])
 
+    def point_to_vertex(self, point: Vector) -> Vertex | None:
+        """Return vertex id of the point or None if point is not in the grid."""
+        return next(
+            (
+                i
+                for i, grid_point in enumerate(self.points)
+                if isclose(0, (point - grid_point).norm())
+            ),
+            None,
+        )
+
+    def contains_vertex(self, point: Vector) -> bool:
+        """Check if a point is contained in the grid."""
+        vertex = self.point_to_vertex(point)
+        return vertex is not None
+
+    def contains_edge(self, edge_vertices: EdgeVertices) -> bool:
+        """Check if an edge is contained in the grid."""
+        e1, e2 = edge_vertices
+        i1 = self.point_to_vertex(e1)
+        if i1 is None:
+            return False
+        i2 = self.point_to_vertex(e2)
+        if i2 is None:
+            return False
+
+        return (i1, i2) in self.edges or (i2, i1) in self.edges
+
 
 class RefinedGrid(Grid):
     """Refinement of a grid."""
@@ -409,10 +437,12 @@ class RectangleDomain(Domain):
         neumann_boundary = Boundary(neumann_vertices, neumann_edges)
 
         points = [
-            Vector([
-                v % num_horizontal_vertices * scale,
-                v // num_horizontal_vertices * scale,
-            ])
+            Vector(
+                [
+                    v % num_horizontal_vertices * scale,
+                    v // num_horizontal_vertices * scale,
+                ]
+            )
             for v in vertices
         ]
 
@@ -447,10 +477,12 @@ class RectangleDomain(Domain):
 
         horizontal_curves = [
             [
-                Vector([
-                    i * self.width / (num_points_per_curve - 1),
-                    j * self.height / (num_all_horizontal_curves - 1),
-                ])
+                Vector(
+                    [
+                        i * self.width / (num_points_per_curve - 1),
+                        j * self.height / (num_all_horizontal_curves - 1),
+                    ]
+                )
                 for i in range(num_points_per_curve)
             ]
             for j in range(num_all_horizontal_curves)
@@ -458,10 +490,12 @@ class RectangleDomain(Domain):
 
         vertical_curves = [
             [
-                Vector([
-                    j * self.width / (num_all_vertical_curves - 1),
-                    i * self.height / (num_points_per_curve - 1),
-                ])
+                Vector(
+                    [
+                        j * self.width / (num_all_vertical_curves - 1),
+                        i * self.height / (num_points_per_curve - 1),
+                    ]
+                )
                 for i in range(num_points_per_curve)
             ]
             for j in range(num_all_vertical_curves)
@@ -494,60 +528,33 @@ class RectangleDomain(Domain):
                 f"only positive refinement factors allowed, but {refinement_factor} was provided"
             )
 
-        refined_vertices = deepcopy(grid.vertices)
-        refined_edges: list[Edge] = []
-        refined_triangles: list[Triangle] = []
-        refined_boundary_vertices = deepcopy(grid.boundary.vertices)
-        refined_boundary_edges: list[Edge] = []
-        refined_dirichlet_boundary_vertices = deepcopy(grid.dirichlet_boundary.vertices)
-        refined_dirichlet_boundary_edges: list[Edge] = []
-        refined_neumann_boundary_vertices = deepcopy(grid.neumann_boundary.vertices)
-        refined_neumann_boundary_edges: list[Edge] = []
-        refined_points = deepcopy(grid.points)
+        intermediate_grid = Grid(
+            deepcopy(grid.vertices),
+            [],
+            [],
+            Boundary(deepcopy(grid.boundary.vertices), []),
+            Boundary(deepcopy(grid.dirichlet_boundary.vertices), []),
+            Boundary(deepcopy(grid.neumann_boundary.vertices), []),
+            deepcopy(grid.points),
+        )
 
         for triangle in grid.triangles:
-            _refine_equilateral_triangle(
-                triangle,
-                grid,
-                refinement_factor,
-                refined_vertices,
-                refined_edges,
-                refined_triangles,
-                refined_boundary_vertices,
-                refined_boundary_edges,
-                refined_dirichlet_boundary_vertices,
-                refined_dirichlet_boundary_edges,
-                refined_neumann_boundary_vertices,
-                refined_neumann_boundary_edges,
-                refined_points,
-            )
+            _refine_equilateral_triangle(triangle, grid, refinement_factor, intermediate_grid)
 
         return RefinedGrid(
-            refined_vertices,
-            refined_edges,
-            refined_triangles,
-            Boundary(refined_boundary_vertices, refined_boundary_edges),
-            Boundary(refined_dirichlet_boundary_vertices, refined_dirichlet_boundary_edges),
-            Boundary(refined_neumann_boundary_vertices, refined_neumann_boundary_edges),
-            refined_points,
+            intermediate_grid.vertices,
+            intermediate_grid.edges,
+            intermediate_grid.triangles,
+            intermediate_grid.boundary,
+            intermediate_grid.dirichlet_boundary,
+            intermediate_grid.neumann_boundary,
+            intermediate_grid.points,
             grid,
         )
 
 
 def _refine_equilateral_triangle(
-    triangle: Triangle,
-    grid: Grid,
-    refinement_factor: int,
-    refined_vertices: list[Vertex],
-    refined_edges: list[Edge],
-    refined_triangles: list[Triangle],
-    refined_boundary_vertices: list[Vertex],
-    refined_boundary_edges: list[Edge],
-    refined_dirichlet_boundary_vertices: list[Vertex],
-    refined_dirichlet_boundary_edges: list[Edge],
-    refined_neumann_boundary_vertices: list[Vertex],
-    refined_neumann_boundary_edges: list[Edge],
-    refined_points: list[Vector],
+    triangle: Triangle, grid: Grid, refinement_factor: int, intermediate_grid: Grid
 ) -> None:
     """Refine a single equlateral triangle of the coarse grid. This function modifies refined_grid!
 
@@ -559,7 +566,7 @@ def _refine_equilateral_triangle(
     assert isclose(p2[0], p3[0]), "Second edge of an equilateral triangle must be vertical"
 
     # Create new vertex indices and points
-    next_vertex = refined_vertices[-1] + 1
+    next_vertex = intermediate_grid.vertices[-1] + 1
     triangle_vertices: Dict[tuple[int, int], Vertex] = {}
     triangle_vertices[(0, 0)] = i1
     triangle_vertices[(refinement_factor, 0)] = i2
@@ -573,43 +580,59 @@ def _refine_equilateral_triangle(
                 continue
             if k == 0 and l == refinement_factor:
                 continue
-            triangle_vertices[(k, l)] = next_vertex
-            refined_vertices.append(next_vertex)
-            refined_points.append(
+            next_point = (
                 (1 - k / refinement_factor - l / refinement_factor) * p1
                 + k / refinement_factor * p2
                 + l / refinement_factor * p3
             )
-            next_vertex += 1
+            # Check if the vertex was already added in a previous refinement step
+            old_vertex = intermediate_grid.point_to_vertex(next_point)
+            if old_vertex is None:
+                triangle_vertices[(k, l)] = next_vertex
+                intermediate_grid.vertices.append(next_vertex)
+                intermediate_grid.points.append(next_point)
+                next_vertex += 1
+            else:
+                triangle_vertices[(k, l)] = old_vertex
 
     # Add lower triangles
     for l in range(refinement_factor):
         for k in range(refinement_factor - l):
-            refined_triangles.append((
-                triangle_vertices[(k, l)],
-                triangle_vertices[(k + 1, l)],
-                triangle_vertices[(k, l + 1)],
-            ))
+            intermediate_grid.triangles.append(
+                (
+                    triangle_vertices[(k, l)],
+                    triangle_vertices[(k + 1, l)],
+                    triangle_vertices[(k, l + 1)],
+                )
+            )
 
     # Add upper triangles
     for l in range(refinement_factor - 1):
         for k in range(1, refinement_factor - l):
-            refined_triangles.append((
-                triangle_vertices[(k, l + 1)],
-                triangle_vertices[(k - 1, l + 1)],
-                triangle_vertices[(k, l)],
-            ))
+            intermediate_grid.triangles.append(
+                (
+                    triangle_vertices[(k, l + 1)],
+                    triangle_vertices[(k - 1, l + 1)],
+                    triangle_vertices[(k, l)],
+                )
+            )
 
     # Add horizontal and diagonal edges
     for l in range(refinement_factor):
         for k in range(refinement_factor - l):
-            refined_edges.append((triangle_vertices[(k, l)], triangle_vertices[(k + 1, l)]))
-            refined_edges.append((triangle_vertices[(k, l)], triangle_vertices[(k, l + 1)]))
+            intermediate_grid.edges.append(
+                (triangle_vertices[(k, l)], triangle_vertices[(k + 1, l)])
+            )
+            intermediate_grid.edges.append(
+                (triangle_vertices[(k, l)], triangle_vertices[(k, l + 1)])
+            )
 
     # Add vertical edges
     for l in range(refinement_factor - 1):
         for k in range(1, refinement_factor - l):
-            refined_edges.append((triangle_vertices[(k, l)], triangle_vertices[(k - 1, l + 1)]))
+            intermediate_grid.edges.append(
+                (triangle_vertices[(k, l)], triangle_vertices[(k - 1, l + 1)])
+            )
 
     horizontal_edge_vertices = [triangle_vertices[(i, 0)] for i in range(refinement_factor + 1)]
     vertical_edge_vertices = [
@@ -619,26 +642,12 @@ def _refine_equilateral_triangle(
     for edge, edge_vertices in zip(
         [(i1, i2), (i2, i3)], [horizontal_edge_vertices, vertical_edge_vertices]
     ):
+        _refine_boundary_edge(edge, edge_vertices, grid.boundary, intermediate_grid.boundary)
         _refine_boundary_edge(
-            edge,
-            edge_vertices,
-            grid.boundary,
-            refined_boundary_vertices,
-            refined_boundary_edges,
+            edge, edge_vertices, grid.dirichlet_boundary, intermediate_grid.dirichlet_boundary
         )
         _refine_boundary_edge(
-            edge,
-            edge_vertices,
-            grid.dirichlet_boundary,
-            refined_dirichlet_boundary_vertices,
-            refined_dirichlet_boundary_edges,
-        )
-        _refine_boundary_edge(
-            edge,
-            edge_vertices,
-            grid.neumann_boundary,
-            refined_neumann_boundary_vertices,
-            refined_neumann_boundary_edges,
+            edge, edge_vertices, grid.neumann_boundary, intermediate_grid.neumann_boundary
         )
 
 
@@ -646,16 +655,12 @@ def _refine_boundary_edge(
     edge: Edge,
     edge_vertices: list[Vertex],
     boundary: Boundary,
-    refined_boundary_vertices: list[Vertex],
-    refined_boundary_edges: list[Edge],
+    intermediate_boundary: Boundary,
 ) -> None:
     if edge not in boundary.edges and (edge[1], edge[0]) not in boundary.edges:
         return
 
-    refined_boundary_vertices.extend(edge_vertices[1:-1])
-    refined_boundary_edges.extend((i, j) for i, j in zip(edge_vertices[:-1], edge_vertices[1:]))
-
-
-_square = RectangleDomain(1, 1, fix="left")
-_grid = _square.grid(1)
-_refined_grid = _square.refine(_grid, refinement_factor=4)
+    intermediate_boundary.vertices.extend(edge_vertices[1:-1])
+    intermediate_boundary.edges.extend(
+        (i, j) for i, j in zip(edge_vertices[:-1], edge_vertices[1:])
+    )

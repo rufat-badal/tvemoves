@@ -157,3 +157,20 @@ def test_to_barycentric_curve() -> None:
         if len(barycentric_curve) < len(curve):
             for barycentric_point, point in zip(barycentric_curve, curve):
                 assert (_to_cartesian_point(barycentric_point, grid) - point).norm() == approx(0)
+
+
+def test_equilateral_grid_refine() -> None:
+    """Test refinement of an grid of equilateral triangles."""
+    square = RectangleDomain(1, 1, fix="left")
+    refinement_factor = 4
+    coarse_scale = 1.0
+    grid = square.grid(coarse_scale)
+    refined_grid = square.refine(grid, refinement_factor)
+    refine_grid_target = square.grid(coarse_scale / refinement_factor)
+    print(grid.contains_vertex(Vector([-100, 100])))
+    print(grid.contains_vertex(grid.points[0]))
+    print(refined_grid.vertices)
+    print(refine_grid_target.vertices)
+
+
+test_equilateral_grid_refine()
