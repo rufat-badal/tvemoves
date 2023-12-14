@@ -574,6 +574,7 @@ def _refine_equilateral_triangle(
             if k == 0 and l == refinement_factor:
                 continue
             triangle_vertices[(k, l)] = next_vertex
+            refined_vertices.append(next_vertex)
             refined_points.append(
                 (1 - k / refinement_factor - l / refinement_factor) * p1
                 + k / refinement_factor * p2
@@ -657,4 +658,4 @@ def _refine_boundary_edge(
 
 _square = RectangleDomain(1, 1, fix="left")
 _grid = _square.grid(1)
-_square.refine(_grid, refinement_factor=4)
+_refined_grid = _square.refine(_grid, refinement_factor=4)
