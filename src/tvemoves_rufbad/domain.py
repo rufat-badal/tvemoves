@@ -1,7 +1,7 @@
 """"Domain class that in particular can create grids"""
 
 from dataclasses import dataclass
-from typing import Literal, Protocol
+from typing import Literal, Protocol, Dict
 from math import isclose
 from abc import ABC
 from copy import deepcopy
@@ -521,7 +521,6 @@ class RectangleDomain(Domain):
                 refined_neumann_boundary_edges,
                 refined_points,
             )
-            break
 
         return RefinedGrid(
             refined_vertices,
@@ -549,7 +548,7 @@ def _refine_equilateral_triangle(
     refined_neumann_boundary_vertices: list[Vertex],
     refined_neumann_boundary_edges: list[Edge],
     refined_points: list[Vector],
-):
+) -> None:
     """Refine a single equlateral triangle of the coarse grid. This function modifies refined_grid!
 
     It is the responsibility of the caller to only provide triangles in grid."""
@@ -561,7 +560,7 @@ def _refine_equilateral_triangle(
 
     # Create new vertex indices and points
     next_vertex = refined_vertices[-1] + 1
-    triangle_vertices = {}
+    triangle_vertices: Dict[tuple[int, int], Vertex] = {}
     triangle_vertices[(0, 0)] = i1
     triangle_vertices[(refinement_factor, 0)] = i2
     triangle_vertices[(0, refinement_factor)] = i3
@@ -611,7 +610,51 @@ def _refine_equilateral_triangle(
         for k in range(1, refinement_factor - l):
             refined_edges.append((triangle_vertices[(k, l)], triangle_vertices[(k - 1, l + 1)]))
 
+    horizontal_edge_vertices = [triangle_vertices[(i, 0)] for i in range(refinement_factor + 1)]
+    vertical_edge_vertices = [
+        triangle_vertices[(refinement_factor - i, i)] for i in range(refinement_factor + 1)
+    ]
 
-_square = RectangleDomain(1, 1)
+    for edge, edge_vertices in zip(
+        [(i1, i2), (i2, i3)], [horizontal_edge_vertices, vertical_edge_vertices]
+    ):
+        _refine_boundary_edge(
+            edge,
+            edge_vertices,
+            grid.boundary,
+            refined_boundary_vertices,
+            refined_boundary_edges,
+        )
+        _refine_boundary_edge(
+            edge,
+            edge_vertices,
+            grid.dirichlet_boundary,
+            refined_dirichlet_boundary_vertices,
+            refined_dirichlet_boundary_edges,
+        )
+        _refine_boundary_edge(
+            edge,
+            edge_vertices,
+            grid.neumann_boundary,
+            refined_neumann_boundary_vertices,
+            refined_neumann_boundary_edges,
+        )
+
+
+def _refine_boundary_edge(
+    edge: Edge,
+    edge_vertices: list[Vertex],
+    boundary: Boundary,
+    refined_boundary_vertices: list[Vertex],
+    refined_boundary_edges: list[Edge],
+) -> None:
+    if edge not in boundary.edges and (edge[1], edge[0]) not in boundary.edges:
+        return
+
+    refined_boundary_vertices.extend(edge_vertices[1:-1])
+    refined_boundary_edges.extend((i, j) for i, j in zip(edge_vertices[:-1], edge_vertices[1:]))
+
+
+_square = RectangleDomain(1, 1, fix="left")
 _grid = _square.grid(1)
 _square.refine(_grid, refinement_factor=4)
