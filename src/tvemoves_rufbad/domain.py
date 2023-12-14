@@ -121,6 +121,11 @@ class Grid(ABC):
         self.dirichlet_boundary = dirichlet_boundary
         self.neumann_boundary = neumann_boundary
         self.points = points
+        self._mean_edge_length = None
+        if self.edges:
+            self._mean_edge_length = sum(
+                (self.points[i1] - self.points[i2]).norm() for (i1, i2) in self.edges
+            ) / len(self.edges)
 
     def _to_barycentric_point(self, p: Vector) -> BarycentricPoint | None:
         """Given cartesian point, determine its containing triangle and
@@ -193,31 +198,31 @@ class Grid(ABC):
 
     def point_to_vertex(self, point: Vector) -> Vertex | None:
         """Return vertex id of the point or None if point is not in the grid."""
+        eps = self._mean_edge_length / 1e7 if self._mean_edge_length is not None else 1e-15
         return next(
             (
                 i
                 for i, grid_point in enumerate(self.points)
-                if isclose(0, (point - grid_point).norm())
+                # if isclose(0, (point - grid_point).norm())
+                if (point - grid_point).norm() < eps
             ),
             None,
         )
 
-    def contains_vertex(self, point: Vector) -> bool:
-        """Check if a point is contained in the grid."""
-        vertex = self.point_to_vertex(point)
-        return vertex is not None
+    def append_edge(self, edge: Edge) -> None:
+        """Append an edge if it is not already present."""
+        if edge not in self.edges and (edge[-1], edge[0]) not in self.edges:
+            # Update mean edge length before adding the edge
+            num_edges_old = len(self.edges)
+            new_edge_length = (self.points[edge[0]] - self.points[edge[1]]).norm()
+            if self._mean_edge_length is None:
+                self._mean_edge_length = new_edge_length
+            else:
+                self._mean_edge_length = self._mean_edge_length * num_edges_old / (
+                    num_edges_old + 1
+                ) + new_edge_length / (num_edges_old + 1)
 
-    def contains_edge(self, edge_vertices: EdgeVertices) -> bool:
-        """Check if an edge is contained in the grid."""
-        e1, e2 = edge_vertices
-        i1 = self.point_to_vertex(e1)
-        if i1 is None:
-            return False
-        i2 = self.point_to_vertex(e2)
-        if i2 is None:
-            return False
-
-        return (i1, i2) in self.edges or (i2, i1) in self.edges
+            self.edges.append(edge)
 
 
 class RefinedGrid(Grid):
@@ -571,6 +576,10 @@ def _refine_equilateral_triangle(
     triangle_vertices[(0, 0)] = i1
     triangle_vertices[(refinement_factor, 0)] = i2
     triangle_vertices[(0, refinement_factor)] = i3
+    triangle_points: Dict[tuple[int, int], Vertex] = {}
+    triangle_points[(0, 0)] = p1
+    triangle_points[(refinement_factor, 0)] = p2
+    triangle_points[(0, refinement_factor)] = p3
     for l in range(refinement_factor + 1):
         for k in range(refinement_factor + 1 - l):
             # ignore endpoints
@@ -585,6 +594,7 @@ def _refine_equilateral_triangle(
                 + k / refinement_factor * p2
                 + l / refinement_factor * p3
             )
+            triangle_points[(k, l)] = next_point
             # Check if the vertex was already added in a previous refinement step
             old_vertex = intermediate_grid.point_to_vertex(next_point)
             if old_vertex is None:
@@ -596,6 +606,7 @@ def _refine_equilateral_triangle(
                 triangle_vertices[(k, l)] = old_vertex
 
     # Add lower triangles
+    # Refined triangles are unique for each refinement step!
     for l in range(refinement_factor):
         for k in range(refinement_factor - l):
             intermediate_grid.triangles.append(
@@ -617,21 +628,19 @@ def _refine_equilateral_triangle(
                 )
             )
 
-    # Add horizontal and diagonal edges
     for l in range(refinement_factor):
         for k in range(refinement_factor - l):
-            intermediate_grid.edges.append(
+            # Add horizontal edges
+            intermediate_grid.append_edge(
                 (triangle_vertices[(k, l)], triangle_vertices[(k + 1, l)])
             )
-            intermediate_grid.edges.append(
-                (triangle_vertices[(k, l)], triangle_vertices[(k, l + 1)])
+            # Add vertical edges
+            intermediate_grid.append_edge(
+                (triangle_vertices[(k + 1, l)], triangle_vertices[(k, l + 1)])
             )
-
-    # Add vertical edges
-    for l in range(refinement_factor - 1):
-        for k in range(1, refinement_factor - l):
-            intermediate_grid.edges.append(
-                (triangle_vertices[(k, l)], triangle_vertices[(k - 1, l + 1)])
+            # Add diagonal edges
+            intermediate_grid.append_edge(
+                (triangle_vertices[(k, l)], triangle_vertices[(k, l + 1)])
             )
 
     horizontal_edge_vertices = [triangle_vertices[(i, 0)] for i in range(refinement_factor + 1)]
@@ -642,6 +651,7 @@ def _refine_equilateral_triangle(
     for edge, edge_vertices in zip(
         [(i1, i2), (i2, i3)], [horizontal_edge_vertices, vertical_edge_vertices]
     ):
+        # Boundary vertices and edges are unique for each refinement step!
         _refine_boundary_edge(edge, edge_vertices, grid.boundary, intermediate_grid.boundary)
         _refine_boundary_edge(
             edge, edge_vertices, grid.dirichlet_boundary, intermediate_grid.dirichlet_boundary
