@@ -300,6 +300,17 @@ def _boundaries_coincide(
     ):
         return False
 
+    if len(boundary.edges) != len(other_boundary.edges):
+        return False
+    other_edges = [
+        (other_to_self_vertex[i1], other_to_self_vertex[i2]) for (i1, i2) in other_boundary.edges
+    ]
+    if any(
+        edge not in boundary.edges and (edge[1], edge[0]) not in boundary.edges
+        for edge in other_edges
+    ):
+        return False
+
     return True
 
 
