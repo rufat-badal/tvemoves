@@ -331,10 +331,11 @@ class RefinedGrid(Grid):
         dirichlet_boundary: Boundary,
         neumann_boundary: Boundary,
         points: list[Vector],
+        coarse_grid: Grid,
         coarse_triangle: Dict[Triangle, Triangle],
         coarse_barycentric_coordinates: _TriangleBarycentricCoords,
-        points_barycentric: list[BarycentricCoordinates],
-        coarse_grid: Grid,
+        coarse_edge: Dict[Edge, Edge],
+        coarse_edge_coordinate: Dict[Edge, float],
     ):
         super().__init__(
             vertices,
@@ -348,7 +349,8 @@ class RefinedGrid(Grid):
         self._coarse_grid = coarse_grid
         self._coarse_triangle = coarse_triangle
         self._coarse_barycentric_coordinates = coarse_barycentric_coordinates
-        self._points_barycentric = points_barycentric
+        self._coarse_edge = coarse_edge
+        self._coarse_edge_coordinate = coarse_edge_coordinate
 
     def coarse(self) -> Grid:
         """Return the coarse grid for which self is a refinedment."""
@@ -664,7 +666,8 @@ class RectangleDomain(Domain):
 
         coarse_triangle: Dict[Triangle, Triangle] = {}
         coarse_barycentric_coordinates: _TriangleBarycentricCoords = {}
-        fine_points_barycentric: list[BarycentricCoordinates] = []
+        coarse_edge: Dict[Edge, Edge] = {}
+        coarse_edge_coordinate: Dict[Edge, float] = {}
 
         for triangle in grid.triangles:
             _refine_equilateral_triangle(
@@ -674,7 +677,8 @@ class RectangleDomain(Domain):
                 intermediate_grid,
                 coarse_triangle,
                 coarse_barycentric_coordinates,
-                fine_points_barycentric,
+                coarse_edge,
+                coarse_edge_coordinate,
             )
 
         return RefinedGrid(
@@ -685,10 +689,11 @@ class RectangleDomain(Domain):
             intermediate_grid.dirichlet_boundary,
             intermediate_grid.neumann_boundary,
             intermediate_grid.points,
+            grid,
             coarse_triangle,
             coarse_barycentric_coordinates,
-            fine_points_barycentric,
-            grid,
+            coarse_edge,
+            coarse_edge_coordinate,
         )
 
 
@@ -699,7 +704,8 @@ def _refine_equilateral_triangle(
     intermediate_grid: Grid,
     coarse_triangle: Dict[Triangle, Triangle],
     coarse_barycentric_coordinates: _TriangleBarycentricCoords,
-    fine_points_barycentric: list[BarycentricCoordinates],
+    coarse_edge: Dict[Edge, Edge],
+    coarse_edge_coordinate: Dict[Edge, float],
 ) -> None:
     """Refine a single equlateral triangle of the coarse grid. This function modifies refined_grid!
 
@@ -744,7 +750,6 @@ def _refine_equilateral_triangle(
                 triangle_vertices[(k, l)] = next_vertex
                 intermediate_grid.vertices.append(next_vertex)
                 intermediate_grid.points.append(next_point)
-                fine_points_barycentric.append(next_barycentric_coords)
                 next_vertex += 1
             else:
                 triangle_vertices[(k, l)] = old_vertex
