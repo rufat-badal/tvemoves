@@ -3,6 +3,7 @@
 from pytest import approx
 from tvemoves_rufbad.tensors import Vector
 from tvemoves_rufbad.domain import RectangleDomain, Grid, BarycentricPoint
+from .helpers import random_barycentric_coordinates
 
 
 def test_rectangle_domain_grid() -> None:
@@ -161,6 +162,8 @@ def test_to_barycentric_curve() -> None:
 
 def test_equilateral_grid_refine() -> None:
     """Test refinement of an grid of equilateral triangles."""
+    eps = 1e-15
+
     square = RectangleDomain(1, 1, fix="left")
     refinement_factor = 5
     coarse_scale = 0.25
@@ -168,3 +171,17 @@ def test_equilateral_grid_refine() -> None:
     refined_grid = square.refine(grid, refinement_factor)
     refine_grid_target = square.grid(coarse_scale / refinement_factor)
     assert refined_grid == refine_grid_target
+
+    coarse_grid = refined_grid.coarse()
+    for triangle_fine, bc_fine in zip(
+        refined_grid.triangles, random_barycentric_coordinates(len(refined_grid.triangles))
+    ):
+        p1, p2, p3 = refined_grid.triangle_vertices(triangle_fine)
+        bp_fine_euclidean = bc_fine.l1 * p1 + bc_fine.l2 * p2 + bc_fine.l3 * p3
+
+        bp_fine = BarycentricPoint(triangle_fine, bc_fine)
+        bp_coarse = refined_grid.to_coarse_barycentric_point(bp_fine)
+        q1, q2, q3 = coarse_grid.triangle_vertices(bp_coarse.triangle)
+        bc_coarse = bp_coarse.coordinates
+        bp_coarse_euclidean = bc_coarse.l1 * q1 + bc_coarse.l2 * q2 + bc_coarse.l3 * q3
+        assert (bp_fine_euclidean - bp_coarse_euclidean).norm() < eps

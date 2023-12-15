@@ -314,6 +314,11 @@ def _boundaries_coincide(
     return True
 
 
+_TriangleBarycentricCoords = Dict[
+    Triangle, tuple[BarycentricCoordinates, BarycentricCoordinates, BarycentricCoordinates]
+]
+
+
 class RefinedGrid(Grid):
     """Refinement of a grid."""
 
@@ -327,6 +332,7 @@ class RefinedGrid(Grid):
         neumann_boundary: Boundary,
         points: list[Vector],
         coarse_triangle: Dict[Triangle, Triangle],
+        coarse_barycentric_coordinates: _TriangleBarycentricCoords,
         points_barycentric: list[BarycentricCoordinates],
         coarse_grid: Grid,
     ):
@@ -341,6 +347,7 @@ class RefinedGrid(Grid):
         )
         self._coarse_grid = coarse_grid
         self._coarse_triangle = coarse_triangle
+        self._coarse_barycentric_coordinates = coarse_barycentric_coordinates
         self._points_barycentric = points_barycentric
 
     def coarse(self) -> Grid:
@@ -358,8 +365,13 @@ class RefinedGrid(Grid):
                 fine_triangle = (i3, i1, i2)
             else:
                 raise ValueError("triangle does not appear in the grid")
-
         coarse_triangle = self._coarse_triangle[fine_triangle]
+        p = fine_point.coordinates
+        q1, q2, q3 = self._coarse_barycentric_coordinates[fine_triangle]
+        coarse_barycentric_coordinates = BarycentricCoordinates(
+            p.l1 * q1.l1 + p.l2 * q2.l1 + p.l3 * q3.l1, p.l1 * q1.l2 + p.l2 * q2.l2 + p.l3 * q3.l2
+        )
+        return BarycentricPoint(coarse_triangle, coarse_barycentric_coordinates)
 
 
 class Domain(Protocol):
@@ -549,10 +561,12 @@ class RectangleDomain(Domain):
         neumann_boundary = Boundary(neumann_vertices, neumann_edges)
 
         points = [
-            Vector([
-                v % num_horizontal_vertices * scale,
-                v // num_horizontal_vertices * scale,
-            ])
+            Vector(
+                [
+                    v % num_horizontal_vertices * scale,
+                    v // num_horizontal_vertices * scale,
+                ]
+            )
             for v in vertices
         ]
 
@@ -587,10 +601,12 @@ class RectangleDomain(Domain):
 
         horizontal_curves = [
             [
-                Vector([
-                    i * self.width / (num_points_per_curve - 1),
-                    j * self.height / (num_all_horizontal_curves - 1),
-                ])
+                Vector(
+                    [
+                        i * self.width / (num_points_per_curve - 1),
+                        j * self.height / (num_all_horizontal_curves - 1),
+                    ]
+                )
                 for i in range(num_points_per_curve)
             ]
             for j in range(num_all_horizontal_curves)
@@ -598,10 +614,12 @@ class RectangleDomain(Domain):
 
         vertical_curves = [
             [
-                Vector([
-                    j * self.width / (num_all_vertical_curves - 1),
-                    i * self.height / (num_points_per_curve - 1),
-                ])
+                Vector(
+                    [
+                        j * self.width / (num_all_vertical_curves - 1),
+                        i * self.height / (num_points_per_curve - 1),
+                    ]
+                )
                 for i in range(num_points_per_curve)
             ]
             for j in range(num_all_vertical_curves)
@@ -645,6 +663,7 @@ class RectangleDomain(Domain):
         )
 
         coarse_triangle: Dict[Triangle, Triangle] = {}
+        coarse_barycentric_coordinates: _TriangleBarycentricCoords = {}
         fine_points_barycentric: list[BarycentricCoordinates] = []
 
         for triangle in grid.triangles:
@@ -654,6 +673,7 @@ class RectangleDomain(Domain):
                 refinement_factor,
                 intermediate_grid,
                 coarse_triangle,
+                coarse_barycentric_coordinates,
                 fine_points_barycentric,
             )
 
@@ -666,6 +686,7 @@ class RectangleDomain(Domain):
             intermediate_grid.neumann_boundary,
             intermediate_grid.points,
             coarse_triangle,
+            coarse_barycentric_coordinates,
             fine_points_barycentric,
             grid,
         )
@@ -677,6 +698,7 @@ def _refine_equilateral_triangle(
     refinement_factor: int,
     intermediate_grid: Grid,
     coarse_triangle: Dict[Triangle, Triangle],
+    coarse_barycentric_coordinates: _TriangleBarycentricCoords,
     fine_points_barycentric: list[BarycentricCoordinates],
 ) -> None:
     """Refine a single equlateral triangle of the coarse grid. This function modifies refined_grid!
@@ -738,6 +760,18 @@ def _refine_equilateral_triangle(
             )
             intermediate_grid.triangles.append(next_triangle)
             coarse_triangle[next_triangle] = triangle
+            coarse_barycentric_coordinates[next_triangle] = (
+                BarycentricCoordinates(
+                    1 - k / refinement_factor - l / refinement_factor, k / refinement_factor
+                ),
+                BarycentricCoordinates(
+                    1 - (k + 1) / refinement_factor - l / refinement_factor,
+                    (k + 1) / refinement_factor,
+                ),
+                BarycentricCoordinates(
+                    1 - k / refinement_factor - (l + 1) / refinement_factor, k / refinement_factor
+                ),
+            )
 
     # Add upper triangles
     for l in range(refinement_factor - 1):
@@ -749,6 +783,18 @@ def _refine_equilateral_triangle(
             )
             intermediate_grid.triangles.append(next_triangle)
             coarse_triangle[next_triangle] = triangle
+            coarse_barycentric_coordinates[next_triangle] = (
+                BarycentricCoordinates(
+                    1 - k / refinement_factor - (l + 1) / refinement_factor, k / refinement_factor
+                ),
+                BarycentricCoordinates(
+                    1 - (k - 1) / refinement_factor - (l + 1) / refinement_factor,
+                    (k - 1) / refinement_factor,
+                ),
+                BarycentricCoordinates(
+                    1 - k / refinement_factor - l / refinement_factor, k / refinement_factor
+                ),
+            )
 
     for l in range(refinement_factor):
         for k in range(refinement_factor - l):
