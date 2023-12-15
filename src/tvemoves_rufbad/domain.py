@@ -22,7 +22,7 @@ TriangleVertices = tuple[Vector, Vector, Vector]
 EdgeVertices = tuple[Vector, Vector]
 
 
-@dataclass
+@dataclass(frozen=True)
 class BarycentricPoint:
     """Barycentric encoding of a point contained in of the grid triangles"""
 
@@ -326,6 +326,8 @@ class RefinedGrid(Grid):
         dirichlet_boundary: Boundary,
         neumann_boundary: Boundary,
         points: list[Vector],
+        coarse_triangle: Dict[Triangle, Triangle],
+        points_barycentric: list[BarycentricCoordinates],
         coarse_grid: Grid,
     ):
         super().__init__(
@@ -338,10 +340,26 @@ class RefinedGrid(Grid):
             points,
         )
         self._coarse_grid = coarse_grid
+        self._coarse_triangle = coarse_triangle
+        self._points_barycentric = points_barycentric
 
     def coarse(self) -> Grid:
         """Return the coarse grid for which self is a refinedment."""
         return self._coarse_grid
+
+    def to_coarse_barycentric_point(self, fine_point: BarycentricPoint) -> BarycentricPoint:
+        """Transform a barycentric point in the fine mesh to a barycentric point in the coarse mesh"""
+        fine_triangle = fine_point.triangle
+        i1, i2, i3 = fine_triangle
+        if (i1, i2, i3) not in self.triangles:
+            if (i2, i3, i1) in self.triangles:
+                fine_triangle = (i2, i3, i1)
+            elif (i3, i1, i2) in self.triangles:
+                fine_triangle = (i3, i1, i2)
+            else:
+                raise ValueError("triangle does not appear in the grid")
+
+        coarse_triangle = self._coarse_triangle[fine_triangle]
 
 
 class Domain(Protocol):
@@ -626,8 +644,18 @@ class RectangleDomain(Domain):
             deepcopy(grid.points),
         )
 
+        coarse_triangle: Dict[Triangle, Triangle] = {}
+        fine_points_barycentric: list[BarycentricCoordinates] = []
+
         for triangle in grid.triangles:
-            _refine_equilateral_triangle(triangle, grid, refinement_factor, intermediate_grid)
+            _refine_equilateral_triangle(
+                triangle,
+                grid,
+                refinement_factor,
+                intermediate_grid,
+                coarse_triangle,
+                fine_points_barycentric,
+            )
 
         return RefinedGrid(
             intermediate_grid.vertices,
@@ -637,12 +665,19 @@ class RectangleDomain(Domain):
             intermediate_grid.dirichlet_boundary,
             intermediate_grid.neumann_boundary,
             intermediate_grid.points,
+            coarse_triangle,
+            fine_points_barycentric,
             grid,
         )
 
 
 def _refine_equilateral_triangle(
-    triangle: Triangle, grid: Grid, refinement_factor: int, intermediate_grid: Grid
+    triangle: Triangle,
+    grid: Grid,
+    refinement_factor: int,
+    intermediate_grid: Grid,
+    coarse_triangle: Dict[Triangle, Triangle],
+    fine_points_barycentric: list[BarycentricCoordinates],
 ) -> None:
     """Refine a single equlateral triangle of the coarse grid. This function modifies refined_grid!
 
@@ -672,10 +707,13 @@ def _refine_equilateral_triangle(
                 continue
             if k == 0 and l == refinement_factor:
                 continue
+            next_barycentric_coords = BarycentricCoordinates(
+                1 - k / refinement_factor - l / refinement_factor, k / refinement_factor
+            )
             next_point = (
-                (1 - k / refinement_factor - l / refinement_factor) * p1
-                + k / refinement_factor * p2
-                + l / refinement_factor * p3
+                next_barycentric_coords.l1 * p1
+                + next_barycentric_coords.l2 * p2
+                + next_barycentric_coords.l3 * p3
             )
             triangle_points[(k, l)] = next_point
             # Check if the vertex was already added in a previous refinement step
@@ -684,6 +722,7 @@ def _refine_equilateral_triangle(
                 triangle_vertices[(k, l)] = next_vertex
                 intermediate_grid.vertices.append(next_vertex)
                 intermediate_grid.points.append(next_point)
+                fine_points_barycentric.append(next_barycentric_coords)
                 next_vertex += 1
             else:
                 triangle_vertices[(k, l)] = old_vertex
@@ -692,20 +731,24 @@ def _refine_equilateral_triangle(
     # Refined triangles are unique for each refinement step!
     for l in range(refinement_factor):
         for k in range(refinement_factor - l):
-            intermediate_grid.triangles.append((
+            next_triangle = (
                 triangle_vertices[(k, l)],
                 triangle_vertices[(k + 1, l)],
                 triangle_vertices[(k, l + 1)],
-            ))
+            )
+            intermediate_grid.triangles.append(next_triangle)
+            coarse_triangle[next_triangle] = triangle
 
     # Add upper triangles
     for l in range(refinement_factor - 1):
         for k in range(1, refinement_factor - l):
-            intermediate_grid.triangles.append((
+            next_triangle = (
                 triangle_vertices[(k, l + 1)],
                 triangle_vertices[(k - 1, l + 1)],
                 triangle_vertices[(k, l)],
-            ))
+            )
+            intermediate_grid.triangles.append(next_triangle)
+            coarse_triangle[next_triangle] = triangle
 
     for l in range(refinement_factor):
         for k in range(refinement_factor - l):
