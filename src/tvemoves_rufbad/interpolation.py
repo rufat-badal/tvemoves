@@ -2,7 +2,7 @@
 
 from typing import Protocol
 from tvemoves_rufbad.tensors import Vector, BarycentricCoordinates, Matrix, Tensor3D
-from tvemoves_rufbad.domain import Grid, Triangle, Edge
+from tvemoves_rufbad.domain import BarycentricPoint, Grid, Triangle, Edge, RefinedGrid
 from tvemoves_rufbad.bell_finite_element import (
     bell_interpolation,
     bell_interpolation_gradient,
@@ -133,6 +133,53 @@ class C1Interpolation(Interpolation):
         edge_params = params_vec1.extend(params_vec2)
         edge_vertices = (self._grid.points[i1], self._grid.points[i2])
         return bell_interpolation_on_edge(edge_vertices, t, edge_params)
+
+
+class RefinedInterpolation(Interpolation):
+    """Refinement of an interpolation.
+
+    The interpolation stays the same but is extrapolated to a finer grid.
+    """
+
+    def __init__(self, coarse_interpolation: Interpolation, refined_grid: RefinedGrid):
+        """Extends coarse_interpolation to a finer grid.
+
+        It is the responsibility of the caller that refined_grid.coarse() coincides exactly with
+        coarse_interpolation._grid.
+        No permutation of indices allowed!
+        """
+
+        self._coarse_interpolation = coarse_interpolation
+        self._refined_grid = refined_grid
+
+    def _to_coarse_parameters(
+        self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
+    ) -> tuple[Triangle, BarycentricCoordinates]:
+        bp_fine = BarycentricPoint(triangle, barycentric_coordinates)
+        bp_coarse = self._refined_grid.to_coarse_barycentric_point(bp_fine)
+        return bp_coarse.triangle, bp_coarse.coordinates
+
+    def __call__(self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates):
+        return self._coarse_interpolation(
+            *self._to_coarse_parameters(triangle, barycentric_coordinates)
+        )
+
+    def gradient(
+        self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
+    ) -> Vector:
+        return self._coarse_interpolation.gradient(
+            *self._to_coarse_parameters(triangle, barycentric_coordinates)
+        )
+
+    def on_edge(self, edge: Edge, t: float):
+        """Computes the value of the interpolation on an edge."""
+
+    def hessian(
+        self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
+    ) -> Matrix:
+        return self._coarse_interpolation.hessian(
+            *self._to_coarse_parameters(triangle, barycentric_coordinates)
+        )
 
 
 class Deformation:
