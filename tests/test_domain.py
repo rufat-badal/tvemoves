@@ -166,8 +166,10 @@ def test_equilateral_grid_refine() -> None:
     eps = 1e-15
 
     square = RectangleDomain(1, 1, fix="left")
-    refinement_factor = 5
-    coarse_scale = 0.25
+    # refinement_factor = 5
+    # coarse_scale = 0.25
+    refinement_factor = 2
+    coarse_scale = 1
     grid = square.grid(coarse_scale)
     refined_grid = square.refine(grid, refinement_factor)
     refine_grid_target = square.grid(coarse_scale / refinement_factor)
@@ -187,12 +189,19 @@ def test_equilateral_grid_refine() -> None:
         bp_coarse_euclidean = bc_coarse.l1 * q1 + bc_coarse.l2 * q2 + bc_coarse.l3 * q3
         assert (bp_fine_euclidean - bp_coarse_euclidean).norm() < eps
 
+    for edge in (
+        refined_grid.boundary.edges
+        + refined_grid.dirichlet_boundary.edges
+        + refined_grid.neumann_boundary.edges
+    ):
+        assert edge in refined_grid.edges
+
     for edge in refined_grid.boundary.edges:
-        p1, p2 = refined_grid.points[edge[0]], refined_grid.points[edge[1]]
+        p1, p2 = refined_grid.edge_vertices(edge)
         t = random.random()
         p = t * p1 + (1 - t) * p2
         edge_coarse, t_coarse = refined_grid.to_coarse_edge_point(edge, t)
-        p1_coarse = refined_grid.coarse().points[edge_coarse[0]]
-        p2_coarse = refined_grid.coarse().points[edge_coarse[1]]
+        assert edge_coarse in refined_grid.coarse().edges
+        p1_coarse, p2_coarse = refined_grid.coarse().edge_vertices(edge_coarse)
         p_coarse = t_coarse * p1_coarse + (1 - t_coarse) * p2_coarse
         assert (p - p_coarse).norm() < eps

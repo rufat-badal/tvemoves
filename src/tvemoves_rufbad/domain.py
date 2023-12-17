@@ -816,28 +816,58 @@ def _refine_equilateral_triangle(
                 ),
             )
 
+    # The edge orientation induced by the triangle orientation might not coincide with the real edge
+    # orientation of the coarse grid.
+    horizontal_edge_correct = (i1, i2) in grid.edges
+    vertical_edge_correct = (i2, i3) in grid.edges
+    diagonal_edge_correct = (i3, i1) in grid.edges
+
+    def assure_orientation(coarse_orientation_correct: bool, ordering):
+        if isinstance(ordering, tuple):
+            return ordering if coarse_orientation_correct else tuple(reversed(ordering))
+        if isinstance(ordering, list):
+            return ordering if coarse_orientation_correct else list(reversed(ordering))
+
     for l in range(refinement_factor):
         for k in range(refinement_factor - l):
+            # Fine edges have the same orientation as the coarse edge in the triangle parallel to them.
             # Add horizontal edges
             intermediate_grid.append_edge(
-                (triangle_vertices[(k, l)], triangle_vertices[(k + 1, l)])
+                assure_orientation(
+                    horizontal_edge_correct,
+                    (triangle_vertices[(k, l)], triangle_vertices[(k + 1, l)]),
+                )
             )
             # Add vertical edges
             intermediate_grid.append_edge(
-                (triangle_vertices[(k + 1, l)], triangle_vertices[(k, l + 1)])
+                assure_orientation(
+                    vertical_edge_correct,
+                    (triangle_vertices[(k + 1, l)], triangle_vertices[(k, l + 1)]),
+                )
             )
             # Add diagonal edges
             intermediate_grid.append_edge(
-                (triangle_vertices[(k, l)], triangle_vertices[(k, l + 1)])
+                assure_orientation(
+                    diagonal_edge_correct,
+                    (triangle_vertices[(k, l)], triangle_vertices[(k, l + 1)]),
+                )
             )
 
-    horizontal_edge_vertices = [triangle_vertices[(i, 0)] for i in range(refinement_factor + 1)]
-    vertical_edge_vertices = [
-        triangle_vertices[(refinement_factor - i, i)] for i in range(refinement_factor + 1)
-    ]
+    horizontal_edge_coarse = assure_orientation(horizontal_edge_correct, (i1, i2))
+    vertical_edge_coarse = assure_orientation(vertical_edge_correct, (i2, i3))
+    diagonal_edge_coarse = assure_orientation(diagonal_edge_correct, (i3, i1))
+
+    horizontal_edge_vertices = assure_orientation(
+        horizontal_edge_correct, [triangle_vertices[(i, 0)] for i in range(refinement_factor + 1)]
+    )
+    vertical_edge_vertices = assure_orientation(
+        vertical_edge_correct,
+        [triangle_vertices[(refinement_factor - i, i)] for i in range(refinement_factor + 1)],
+    )
 
     for edge, edge_vertices in zip(
-        [(i1, i2), (i2, i3)], [horizontal_edge_vertices, vertical_edge_vertices]
+        [horizontal_edge_coarse, vertical_edge_coarse],
+        [horizontal_edge_vertices, vertical_edge_vertices],
     ):
         # Boundary vertices and edges are unique for each refinement step!
         _refine_boundary_edge(edge, edge_vertices, grid.boundary, intermediate_grid.boundary)
@@ -848,32 +878,54 @@ def _refine_equilateral_triangle(
             edge, edge_vertices, grid.neumann_boundary, intermediate_grid.neumann_boundary
         )
 
+    def assure_orientation_and_weights(
+        coarse_orientation_correct: bool, pair: tuple[float, float]
+    ) -> tuple[float, float]:
+        return pair if coarse_orientation_correct else (1 - pair[1], 1 - pair[0])
+
     for i in range(refinement_factor):
-        horizontal_edge_fine = (triangle_vertices[(i, 0)], triangle_vertices[(i + 1, 0)])
-        coarse_edge[horizontal_edge_fine] = (i1, i2)
-        coarse_edge_coordinates[horizontal_edge_fine] = (
-            1 - i / refinement_factor,
-            1 - (i + 1) / refinement_factor,
+        horizontal_edge_fine = assure_orientation(
+            horizontal_edge_correct, (triangle_vertices[(i, 0)], triangle_vertices[(i + 1, 0)])
+        )
+        coarse_edge[horizontal_edge_fine] = horizontal_edge_coarse
+        coarse_edge_coordinates[horizontal_edge_fine] = assure_orientation_and_weights(
+            horizontal_edge_correct,
+            (
+                1 - i / refinement_factor,
+                1 - (i + 1) / refinement_factor,
+            ),
         )
 
-        vertical_edge_fine = (
-            triangle_vertices[(refinement_factor - i, i)],
-            triangle_vertices[(refinement_factor - (i + 1), i + 1)],
+        vertical_edge_fine = assure_orientation(
+            vertical_edge_correct,
+            (
+                triangle_vertices[(refinement_factor - i, i)],
+                triangle_vertices[(refinement_factor - (i + 1), i + 1)],
+            ),
         )
-        coarse_edge[vertical_edge_fine] = (i2, i3)
-        coarse_edge_coordinates[vertical_edge_fine] = (
-            1 - i / refinement_factor,
-            1 - (i + 1) / refinement_factor,
+        coarse_edge[vertical_edge_fine] = vertical_edge_coarse
+        coarse_edge_coordinates[vertical_edge_fine] = assure_orientation_and_weights(
+            vertical_edge_correct,
+            (
+                1 - i / refinement_factor,
+                1 - (i + 1) / refinement_factor,
+            ),
         )
 
-        diagonal_edge_fine = (
-            triangle_vertices[(0, refinement_factor - i)],
-            triangle_vertices[(0, refinement_factor - (i + 1))],
+        diagonal_edge_fine = assure_orientation(
+            diagonal_edge_correct,
+            (
+                triangle_vertices[(0, refinement_factor - i)],
+                triangle_vertices[(0, refinement_factor - (i + 1))],
+            ),
         )
-        coarse_edge[diagonal_edge_fine] = (i3, i1)
-        coarse_edge_coordinates[diagonal_edge_fine] = (
-            1 - i / refinement_factor,
-            1 - (i + 1) / refinement_factor,
+        coarse_edge[diagonal_edge_fine] = diagonal_edge_coarse
+        coarse_edge_coordinates[diagonal_edge_fine] = assure_orientation_and_weights(
+            diagonal_edge_correct,
+            (
+                1 - i / refinement_factor,
+                1 - (i + 1) / refinement_factor,
+            ),
         )
 
 
@@ -883,7 +935,7 @@ def _refine_boundary_edge(
     boundary: Boundary,
     intermediate_boundary: Boundary,
 ) -> None:
-    if edge not in boundary.edges and (edge[1], edge[0]) not in boundary.edges:
+    if edge not in boundary.edges:
         return
 
     intermediate_boundary.vertices.extend(edge_vertices[1:-1])
