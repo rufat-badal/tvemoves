@@ -177,6 +177,9 @@ class RefinedInterpolation(Interpolation):
         Otherwise an error is raised.
         """
 
+        edge_coarse, t_coarse = self._refined_grid.to_coarse_edge_point(edge, t)
+        return self._coarse_interpolation.on_edge(edge_coarse, t_coarse)
+
     def hessian(
         self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
     ) -> Matrix:
