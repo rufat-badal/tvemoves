@@ -116,16 +116,18 @@ def _model(
         m.y1[v].fix()
         m.y2[v].fix()
 
-    integrator = Integrator(DUNAVANT2, grid.triangles, grid.points)
-    integrator_for_piecewise_constant = Integrator(CENTROID, grid.triangles, grid.points)
-
     prev_y1 = P1Interpolation(grid, m.prev_y1)
     prev_y2 = P1Interpolation(grid, m.prev_y2)
     prev_deform = Deformation(prev_y1, prev_y2)
+
+    prev_temp = P1Interpolation(grid, m.prev_theta)
+
     y1 = P1Interpolation(grid, m.y1)
     y2 = P1Interpolation(grid, m.y2)
     deform = Deformation(y1, y2)
-    prev_temp = P1Interpolation(grid, m.prev_theta)
+
+    integrator = Integrator(DUNAVANT2, grid.triangles, grid.points)
+    integrator_for_piecewise_constant = Integrator(CENTROID, grid.triangles, grid.points)
 
     m.total_elastic_energy = integrator(
         _total_elastic_integrand(shape_memory_scaling, deform.strain, prev_temp)
@@ -216,7 +218,7 @@ def _model_regularized(
         mutable=True,
     )
     m.prev_theta = pyo.Param(
-        m.refined_vertices,
+        refined_grid.vertices,
         within=pyo.NonNegativeReals,
         initialize=initial_temperature,
         mutable=True,
@@ -282,7 +284,15 @@ def _model_regularized(
     y2 = RefinedInterpolation(C1Interpolation(grid, y2_params), refined_grid)
     deform = Deformation(y1, y2)
 
-    integrator = Integrator(DUNAVANT5, grid.triangles, grid.points)
+    integrator = Integrator(DUNAVANT5, refined_grid.triangles, refined_grid.points)
+
+    m.total_elastic_energy = integrator(
+        _total_elastic_integrand(shape_memory_scaling, deform.strain, prev_temp)
+    )
+    m.dissipation = integrator(
+        compose_to_integrand(dissipation_potential, prev_deform.strain, deform.strain)
+    )
+    m.objective = pyo.Objective(expr=m.total_elastic_energy + fps * m.dissipation)
 
     return m
 

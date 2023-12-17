@@ -1,6 +1,6 @@
 """Module providing integrators over triangles or edges."""
 
-from typing import Callable
+from typing import Callable, Any
 import pyomo.environ as pyo
 from tvemoves_rufbad.quadrature_rules import GaussQuadratureRule, TriangleQuadratureRule
 from tvemoves_rufbad.tensors import Vector
@@ -26,7 +26,7 @@ class Integrator:
 
     def __call__(
         self,
-        integrand: Callable[[Triangle, BarycentricCoordinates], float],
+        integrand: Callable[[Triangle, BarycentricCoordinates], Any],
     ):
         return sum(
             triangle_area
