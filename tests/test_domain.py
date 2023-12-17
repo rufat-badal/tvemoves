@@ -1,5 +1,6 @@
 """Test domains."""
 
+import random
 from pytest import approx
 from tvemoves_rufbad.tensors import Vector
 from tvemoves_rufbad.domain import RectangleDomain, Grid, BarycentricPoint
@@ -185,3 +186,13 @@ def test_equilateral_grid_refine() -> None:
         bc_coarse = bp_coarse.coordinates
         bp_coarse_euclidean = bc_coarse.l1 * q1 + bc_coarse.l2 * q2 + bc_coarse.l3 * q3
         assert (bp_fine_euclidean - bp_coarse_euclidean).norm() < eps
+
+    for edge in refined_grid.boundary.edges:
+        p1, p2 = refined_grid.points[edge[0]], refined_grid.points[edge[1]]
+        t = random.random()
+        p = t * p1 + (1 - t) * p2
+        edge_coarse, t_coarse = refined_grid.to_coarse_edge_point(edge, t)
+        p1_coarse = refined_grid.coarse().points[edge_coarse[0]]
+        p2_coarse = refined_grid.coarse().points[edge_coarse[1]]
+        p_coarse = t_coarse * p1_coarse + (1 - t_coarse) * p2_coarse
+        assert (p - p_coarse).norm() < eps

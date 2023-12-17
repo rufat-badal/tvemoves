@@ -191,7 +191,7 @@ class Grid(ABC):
     def edge_vertices(self, edge: Edge) -> EdgeVertices:
         """Transform triangle indices into points."""
         if edge not in self.edges:
-            raise ValueError("Provided triangle is not in the list of triangles")
+            raise ValueError("Provided edge is not in the list of edges")
 
         i1, i2 = edge
         return (self.points[i1], self.points[i2])
@@ -317,6 +317,7 @@ def _boundaries_coincide(
 _TriangleBarycentricCoords = Dict[
     Triangle, tuple[BarycentricCoordinates, BarycentricCoordinates, BarycentricCoordinates]
 ]
+_EdgeCoords = Dict[Edge, tuple[float, float]]
 
 
 class RefinedGrid(Grid):
@@ -335,7 +336,7 @@ class RefinedGrid(Grid):
         coarse_triangle: Dict[Triangle, Triangle],
         coarse_barycentric_coordinates: _TriangleBarycentricCoords,
         coarse_edge: Dict[Edge, Edge],
-        coarse_edge_coordinate: Dict[Edge, float],
+        coarse_edge_coordinates: _EdgeCoords,
     ):
         super().__init__(
             vertices,
@@ -350,7 +351,7 @@ class RefinedGrid(Grid):
         self._coarse_triangle = coarse_triangle
         self._coarse_barycentric_coordinates = coarse_barycentric_coordinates
         self._coarse_edge = coarse_edge
-        self._coarse_edge_coordinate = coarse_edge_coordinate
+        self._coarse_edge_coordinates = coarse_edge_coordinates
 
     def coarse(self) -> Grid:
         """Return the coarse grid for which self is a refinedment."""
@@ -374,6 +375,20 @@ class RefinedGrid(Grid):
             p.l1 * q1.l1 + p.l2 * q2.l1 + p.l3 * q3.l1, p.l1 * q1.l2 + p.l2 * q2.l2 + p.l3 * q3.l2
         )
         return BarycentricPoint(coarse_triangle, coarse_barycentric_coordinates)
+
+    def to_coarse_edge_point(self, fine_edge: Edge, t: float) -> tuple[Edge, float]:
+        """Transform relative point on a fine edge to a relative point on the repsective coarse edge.
+
+        This does only work for fine edges that lie on a coarse edge. Else an error is raised.
+        """
+
+        if fine_edge not in self._coarse_edge or fine_edge not in self._coarse_edge_coordinates:
+            raise ValueError("only fine edges that lie on coarse edges are valid inputs")
+
+        coarse_edge = self._coarse_edge[fine_edge]
+        t1, t2 = self._coarse_edge_coordinates[fine_edge]
+        coarse_t = t * t1 + (1 - t) * t2
+        return coarse_edge, coarse_t
 
 
 class Domain(Protocol):
@@ -667,7 +682,7 @@ class RectangleDomain(Domain):
         coarse_triangle: Dict[Triangle, Triangle] = {}
         coarse_barycentric_coordinates: _TriangleBarycentricCoords = {}
         coarse_edge: Dict[Edge, Edge] = {}
-        coarse_edge_coordinate: Dict[Edge, float] = {}
+        coarse_edge_coordinates: _EdgeCoords = {}
 
         for triangle in grid.triangles:
             _refine_equilateral_triangle(
@@ -678,7 +693,7 @@ class RectangleDomain(Domain):
                 coarse_triangle,
                 coarse_barycentric_coordinates,
                 coarse_edge,
-                coarse_edge_coordinate,
+                coarse_edge_coordinates,
             )
 
         return RefinedGrid(
@@ -693,7 +708,7 @@ class RectangleDomain(Domain):
             coarse_triangle,
             coarse_barycentric_coordinates,
             coarse_edge,
-            coarse_edge_coordinate,
+            coarse_edge_coordinates,
         )
 
 
@@ -705,7 +720,7 @@ def _refine_equilateral_triangle(
     coarse_triangle: Dict[Triangle, Triangle],
     coarse_barycentric_coordinates: _TriangleBarycentricCoords,
     coarse_edge: Dict[Edge, Edge],
-    coarse_edge_coordinate: Dict[Edge, float],
+    coarse_edge_coordinates: _EdgeCoords,
 ) -> None:
     """Refine a single equlateral triangle of the coarse grid. This function modifies refined_grid!
 
@@ -831,6 +846,34 @@ def _refine_equilateral_triangle(
         )
         _refine_boundary_edge(
             edge, edge_vertices, grid.neumann_boundary, intermediate_grid.neumann_boundary
+        )
+
+    for i in range(refinement_factor):
+        horizontal_edge_fine = (triangle_vertices[(i, 0)], triangle_vertices[(i + 1, 0)])
+        coarse_edge[horizontal_edge_fine] = (i1, i2)
+        coarse_edge_coordinates[horizontal_edge_fine] = (
+            1 - i / refinement_factor,
+            1 - (i + 1) / refinement_factor,
+        )
+
+        vertical_edge_fine = (
+            triangle_vertices[(refinement_factor - i, i)],
+            triangle_vertices[(refinement_factor - (i + 1), i + 1)],
+        )
+        coarse_edge[vertical_edge_fine] = (i2, i3)
+        coarse_edge_coordinates[vertical_edge_fine] = (
+            1 - i / refinement_factor,
+            1 - (i + 1) / refinement_factor,
+        )
+
+        diagonal_edge_fine = (
+            triangle_vertices[(0, refinement_factor - i)],
+            triangle_vertices[(0, refinement_factor - (i + 1))],
+        )
+        coarse_edge[diagonal_edge_fine] = (i3, i1)
+        coarse_edge_coordinates[diagonal_edge_fine] = (
+            1 - i / refinement_factor,
+            1 - (i + 1) / refinement_factor,
         )
 
 
