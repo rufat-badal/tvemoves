@@ -23,6 +23,8 @@ from tvemoves_rufbad.helpers import (
     dissipation_potential,
 )
 
+HYPER_STRAIN_POWER = 4
+
 
 @dataclass
 class MechanicalStepParams:
@@ -185,6 +187,15 @@ class _MechanicalStep(AbstractMechanicalStep):
         return np.array([self._model.prev_theta[i].value for i in range(self._num_vertices)])
 
 
+def _hyper_elastic_integrand(regularization, hyper_strain):
+    """Construct hyperelastic integrand."""
+
+    def hyper_elastic_potential(hyper_strain):
+        return regularization * hyper_strain.normsqr() ** (HYPER_STRAIN_POWER / 2)
+
+    return compose_to_integrand(hyper_elastic_potential, hyper_strain)
+
+
 def _model_regularized(
     grid: Grid,
     refined_grid: RefinedGrid,
@@ -288,6 +299,9 @@ def _model_regularized(
 
     m.total_elastic_energy = integrator(
         _total_elastic_integrand(shape_memory_scaling, deform.strain, prev_temp)
+    )
+    m.hyper_elastic_energy = integrator(
+        _hyper_elastic_integrand(regularization, deform.hyper_strain)
     )
     m.dissipation = integrator(
         compose_to_integrand(dissipation_potential, prev_deform.strain, deform.strain)
