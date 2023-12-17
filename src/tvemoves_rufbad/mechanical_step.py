@@ -198,6 +198,7 @@ def _model_regularized(
     m.dirichlet_edges = pyo.RangeSet(len(grid.dirichlet_boundary.edges))
     m.deformation_indices = m.vertices * m.c1_indices
     m.dirichlet_constraint_indices = m.dirichlet_edges * m.c1_indices
+    m.refined_vertices = pyo.RangeSet(len(refined_grid.vertices))
 
     initial_y1 = [[p[0], 1, 0, 0, 0, 0] for p in grid.points]
     initial_y2 = [[p[1], 0, 1, 0, 0, 0] for p in grid.points]
@@ -212,6 +213,12 @@ def _model_regularized(
         m.deformation_indices,
         within=pyo.Reals,
         initialize=lambda model, i, j: initial_y2[i - 1][j - 1],
+        mutable=True,
+    )
+    m.prev_theta = pyo.Param(
+        m.refined_vertices,
+        within=pyo.NonNegativeReals,
+        initialize=initial_temperature,
         mutable=True,
     )
 
@@ -266,6 +273,8 @@ def _model_regularized(
     prev_y2_params = [[m.prev_y2[i, j] for j in list(m.c1_indices)] for i in list(m.vertices)]
     prev_y2 = RefinedInterpolation(C1Interpolation(grid, prev_y2_params), refined_grid)
     prev_deform = Deformation(prev_y1, prev_y2)
+
+    prev_temp = P1Interpolation(refined_grid, m.prev_theta)
 
     y1_params = [[m.y1[i, j] for j in list(m.c1_indices)] for i in list(m.vertices)]
     y1 = RefinedInterpolation(C1Interpolation(grid, y1_params), refined_grid)
