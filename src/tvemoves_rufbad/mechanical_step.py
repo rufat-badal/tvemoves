@@ -169,12 +169,10 @@ class _MechanicalStep(AbstractMechanicalStep):
 
     def prev_y(self) -> npt.NDArray[np.float64]:
         """Return the previous deformation as Nx2 numpy array, where N is the number of vertices."""
-        return np.array(
-            [
-                [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
-                for i in range(self._num_vertices)
-            ]
-        )
+        return np.array([
+            [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
+            for i in range(self._num_vertices)
+        ])
 
     def y(self) -> npt.NDArray[np.float64]:
         """Return the current deformation as Nx2 numpy array, where N is the number of vertices."""
@@ -229,7 +227,7 @@ def _model_regularized(
         mutable=True,
     )
     m.prev_theta = pyo.Param(
-        refined_grid.vertices,
+        m.refined_vertices,
         within=pyo.NonNegativeReals,
         initialize=initial_temperature,
         mutable=True,
@@ -287,7 +285,7 @@ def _model_regularized(
     prev_y2 = RefinedInterpolation(C1Interpolation(grid, prev_y2_params), refined_grid)
     prev_deform = Deformation(prev_y1, prev_y2)
 
-    prev_temp = P1Interpolation(refined_grid, m.prev_theta)
+    prev_temp = P1Interpolation(refined_grid, list(m.prev_theta))
 
     y1_params = [[m.y1[i, j] for j in list(m.c1_indices)] for i in list(m.vertices)]
     y1 = RefinedInterpolation(C1Interpolation(grid, y1_params), refined_grid)
@@ -306,7 +304,7 @@ def _model_regularized(
     m.dissipation = integrator(
         compose_to_integrand(dissipation_potential, prev_deform.strain, deform.strain)
     )
-    m.objective = pyo.Objective(expr=m.total_elastic_energy + fps * m.dissipation)
+    m.objective = pyo.Objective(expr=m.total_elastic_energy)
 
     return m
 
@@ -362,23 +360,38 @@ class _MechanicalStepRegularized(AbstractMechanicalStep):
         self._solver.solve(self._model)
 
     def prev_y(self) -> npt.NDArray[np.float64]:
-        """Return the previous deformation as a Nx2x6 numpy array, where N is the number of vertices."""
-        return np.array(
+        """Return the previous deformation as a Nx2x6 numpy array, where N is the number of
+        vertices."""
+        m = self._model
+        c1_indices = list(m.c1_indices)
+        vertices = list(m.vertices)
+        return np.array([
             [
-                [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
-                for i in range(self._num_vertices)
+                [m.prev_y1[i, j].value for j in c1_indices],
+                [m.prev_y2[i, j].value for j in c1_indices],
             ]
-        )
+            for i in vertices
+        ])
 
     def y(self) -> npt.NDArray[np.float64]:
-        """Return the current deformation as a Nx2x6 numpy array, where N is the number of vertices."""
-        return np.array(
-            [[self._model.y1[i].value, self._model.y2[i].value] for i in range(self._num_vertices)]
-        )
+        """Return the current deformation as a Nx2x6 numpy array, where N is the number of
+        vertices."""
+        m = self._model
+        c1_indices = list(m.c1_indices)
+        vertices = list(m.vertices)
+        return np.array([
+            [
+                [m.y1[i, j].value for j in c1_indices],
+                [m.y2[i, j].value for j in c1_indices],
+            ]
+            for i in vertices
+        ])
 
     def prev_theta(self) -> npt.NDArray[np.float64]:
-        """Return the previous temperature as a vector of length N, where N is the number of vertices."""
-        return np.array([self._model.prev_theta[i].value for i in range(self._num_vertices)])
+        """Return the previous temperature as a vector of length N_ref, where N_ref is the number of
+        vertices of the refined grid.
+        """
+        return np.array([self._model.prev_theta[i].value for i in list(self._model.vertices)])
 
 
 def mechanical_step(
@@ -414,7 +427,7 @@ _params = MechanicalStepParams(
     initial_temperature=0,
     search_radius=10,
     shape_memory_scaling=2,
-    fps=3,
+    fps=1,
     regularization=1,
 )
 _solver = pyo.SolverFactory("ipopt")
@@ -424,3 +437,7 @@ _square = RectangleDomain(1, 1, fix="left")
 _grid = _square.grid(1)
 _refined_grid = _square.refine(_grid, refinement_factor=5)
 _mech_step = mechanical_step(_solver, _grid, _params, _refined_grid)
+_mech_step.solve()
+_y = _mech_step.y()
+print(_y[1])
+print(_y[3])
