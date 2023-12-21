@@ -12,7 +12,7 @@ from tvemoves_rufbad.interpolation import (
     Deformation,
 )
 from tvemoves_rufbad.quadrature_rules import CENTROID, DUNAVANT2, DUNAVANT5
-from tvemoves_rufbad.tensors import Matrix
+from tvemoves_rufbad.tensors import Matrix, BarycentricCoordinates
 from tvemoves_rufbad.integrators import Integrator
 from tvemoves_rufbad.domain import Grid, RefinedGrid
 from tvemoves_rufbad.helpers import (
@@ -285,7 +285,7 @@ def _model_regularized(
     prev_y2 = RefinedInterpolation(C1Interpolation(grid, prev_y2_params), refined_grid)
     prev_deform = Deformation(prev_y1, prev_y2)
 
-    prev_temp = P1Interpolation(refined_grid, list(m.prev_theta))
+    prev_temp = P1Interpolation(refined_grid, [m.prev_theta[i] for i in list(m.refined_vertices)])
 
     y1_params = [[m.y1[i, j] for j in list(m.c1_indices)] for i in list(m.vertices)]
     y1 = RefinedInterpolation(C1Interpolation(grid, y1_params), refined_grid)
@@ -304,7 +304,9 @@ def _model_regularized(
     m.dissipation = integrator(
         compose_to_integrand(dissipation_potential, prev_deform.strain, deform.strain)
     )
-    m.objective = pyo.Objective(expr=m.total_elastic_energy)
+    m.objective = pyo.Objective(
+        expr=m.total_elastic_energy + m.hyper_elastic_energy + fps * m.dissipation
+    )
 
     return m
 
