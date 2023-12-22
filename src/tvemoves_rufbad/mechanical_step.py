@@ -12,7 +12,7 @@ from tvemoves_rufbad.interpolation import (
     Deformation,
 )
 from tvemoves_rufbad.quadrature_rules import CENTROID, DUNAVANT2, DUNAVANT5
-from tvemoves_rufbad.tensors import Matrix, BarycentricCoordinates
+from tvemoves_rufbad.tensors import Matrix
 from tvemoves_rufbad.integrators import Integrator
 from tvemoves_rufbad.domain import Grid, RefinedGrid
 from tvemoves_rufbad.helpers import (
@@ -169,10 +169,12 @@ class _MechanicalStep(AbstractMechanicalStep):
 
     def prev_y(self) -> npt.NDArray[np.float64]:
         """Return the previous deformation as Nx2 numpy array, where N is the number of vertices."""
-        return np.array([
-            [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
-            for i in range(self._num_vertices)
-        ])
+        return np.array(
+            [
+                [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
+                for i in range(self._num_vertices)
+            ]
+        )
 
     def y(self) -> npt.NDArray[np.float64]:
         """Return the current deformation as Nx2 numpy array, where N is the number of vertices."""
@@ -367,13 +369,15 @@ class _MechanicalStepRegularized(AbstractMechanicalStep):
         m = self._model
         c1_indices = list(m.c1_indices)
         vertices = list(m.vertices)
-        return np.array([
+        return np.array(
             [
-                [m.prev_y1[i, j].value for j in c1_indices],
-                [m.prev_y2[i, j].value for j in c1_indices],
+                [
+                    [m.prev_y1[i, j].value for j in c1_indices],
+                    [m.prev_y2[i, j].value for j in c1_indices],
+                ]
+                for i in vertices
             ]
-            for i in vertices
-        ])
+        )
 
     def y(self) -> npt.NDArray[np.float64]:
         """Return the current deformation as a Nx2x6 numpy array, where N is the number of
@@ -381,13 +385,15 @@ class _MechanicalStepRegularized(AbstractMechanicalStep):
         m = self._model
         c1_indices = list(m.c1_indices)
         vertices = list(m.vertices)
-        return np.array([
+        return np.array(
             [
-                [m.y1[i, j].value for j in c1_indices],
-                [m.y2[i, j].value for j in c1_indices],
+                [
+                    [m.y1[i, j].value for j in c1_indices],
+                    [m.y2[i, j].value for j in c1_indices],
+                ]
+                for i in vertices
             ]
-            for i in vertices
-        ])
+        )
 
     def prev_theta(self) -> npt.NDArray[np.float64]:
         """Return the previous temperature as a vector of length N_ref, where N_ref is the number of
@@ -423,23 +429,3 @@ def mechanical_step(
         params.fps,
         params.regularization,
     )
-
-
-_params = MechanicalStepParams(
-    initial_temperature=0,
-    search_radius=10,
-    shape_memory_scaling=2,
-    fps=1,
-    regularization=1,
-)
-_solver = pyo.SolverFactory("ipopt")
-from tvemoves_rufbad.domain import RectangleDomain
-
-_square = RectangleDomain(1, 1, fix="left")
-_grid = _square.grid(1)
-_refined_grid = _square.refine(_grid, refinement_factor=5)
-_mech_step = mechanical_step(_solver, _grid, _params, _refined_grid)
-_mech_step.solve()
-_y = _mech_step.y()
-print(_y[1])
-print(_y[3])
