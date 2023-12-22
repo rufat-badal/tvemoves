@@ -4,23 +4,83 @@ from dataclasses import dataclass
 import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
-from tvemoves_rufbad.domain import Domain, RectangleDomain
+from tvemoves_rufbad.domain import Domain, RectangleDomain, Grid, RefinedGrid
 from tvemoves_rufbad.mechanical_step import MechanicalStepParams, mechanical_step
-from tvemoves_rufbad.interpolation import Interpolation, Deformation
+from tvemoves_rufbad.interpolation import (
+    Deformation,
+    Interpolation,
+    P1Interpolation,
+    C1Interpolation,
+    RefinedInterpolation,
+)
 
 
 @dataclass(frozen=True)
 class Step:
-    """Single simulation step (with or without regularization)"""
+    """Single simulation step"""
 
     _y_data: npt.NDArray[np.float64]
     _theta_data: npt.NDArray[np.float64]
+    y: Deformation
+    theta: Interpolation
 
     def __repr__(self):
         return f"Step(y={repr(self._y_data)}, theta={repr(self._theta_data)})"
 
     def __str__(self):
         return f"y:\n{str(self._y_data)}\ntheta:\n{str(self._theta_data)}"
+
+
+def _step(
+    y_data: npt.NDArray[np.float64],
+    theta_data: npt.NDArray[np.float64],
+    grid: Grid,
+    refined_grid: RefinedGrid | None = None,
+) -> Step:
+    del refined_grid
+    if y_data.shape != (len(grid.vertices), 2):
+        raise ValueError(f"incorrectly shaped y_data of shape = {y_data.shape} provided")
+
+    if theta_data.shape != (len(grid.vertices),):
+        raise ValueError(
+            f"incorrectly shaped theta_data provided of shape = {theta_data.shape} provided"
+        )
+
+    y1_params = y_data[:, 0].tolist()
+    y1_interpolation = P1Interpolation(grid, y1_params)
+    y2_params = y_data[:, 1].tolist()
+    y2_interpolation = P1Interpolation(grid, y2_params)
+    y = Deformation(y1_interpolation, y2_interpolation)
+
+    theta = P1Interpolation(grid, theta_data.tolist())
+
+    return Step(y_data, theta_data, y, theta)
+
+
+def _regularized_step(
+    y_data: npt.NDArray[np.float64],
+    theta_data: npt.NDArray[np.float64],
+    grid: Grid,
+    refined_grid: RefinedGrid,
+) -> Step:
+    # last dimension correspond to the degrees of freedom of the C1 interpolation
+    if y_data.shape != (len(grid.vertices), 2, 6):
+        raise ValueError(f"incorrectly shaped y_data of shape = {y_data.shape} provided")
+
+    if theta_data.shape != (len(refined_grid.vertices),):
+        raise ValueError(
+            f"incorrectly shaped theta_data provided of shape = {theta_data.shape} provided"
+        )
+
+    y1_params = y_data[:, 0, :].tolist()
+    y1_interpolation = RefinedInterpolation(C1Interpolation(grid, y1_params), refined_grid)
+    y2_params = y_data[:, 1, :].tolist()
+    y2_interpolation = RefinedInterpolation(C1Interpolation(grid, y2_params), refined_grid)
+    y = Deformation(y1_interpolation, y2_interpolation)
+
+    theta = P1Interpolation(refined_grid, theta_data.tolist())
+
+    return Step(y_data, theta_data, y, theta)
 
 
 @dataclass
@@ -31,8 +91,8 @@ class SimulationParams:
     search_radius: float
     shape_memory_scaling: float
     fps: int
-    regularization: float | None
     scale: float
+    regularization: float = 0.0
     refinement_factor: int = 1
 
     def __post_init__(self):
@@ -82,23 +142,41 @@ class Simulation:
         self._domain = domain
         self._solver = pyo.SolverFactory("ipopt")
         self.params = params
-        grid = self._domain.grid(self.params.scale)
-        refined_grid = None
+        self.grid = self._domain.grid(self.params.scale)
+        self.refined_grid = None
         if self.params.regularization != 0:
-            refined_grid = self._domain.refine(grid, self.params.refinement_factor)
+            self.refined_grid = self._domain.refine(self.grid, self.params.refinement_factor)
         self._mechanical_step = mechanical_step(
-            self._solver, grid, self.params.mechanical_step_params(), refined_grid
+            self._solver, self.grid, self.params.mechanical_step_params(), self.refined_grid
         )
+        self._step_factory = _step if self.params.regularization == 0.0 else _regularized_step
+        self.steps: list[Step] = []
+        self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
         self._mechanical_step.solve()
+        print(self._mechanical_step.y())
+
+    def _append_step(
+        self,
+        y_data: npt.NDArray[np.float64],
+        theta_data: npt.NDArray[np.float64],
+    ):
+        self.steps.append(
+            self._step_factory(
+                y_data,
+                theta_data,
+                self.grid,
+                self.refined_grid,
+            )
+        )
 
 
 _params = SimulationParams(
     initial_temperature=0.1,
-    search_radius=10,
-    shape_memory_scaling=2,
+    search_radius=10.0,
+    shape_memory_scaling=2.0,
     fps=1,
-    regularization=1,
-    scale=1,
+    regularization=1.0,
+    scale=1.0,
     refinement_factor=5,
 )
 

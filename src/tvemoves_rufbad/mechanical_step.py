@@ -34,7 +34,7 @@ class MechanicalStepParams:
     search_radius: float
     shape_memory_scaling: float
     fps: int
-    regularization: float | None
+    regularization: float
 
 
 class AbstractMechanicalStep(ABC):
@@ -399,14 +399,16 @@ class _MechanicalStepRegularized(AbstractMechanicalStep):
         """Return the previous temperature as a vector of length N_ref, where N_ref is the number of
         vertices of the refined grid.
         """
-        return np.array([self._model.prev_theta[i].value for i in list(self._model.vertices)])
+        return np.array(
+            [self._model.prev_theta[i].value for i in list(self._model.refined_vertices)]
+        )
 
 
 def mechanical_step(
     solver, grid: Grid, params: MechanicalStepParams, refined_grid: RefinedGrid | None = None
 ) -> AbstractMechanicalStep:
     """Mechanical step factory."""
-    if params.regularization is None:
+    if params.regularization == 0.0:
         return _MechanicalStep(
             solver,
             grid,
