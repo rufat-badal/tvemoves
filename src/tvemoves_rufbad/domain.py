@@ -136,19 +136,6 @@ class Grid(ABC):
                 return BarycentricPoint(triangle, _to_barycentric_coordinates(triangle_vertices, p))
         return None
 
-    def to_barycentric_curve(self, curve: Curve) -> BarycentricCurve:
-        """Transform a curve of Euclidean points to a barycentric curve.
-
-        Points that are not contained in at least one of the trignalges are removed
-        from the returned curve.
-        """
-        barycentric_curve: BarycentricCurve = []
-        for p in curve:
-            p_barycentric = self.to_barycentric_point(p)
-            if p_barycentric is not None:
-                barycentric_curve.append(p_barycentric)
-        return barycentric_curve
-
     def _plot_vertices(self, ax) -> None:
         x = [p[0] for p in self.points]
         y = [p[1] for p in self.points]

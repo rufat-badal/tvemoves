@@ -141,7 +141,7 @@ def _to_cartesian_point(barycentric_point: BarycentricPoint, grid: Grid) -> Vect
     return coords.l1 * p1 + coords.l2 * p2 + coords.l3 * p3
 
 
-def test_to_barycentric_curve() -> None:
+def test_to_barycentric_point() -> None:
     """Test transformation from a curve to a barycentric curve."""
     width = 1
     height = 1
@@ -153,12 +153,10 @@ def test_to_barycentric_curve() -> None:
     curves = rectangle.curves(num_points_per_curve, num_horizontal_curves, num_vertical_curves)
     scale = 1 / 5
     grid = rectangle.grid(scale)
-    barycentric_curves = [grid.to_barycentric_curve(curve) for curve in curves]
+    barycentric_curves = [[grid.to_barycentric_point(p) for p in curve] for curve in curves]
     for barycentric_curve, curve in zip(barycentric_curves, curves):
-        assert len(barycentric_curve) == len(curve)
-        if len(barycentric_curve) < len(curve):
-            for barycentric_point, point in zip(barycentric_curve, curve):
-                assert (_to_cartesian_point(barycentric_point, grid) - point).norm() == approx(0)
+        for barycentric_point, point in zip(barycentric_curve, curve):
+            assert (_to_cartesian_point(barycentric_point, grid) - point).norm() == approx(0)
 
 
 def test_equilateral_grid_refine() -> None:
