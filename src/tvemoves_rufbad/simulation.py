@@ -74,7 +74,7 @@ class RegularizedStep(AbstractStep):
         y_data: npt.NDArray[np.float64],
         theta_data: npt.NDArray[np.float64],
         grid: Grid,
-        refined_grid: RefinedGrid,
+        refined_grid: Grid,
     ):
         # last dimension correspond to the degrees of freedom of the C1 interpolation
         if y_data.shape != (len(grid.vertices), 2, 6):
@@ -86,9 +86,9 @@ class RegularizedStep(AbstractStep):
             )
 
         y1_params = y_data[:, 0, :].tolist()
-        y1_interpolation = RefinedInterpolation(C1Interpolation(grid, y1_params), refined_grid)
+        y1_interpolation = C1Interpolation(grid, y1_params)
         y2_params = y_data[:, 1, :].tolist()
-        y2_interpolation = RefinedInterpolation(C1Interpolation(grid, y2_params), refined_grid)
+        y2_interpolation = C1Interpolation(grid, y2_params)
         y = Deformation(y1_interpolation, y2_interpolation)
 
         theta = P1Interpolation(refined_grid, theta_data.tolist())
@@ -165,7 +165,6 @@ class Simulation:
             self._solver, self._grid, self.params.mechanical_step_params(), self._refined_grid
         )
         self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
-        print(self.steps[-1])
 
     def _append_step(self, y_data: npt.NDArray[np.float64], theta_data: npt.NDArray[np.float64]):
         step = (

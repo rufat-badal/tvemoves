@@ -1,6 +1,7 @@
 """Module providing the definitions of important potentials and modeling functions."""
 
 import pyomo.environ as pyo
+from matplotlib import pyplot as plt
 from tvemoves_rufbad.tensors import Matrix
 
 
@@ -68,3 +69,12 @@ def antider_internal_energy_weight(theta):
 def compose_to_integrand(outer, *inner):
     """Compose an admissable integrand 'inner' with a function 'outer' to create a new integrand."""
     return lambda *args: outer(*(f(*args) for f in inner))
+
+
+def axis():
+    """Create a single axis with no ticks and labels."""
+    _, ax = plt.subplots()
+    ax.axis("off")
+    ax.set_aspect(1)
+
+    return ax

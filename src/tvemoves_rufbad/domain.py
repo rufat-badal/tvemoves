@@ -8,6 +8,7 @@ from copy import deepcopy
 from matplotlib import pyplot as plt
 from matplotlib import patches
 from tvemoves_rufbad.tensors import Vector, BarycentricCoordinates
+from tvemoves_rufbad.helpers import axis
 
 PLOT_BORDER = 0.05
 PLOT_LINEWIDTH = 1.5
@@ -81,14 +82,6 @@ def _to_barycentric_coordinates(
     u = 1 - v - w
 
     return BarycentricCoordinates(u, v)
-
-
-def _axes():
-    _, ax = plt.subplots()
-    ax.axis("off")
-    ax.set_aspect(1)
-
-    return ax
 
 
 def _adjust_xlim(ax, xlim=tuple[float, float]) -> None:
@@ -167,7 +160,7 @@ class Grid(ABC):
     def plot(self, ax):
         """Returns matplotlib plot of the grid."""
         if ax is None:
-            ax = _axes()
+            ax = axis()
 
         new_xlim = (-PLOT_BORDER, max(p[0] for p in self.points) + PLOT_BORDER)
         _adjust_xlim(ax, new_xlim)
@@ -646,7 +639,7 @@ class RectangleDomain(Domain):
 
     def plot(self, ax):
         if ax is None:
-            ax = _axes()
+            ax = axis()
 
         plt.xlim(-PLOT_BORDER, self.width + PLOT_BORDER)
         plt.ylim(-PLOT_BORDER, self.height + PLOT_BORDER)
