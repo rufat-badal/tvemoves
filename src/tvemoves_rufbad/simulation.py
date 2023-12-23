@@ -27,6 +27,7 @@ class AbstractStep(ABC):
         theta: EuclideanInterpolation,
     ):
         self._domain = domain
+        self._plotting_grid = self._domain.grid(scale=0.01)
         self._y_data = y_data
         self._theta_data = theta_deta
         self.y = y
