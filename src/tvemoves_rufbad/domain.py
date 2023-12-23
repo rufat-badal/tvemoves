@@ -120,12 +120,15 @@ class Grid(ABC):
                 (self.points[i1] - self.points[i2]).norm() for (i1, i2) in self.edges
             ) / len(self.edges)
 
-    def _to_barycentric_point(self, p: Vector) -> BarycentricPoint | None:
+    def to_barycentric_point(self, p: Vector) -> BarycentricPoint | None:
         """Given cartesian point, determine its containing triangle and
         barycentric coordinates.
 
         If the point is outside all grid triangles return None.
         """
+        # This can be done more efficiently by walking towards the desired point
+        # (needs O(1) access to neighboring triangles).
+        # Implement this in case the straightforward search is too slow.
         for triangle in self.triangles:
             i1, i2, i3 = triangle
             triangle_vertices = (self.points[i1], self.points[i2], self.points[i3])
@@ -141,7 +144,7 @@ class Grid(ABC):
         """
         barycentric_curve: BarycentricCurve = []
         for p in curve:
-            p_barycentric = self._to_barycentric_point(p)
+            p_barycentric = self.to_barycentric_point(p)
             if p_barycentric is not None:
                 barycentric_curve.append(p_barycentric)
         return barycentric_curve

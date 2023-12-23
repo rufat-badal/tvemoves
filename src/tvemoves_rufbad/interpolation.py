@@ -15,6 +15,8 @@ from tvemoves_rufbad.bell_finite_element import (
 class Interpolation(Protocol):
     """Interpolation protocol."""
 
+    grid: Grid
+
     def __call__(self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates):
         """Compute the value of the interpolation in a triangle."""
 
@@ -38,7 +40,7 @@ class P1Interpolation(Interpolation):
     def __init__(self, grid: Grid, params: list):
         if len(params) != len(grid.vertices):
             raise ValueError("number of params must equal to the number of vertices")
-        self._grid = grid
+        self.grid = grid
         self._params = params
 
     def __call__(
@@ -57,7 +59,7 @@ class P1Interpolation(Interpolation):
         # as in the case of the C1 interpolation
         i1, i2, i3 = triangle
         barycentric_gradient = Vector([self._params[i1], self._params[i2], self._params[i3]])
-        return transform_gradient(self._grid.triangle_vertices(triangle), barycentric_gradient)
+        return transform_gradient(self.grid.triangle_vertices(triangle), barycentric_gradient)
 
     def on_edge(self, edge: Edge, t: float):
         i1, i2 = edge
@@ -85,7 +87,7 @@ class C1Interpolation(Interpolation):
         if len(params) != len(grid.vertices):
             raise ValueError("number of params must equal to the number of vertices")
 
-        self._grid = grid
+        self.grid = grid
         self._params = params
 
     def _triangle_params(self, triangle: Triangle) -> Vector:
@@ -102,7 +104,7 @@ class C1Interpolation(Interpolation):
     ):
         """Compute the value of the interpolation in a triangle."""
         return bell_interpolation(
-            self._grid.triangle_vertices(triangle),
+            self.grid.triangle_vertices(triangle),
             barycentric_coordinates,
             self._triangle_params(triangle),
         )
@@ -112,7 +114,7 @@ class C1Interpolation(Interpolation):
     ) -> Vector:
         """Computes gradient of the interpolation."""
         return bell_interpolation_gradient(
-            self._grid.triangle_vertices(triangle),
+            self.grid.triangle_vertices(triangle),
             barycentric_coordinates,
             self._triangle_params(triangle),
         )
@@ -121,7 +123,7 @@ class C1Interpolation(Interpolation):
         self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
     ) -> Matrix:
         return bell_interpolation_hessian(
-            self._grid.triangle_vertices(triangle),
+            self.grid.triangle_vertices(triangle),
             barycentric_coordinates,
             self._triangle_params(triangle),
         )
@@ -131,7 +133,7 @@ class C1Interpolation(Interpolation):
         params_vec1 = Vector(self._params[i1])
         params_vec2 = Vector(self._params[i2])
         edge_params = params_vec1.extend(params_vec2)
-        edge_vertices = (self._grid.points[i1], self._grid.points[i2])
+        edge_vertices = (self.grid.points[i1], self.grid.points[i2])
         return bell_interpolation_on_edge(edge_vertices, t, edge_params)
 
 
@@ -150,13 +152,13 @@ class RefinedInterpolation(Interpolation):
         """
 
         self._coarse_interpolation = coarse_interpolation
-        self._refined_grid = refined_grid
+        self.grid = refined_grid
 
     def _to_coarse_parameters(
         self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
     ) -> tuple[Triangle, BarycentricCoordinates]:
         bp_fine = BarycentricPoint(triangle, barycentric_coordinates)
-        bp_coarse = self._refined_grid.to_coarse_barycentric_point(bp_fine)
+        bp_coarse = self.grid.to_coarse_barycentric_point(bp_fine)
         return bp_coarse.triangle, bp_coarse.coordinates
 
     def __call__(self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates):
@@ -177,7 +179,7 @@ class RefinedInterpolation(Interpolation):
         Otherwise an error is raised.
         """
 
-        edge_coarse, t_coarse = self._refined_grid.to_coarse_edge_point(edge, t)
+        edge_coarse, t_coarse = self.grid.to_coarse_edge_point(edge, t)
         return self._coarse_interpolation.on_edge(edge_coarse, t_coarse)
 
     def hessian(
@@ -186,6 +188,65 @@ class RefinedInterpolation(Interpolation):
         return self._coarse_interpolation.hessian(
             *self._to_coarse_parameters(triangle, barycentric_coordinates)
         )
+
+
+class EuclideanInterpolation:
+    """Interpolation that can be evaluated at points in Euclidean coordinates."""
+
+    def __init__(self, barycentric_interpolation):
+        self._barycentric_interpolation = barycentric_interpolation
+        self.grid = barycentric_interpolation.grid
+
+    def _to_barycentric_inputs(self, x: float, y: float) -> tuple[Triangle, BarycentricCoordinates]:
+        p = Vector([x, y])
+        p_barycentric = self.grid.to_barycentric_point(p)
+        if p_barycentric is None:
+            raise ValueError(f"point {p} lies outside the domain")
+
+        return p_barycentric.triangle, p_barycentric.coordinates
+
+    def __call__(self, x: float, y: float) -> float:
+        return self._barycentric_interpolation(*self._to_barycentric_inputs(x, y))
+
+    def gradient(self, x: float, y: float) -> Vector:
+        """Gradient at a Euclidean point."""
+        return self._barycentric_interpolation.gradient(*self._to_barycentric_inputs(x, y))
+
+    def hessian(self, x: float, y: float) -> Matrix:
+        """Gradient at a Euclidean point."""
+        return self._barycentric_interpolation.hessian(*self._to_barycentric_inputs(x, y))
+
+
+class EuclideanDeformation:
+    """Interpolation of a deformation."""
+
+    def __init__(self, y1_interpolation: Interpolation, y2_interpolation: Interpolation):
+        self._y = [
+            EuclideanInterpolation(y1_interpolation),
+            EuclideanInterpolation(y2_interpolation),
+        ]
+
+    def __getitem__(self, i: int):
+        """Access the component interpolations directly."""
+        return self._y[i]
+
+    def __call__(self, x: float, y: float) -> Vector:
+        return Vector(
+            [
+                self._y[0](x, y),
+                self._y[1](x, y),
+            ]
+        )
+
+    def strain(self, x: float, y: float) -> Matrix:
+        """Compute the strain of the deformation in a triangle."""
+        return self._y[0].gradient(x, y).stack(self._y[1].gradient(x, y))
+
+    def hyper_strain(self, x: float, y: float) -> Tensor3D:
+        """Compute the hyper strain of the deformation in a triangle."""
+        hessian_y1 = self._y[0].hessian(x, y)
+        hessian_y2 = self._y[1].hessian(x, y)
+        return hessian_y1.stack(hessian_y2)
 
 
 class Deformation:

@@ -5,14 +5,13 @@ from abc import ABC
 import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
-from tvemoves_rufbad.domain import Domain, RectangleDomain, Grid, RefinedGrid
+from tvemoves_rufbad.domain import Domain, RectangleDomain, Grid
 from tvemoves_rufbad.mechanical_step import MechanicalStepParams, mechanical_step
 from tvemoves_rufbad.interpolation import (
-    Deformation,
-    Interpolation,
+    EuclideanDeformation,
     P1Interpolation,
     C1Interpolation,
-    RefinedInterpolation,
+    EuclideanInterpolation,
 )
 
 
@@ -23,8 +22,8 @@ class AbstractStep(ABC):
         self,
         y_data: npt.NDArray[np.float64],
         theta_deta: npt.NDArray[np.float64],
-        y: Deformation,
-        theta: Interpolation,
+        y: EuclideanDeformation,
+        theta: EuclideanInterpolation,
     ):
         self._y_data = y_data
         self._theta_data = theta_deta
@@ -56,12 +55,12 @@ class Step(AbstractStep):
             )
 
         y1_params = y_data[:, 0].tolist()
-        y1_interpolation = P1Interpolation(grid, y1_params)
+        y1_interpolation = EuclideanInterpolation(P1Interpolation(grid, y1_params))
         y2_params = y_data[:, 1].tolist()
-        y2_interpolation = P1Interpolation(grid, y2_params)
-        y = Deformation(y1_interpolation, y2_interpolation)
+        y2_interpolation = EuclideanInterpolation(P1Interpolation(grid, y2_params))
+        y = EuclideanDeformation(y1_interpolation, y2_interpolation)
 
-        theta = P1Interpolation(grid, theta_data.tolist())
+        theta = EuclideanInterpolation(P1Interpolation(grid, theta_data.tolist()))
 
         super().__init__(y_data, theta_data, y, theta)
 
@@ -89,9 +88,9 @@ class RegularizedStep(AbstractStep):
         y1_interpolation = C1Interpolation(grid, y1_params)
         y2_params = y_data[:, 1, :].tolist()
         y2_interpolation = C1Interpolation(grid, y2_params)
-        y = Deformation(y1_interpolation, y2_interpolation)
+        y = EuclideanDeformation(y1_interpolation, y2_interpolation)
 
-        theta = P1Interpolation(refined_grid, theta_data.tolist())
+        theta = EuclideanInterpolation(P1Interpolation(refined_grid, theta_data.tolist()))
 
         super().__init__(y_data, theta_data, y, theta)
 
@@ -165,6 +164,11 @@ class Simulation:
             self._solver, self._grid, self.params.mechanical_step_params(), self._refined_grid
         )
         self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
+        step = self.steps[-1]
+        print(step.theta(0.1, 0.7))
+        print(step.theta.gradient(0.1, 0.0))
+        print(step.y.strain(0.5, 0.7))
+        print(step.y.hyper_strain(0.1, 0.2))
 
     def _append_step(self, y_data: npt.NDArray[np.float64], theta_data: npt.NDArray[np.float64]):
         step = (
