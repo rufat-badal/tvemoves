@@ -20,11 +20,13 @@ class AbstractStep(ABC):
 
     def __init__(
         self,
+        domain: Domain,
         y_data: npt.NDArray[np.float64],
         theta_deta: npt.NDArray[np.float64],
         y: EuclideanDeformation,
         theta: EuclideanInterpolation,
     ):
+        self._domain = domain
         self._y_data = y_data
         self._theta_data = theta_deta
         self.y = y
@@ -44,6 +46,7 @@ class Step(AbstractStep):
         self,
         y_data: npt.NDArray[np.float64],
         theta_data: npt.NDArray[np.float64],
+        domain: Domain,
         grid: Grid,
     ):
         if y_data.shape != (len(grid.vertices), 2):
@@ -62,7 +65,7 @@ class Step(AbstractStep):
 
         theta = EuclideanInterpolation(P1Interpolation(grid, theta_data.tolist()))
 
-        super().__init__(y_data, theta_data, y, theta)
+        super().__init__(domain, y_data, theta_data, y, theta)
 
 
 class RegularizedStep(AbstractStep):
@@ -72,6 +75,7 @@ class RegularizedStep(AbstractStep):
         self,
         y_data: npt.NDArray[np.float64],
         theta_data: npt.NDArray[np.float64],
+        domain: Domain,
         grid: Grid,
         refined_grid: Grid,
     ):
@@ -92,7 +96,7 @@ class RegularizedStep(AbstractStep):
 
         theta = EuclideanInterpolation(P1Interpolation(refined_grid, theta_data.tolist()))
 
-        super().__init__(y_data, theta_data, y, theta)
+        super().__init__(domain, y_data, theta_data, y, theta)
 
 
 @dataclass
@@ -172,9 +176,9 @@ class Simulation:
 
     def _append_step(self, y_data: npt.NDArray[np.float64], theta_data: npt.NDArray[np.float64]):
         step = (
-            Step(y_data, theta_data, self._grid)
+            Step(y_data, theta_data, self._domain, self._grid)
             if self.params.regularization == 0
-            else RegularizedStep(y_data, theta_data, self._grid, self._refined_grid)
+            else RegularizedStep(y_data, theta_data, self._domain, self._grid, self._refined_grid)
         )
         self.steps.append(step)
 
