@@ -5,6 +5,7 @@ from abc import ABC
 import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
+from matplotlib import pyplot as plt
 from tvemoves_rufbad.domain import Domain, RectangleDomain, Grid
 from tvemoves_rufbad.mechanical_step import MechanicalStepParams, mechanical_step
 from tvemoves_rufbad.interpolation import (
@@ -13,6 +14,9 @@ from tvemoves_rufbad.interpolation import (
     C1Interpolation,
     EuclideanInterpolation,
 )
+from tvemoves_rufbad.helpers import axis
+
+PLOTTING_REFINEMENT_FACTOR = 5
 
 
 class AbstractStep(ABC):
@@ -20,14 +24,15 @@ class AbstractStep(ABC):
 
     def __init__(
         self,
-        domain: Domain,
         y_data: npt.NDArray[np.float64],
         theta_deta: npt.NDArray[np.float64],
         y: EuclideanDeformation,
         theta: EuclideanInterpolation,
+        domain: Domain,
+        grid: Grid,
     ):
         self._domain = domain
-        self._plotting_grid = self._domain.grid(scale=0.01)
+        self._plotting_grid = self._domain.refine(grid, PLOTTING_REFINEMENT_FACTOR)
         self._y_data = y_data
         self._theta_data = theta_deta
         self.y = y
@@ -38,6 +43,53 @@ class AbstractStep(ABC):
 
     def __str__(self):
         return f"y:\n{str(self._y_data)}\ntheta:\n{str(self._theta_data)}"
+
+    def _plot_temperature(self, ax, max_temp) -> None:
+        deformed_points = [self.y(*p) for p in self._plotting_grid.points]
+        x = [p[0] for p in deformed_points]
+        y = [p[1] for p in deformed_points]
+        c = [self.theta(*p) for p in self._plotting_grid.points]
+        ax.tripcolor(
+            x,
+            y,
+            c,
+            triangles=self._plotting_grid.triangles,
+            vmin=0.0,
+            vmax=max_temp,
+            cmap="plasma",
+            shading="gouraud",
+        )
+
+    def _plot_deformation_curves(
+        self,
+        ax,
+        num_points_per_curve: int,
+        num_horizontal_curves: int = 0,
+        num_vertical_curves: int | None = None,
+    ):
+        for curve in self._domain.curves(
+            num_points_per_curve, num_horizontal_curves, num_vertical_curves
+        ):
+            deformed_curve = [self.y(*p) for p in curve]
+            x = [p[0] for p in deformed_curve]
+            y = [p[1] for p in deformed_curve]
+            ax.plot(x, y, color="gray", linewidth=1)
+
+    def plot(
+        self,
+        ax=None,
+        max_temp: float = 1.0,
+        num_points_per_curve: int = 100,
+        num_horizontal_curves: int = 2,
+        num_vertical_curves: int = 2,
+    ):
+        """Plot step."""
+        if ax is None:
+            ax = axis()
+        self._plot_temperature(ax, max_temp)
+        self._plot_deformation_curves(
+            ax, num_points_per_curve, num_horizontal_curves, num_vertical_curves
+        )
 
 
 class Step(AbstractStep):
@@ -66,7 +118,7 @@ class Step(AbstractStep):
 
         theta = EuclideanInterpolation(P1Interpolation(grid, theta_data.tolist()))
 
-        super().__init__(domain, y_data, theta_data, y, theta)
+        super().__init__(y_data, theta_data, y, theta, domain, grid)
 
 
 class RegularizedStep(AbstractStep):
@@ -97,7 +149,7 @@ class RegularizedStep(AbstractStep):
 
         theta = EuclideanInterpolation(P1Interpolation(refined_grid, theta_data.tolist()))
 
-        super().__init__(domain, y_data, theta_data, y, theta)
+        super().__init__(y_data, theta_data, y, theta, domain, refined_grid)
 
 
 @dataclass
@@ -169,11 +221,7 @@ class Simulation:
             self._solver, self._grid, self.params.mechanical_step_params(), self._refined_grid
         )
         self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
-        step = self.steps[-1]
-        print(step.theta(0.1, 0.7))
-        print(step.theta.gradient(0.1, 0.0))
-        print(step.y.strain(0.5, 0.7))
-        print(step.y.hyper_strain(0.1, 0.2))
+        self._mechanical_step.solve()
 
     def _append_step(self, y_data: npt.NDArray[np.float64], theta_data: npt.NDArray[np.float64]):
         step = (

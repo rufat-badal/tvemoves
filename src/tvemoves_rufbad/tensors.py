@@ -80,10 +80,12 @@ class Vector:
         """Vertically stack two vectors to create a matrix with two rows."""
         if self.size != other.size:
             raise ValueError(f"cannot stack vectors of sizes {self.size} and {other.size}")
-        return Matrix([
-            self.data,
-            other.data,
-        ])
+        return Matrix(
+            [
+                self.data,
+                other.data,
+            ]
+        )
 
     def __iter__(self) -> Iterator:
         return iter(self.data)
@@ -95,9 +97,9 @@ class Vector:
                 f"cannot reshape vector of size {self.size} to a matrix of shape"
                 f" ({num_rows}, {num_cols})"
             )
-        return Matrix([
-            [self.data[i * num_cols + j] for j in range(num_cols)] for i in range(num_rows)
-        ])
+        return Matrix(
+            [[self.data[i * num_cols + j] for j in range(num_cols)] for i in range(num_rows)]
+        )
 
     def numpy(self) -> npt.NDArray:
         """Return copy of the vector as numpy array."""
@@ -121,10 +123,32 @@ class BarycentricCoordinates:
     size: int = 3
 
     def __init__(self, l1, l2):
-        self.l1 = l1
-        self.l2 = l2
-        self.l3 = 1 - self.l1 - self.l2
-        self._data = [self.l1, self.l2, self.l3]
+        self._data = [l1, l2, 1 - l1 - l2]
+
+    @property
+    def l1(self):
+        """First weight."""
+        return self._data[0]
+
+    @property
+    def l2(self):
+        """Second weight."""
+        return self._data[1]
+
+    @property
+    def l3(self):
+        """Third weight."""
+        return self._data[2]
+
+    def assert_bounds(self, lower: float = 0.0, upper: float = 1.0):
+        """Assure that all weigts are between lower and upper.
+
+        This corrects errors due to floating point error where weights became negative."""
+        for i in range(BarycentricCoordinates.size):
+            if self._data[i] < lower:
+                self._data[i] = lower
+            elif self._data[i] > upper:
+                self._data[i] = upper
 
     def __repr__(self) -> str:
         return "BarycentricCoordinates(" + ", ".join([repr(x) for x in self._data]) + ")"
@@ -207,37 +231,45 @@ class Matrix:
     def __add__(self, other: Matrix) -> Matrix:
         if self.shape != other.shape:
             raise ValueError(f"matrices of shapes {self.shape} and {other.shape} cannot be added")
-        return Matrix([
-            [x + y for x, y in zip(row, other_row)] for row, other_row in zip(self.data, other.data)
-        ])
+        return Matrix(
+            [
+                [x + y for x, y in zip(row, other_row)]
+                for row, other_row in zip(self.data, other.data)
+            ]
+        )
 
     def __sub__(self, other: Matrix) -> Matrix:
         if self.shape != other.shape:
             raise ValueError(
                 f"matrices of shapes {self.shape} and {other.shape} cannot be subtracted"
             )
-        return Matrix([
-            [x - y for x, y in zip(row, other_row)] for row, other_row in zip(self.data, other.data)
-        ])
+        return Matrix(
+            [
+                [x - y for x, y in zip(row, other_row)]
+                for row, other_row in zip(self.data, other.data)
+            ]
+        )
 
     def __matmul__(self, other: Matrix) -> Matrix:
         if self.shape[1] != other.shape[0]:
             raise ValueError(
                 f"matrices of shapes {self.shape} and {other.shape} cannot be multiplied"
             )
-        return Matrix([
+        return Matrix(
             [
-                sum(self.data[i][k] * other.data[k][j] for k in range(self.shape[1]))
-                for j in range(other.shape[1])
+                [
+                    sum(self.data[i][k] * other.data[k][j] for k in range(self.shape[1]))
+                    for j in range(other.shape[1])
+                ]
+                for i in range(self.shape[0])
             ]
-            for i in range(self.shape[0])
-        ])
+        )
 
     def transpose(self) -> Matrix:
         """Compute the transpose of a matrix."""
-        return Matrix([
-            [self.data[i][j] for i in range(self.shape[0])] for j in range(self.shape[1])
-        ])
+        return Matrix(
+            [[self.data[i][j] for i in range(self.shape[0])] for j in range(self.shape[1])]
+        )
 
     def trace(self):
         """Compute the trace of a matrix."""
@@ -297,9 +329,12 @@ class Matrix:
             raise ValueError(
                 f"cannot multiply a matrix of shape {self.shape} with a vector of size {v.size}"
             )
-        return Vector([
-            sum(self.data[i][j] * v[j] for j in range(self.shape[1])) for i in range(self.shape[0])
-        ])
+        return Vector(
+            [
+                sum(self.data[i][j] * v[j] for j in range(self.shape[1]))
+                for i in range(self.shape[0])
+            ]
+        )
 
     def map(self, f: Callable) -> Matrix:
         """Applies map f to each entry of the matrix."""
@@ -309,10 +344,12 @@ class Matrix:
         """Stack two matrices to a 3-d tensor."""
         if self.shape[0] != other.shape[0]:
             raise ValueError(f"matrices of shapes {self.shape} and {other.shape} cannot be stacked")
-        return Tensor3D([
-            self.data,
-            other.data,
-        ])
+        return Tensor3D(
+            [
+                self.data,
+                other.data,
+            ]
+        )
 
     def numpy(self) -> npt.NDArray:
         """Return copy of the matrix as numpy array."""
@@ -377,26 +414,30 @@ class Tensor3D:
     def __add__(self, other: Tensor3D) -> Tensor3D:
         if self.shape != other.shape:
             raise ValueError(f"tensors of shapes {self.shape} and {other.shape} cannot be added")
-        return Tensor3D([
+        return Tensor3D(
             [
-                [x + y for x, y in zip(row, other_row)]
-                for row, other_row in zip(matrix, other_matrix)
+                [
+                    [x + y for x, y in zip(row, other_row)]
+                    for row, other_row in zip(matrix, other_matrix)
+                ]
+                for matrix, other_matrix in zip(self.data, other.data)
             ]
-            for matrix, other_matrix in zip(self.data, other.data)
-        ])
+        )
 
     def __sub__(self, other: Tensor3D) -> Tensor3D:
         if self.shape != other.shape:
             raise ValueError(
                 f"tensors of shapes {self.shape} and {other.shape} cannot be subtracted"
             )
-        return Tensor3D([
+        return Tensor3D(
             [
-                [x - y for x, y in zip(row, other_row)]
-                for row, other_row in zip(matrix, other_matrix)
+                [
+                    [x - y for x, y in zip(row, other_row)]
+                    for row, other_row in zip(matrix, other_matrix)
+                ]
+                for matrix, other_matrix in zip(self.data, other.data)
             ]
-            for matrix, other_matrix in zip(self.data, other.data)
-        ])
+        )
 
     def normsqr(self):
         """Compute square of the Euclidean norm of the tensor."""

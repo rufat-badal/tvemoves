@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from typing import Literal, Protocol, Dict
-from math import isclose
 from abc import ABC
 from copy import deepcopy
 from matplotlib import pyplot as plt
@@ -711,8 +710,9 @@ def _refine_equilateral_triangle(
 
     i1, i2, i3 = triangle
     p1, p2, p3 = grid.triangle_vertices(triangle)
-    assert isclose(p1[1], p2[1]), "First edge of an equilateral triangle must be horizontal"
-    assert isclose(p2[0], p3[0]), "Second edge of an equilateral triangle must be vertical"
+    eps = 1e-15
+    assert abs(p1[1] - p2[1]) < eps, "First edge of an equilateral triangle must be horizontal"
+    assert abs(p2[0] - p3[0]) < eps, "Second edge of an equilateral triangle must be vertical"
 
     # Create new vertex indices and points
     next_vertex = intermediate_grid.vertices[-1] + 1
@@ -736,6 +736,7 @@ def _refine_equilateral_triangle(
             next_barycentric_coords = BarycentricCoordinates(
                 1 - k / refinement_factor - l / refinement_factor, k / refinement_factor
             )
+            next_barycentric_coords.assert_bounds()
             next_point = (
                 next_barycentric_coords.l1 * p1
                 + next_barycentric_coords.l2 * p2
@@ -761,6 +762,8 @@ def _refine_equilateral_triangle(
                 triangle_vertices[(k + 1, l)],
                 triangle_vertices[(k, l + 1)],
             )
+            p1 = intermediate_grid.points[triangle_vertices[(k, l)]]
+            p2 = intermediate_grid.points[triangle_vertices[(k + 1, l)]]
             intermediate_grid.triangles.append(next_triangle)
             coarse_triangle[next_triangle] = triangle
             coarse_barycentric_coordinates[next_triangle] = (
