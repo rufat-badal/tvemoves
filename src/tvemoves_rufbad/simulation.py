@@ -5,7 +5,7 @@ from abc import ABC
 import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
-from tvemoves_rufbad.domain import Domain, RectangleDomain, Grid
+from tvemoves_rufbad.domain import Domain, RectangleDomain, Grid, RefinedGrid
 from tvemoves_rufbad.mechanical_step import MechanicalStepParams, mechanical_step
 from tvemoves_rufbad.interpolation import (
     EuclideanDeformation,
@@ -110,9 +110,9 @@ class Step(AbstractStep):
             )
 
         y1_params = y_data[:, 0].tolist()
-        y1_interpolation = EuclideanInterpolation(P1Interpolation(grid, y1_params))
+        y1_interpolation = P1Interpolation(grid, y1_params)
         y2_params = y_data[:, 1].tolist()
-        y2_interpolation = EuclideanInterpolation(P1Interpolation(grid, y2_params))
+        y2_interpolation = P1Interpolation(grid, y2_params)
         y = EuclideanDeformation(y1_interpolation, y2_interpolation)
 
         theta = EuclideanInterpolation(P1Interpolation(grid, theta_data.tolist()))
@@ -129,8 +129,10 @@ class RegularizedStep(AbstractStep):
         theta_data: npt.NDArray[np.float64],
         domain: Domain,
         grid: Grid,
-        refined_grid: Grid,
+        refined_grid: RefinedGrid | None,
     ):
+        if refined_grid is None:
+            raise ValueError("refined grid is required in the regularized setting")
         # last dimension correspond to the degrees of freedom of the C1 interpolation
         if y_data.shape != (len(grid.vertices), 2, 6):
             raise ValueError(f"incorrectly shaped y_data of shape = {y_data.shape} provided")
@@ -211,10 +213,13 @@ class Simulation:
         self._solver = pyo.SolverFactory("ipopt")
         self.params = params
         self._grid = self._domain.grid(self.params.scale)
-        self._refined_grid = None
-        if self.params.regularization != 0:
-            self._refined_grid = self._domain.refine(self._grid, self.params.refinement_factor)
-        self.steps: list[Step] = []
+        self.regularized = self.params.regularization != 0
+        self._refined_grid = (
+            self._domain.refine(self._grid, self.params.refinement_factor)
+            if self.regularized
+            else None
+        )
+        self.steps: list[AbstractStep] = []
 
         self._mechanical_step = mechanical_step(
             self._solver, self._grid, self.params.mechanical_step_params(), self._refined_grid
@@ -225,7 +230,7 @@ class Simulation:
     def _append_step(self, y_data: npt.NDArray[np.float64], theta_data: npt.NDArray[np.float64]):
         step = (
             Step(y_data, theta_data, self._domain, self._grid)
-            if self.params.regularization == 0
+            if not self.regularized
             else RegularizedStep(y_data, theta_data, self._domain, self._grid, self._refined_grid)
         )
         self.steps.append(step)

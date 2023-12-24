@@ -156,6 +156,7 @@ def test_to_barycentric_point() -> None:
     barycentric_curves = [[grid.to_barycentric_point(p) for p in curve] for curve in curves]
     for barycentric_curve, curve in zip(barycentric_curves, curves):
         for barycentric_point, point in zip(barycentric_curve, curve):
+            assert barycentric_point is not None
             assert (_to_cartesian_point(barycentric_point, grid) - point).norm() == approx(0)
 
 
