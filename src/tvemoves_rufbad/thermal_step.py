@@ -62,7 +62,7 @@ def _strain_derivative_coupling_potential(scaling_matrix: Matrix):
 
 
 def _energy_potential(heat_conductivity: Matrix, scaling_matrix: Matrix, fps: float):
-    partial_F_W_cpl = _strain_derivative_coupling_potential(scaling_matrix)
+    adiabatic = _strain_derivative_coupling_potential(scaling_matrix)
 
     def energy(prev_strain, strain, prev_temp, temp, temp_gradient):
         diffusion = temp_gradient.dot(
@@ -74,7 +74,7 @@ def _energy_potential(heat_conductivity: Matrix, scaling_matrix: Matrix, fps: fl
         heat_source_sink = (
             -(
                 dissipation_rate(symmetrized_strain_rate)
-                + partial_F_W_cpl(prev_strain, prev_temp).scalar_product(strain_rate)
+                + adiabatic(prev_strain, prev_temp).scalar_product(strain_rate)
             )
             * temp
         )
