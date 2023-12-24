@@ -1,5 +1,6 @@
 """Module providing the definitions of important potentials and modeling functions."""
 
+from typing import Callable, Any
 import pyomo.environ as pyo
 from matplotlib import pyplot as plt
 from tvemoves_rufbad.tensors import Matrix
@@ -7,21 +8,27 @@ from tvemoves_rufbad.tensors import Matrix
 
 def austenite_percentage(theta):
     """Percentage of austenite in a material of temperature theta."""
-    return 1 - 1 / (1 + theta)
+    return theta / (1 + theta)
 
 
 def dissipation_norm(symmetrized_strain_rate: Matrix):
     """Norm of a symmetrized strain rate."""
+    # D tensor currently assumed to be the identity
     return symmetrized_strain_rate.normsqr() / 2
 
 
-def symmetrized_strain_delta(prev_strain, strain):
+def dissipation_rate(symmetrized_strain_rate: Matrix):
+    """Dissipation rate. Always twice the dissipation potential."""
+    return dissipation_norm(symmetrized_strain_rate) * 2
+
+
+def symmetrized_strain_delta(prev_strain: Matrix, strain: Matrix) -> Matrix:
     """Computes discrete symmetrized strain rate given two strains."""
     strain_delta = strain - prev_strain
     return strain_delta.transpose() @ prev_strain + prev_strain.transpose() @ strain_delta
 
 
-def dissipation_potential(prev_strain, strain):
+def dissipation_potential(prev_strain: Matrix, strain: Matrix):
     """Dissipation generated going from prev_strain to strain."""
     return dissipation_norm(symmetrized_strain_delta(prev_strain, strain))
 
@@ -38,19 +45,19 @@ def austenite_potential(strain: Matrix):
     return neo_hook(strain)
 
 
-def create_martensite_potential(scaling_matrix: Matrix):
+def create_martensite_potential(scaling_matrix: Matrix) -> Callable[[Matrix], Any]:
     """Create martensite potential for a given scaling matrix."""
     return lambda strain: austenite_potential(strain @ scaling_matrix)
 
 
-def gradient_austenite_potential(strain: Matrix):
+def gradient_austenite_potential(strain: Matrix) -> Matrix:
     """Gradient of the austenite potential."""
     det_of_strain = strain.det()
-    gradient_of_det = Matrix([[strain[2, 2], -strain[2, 1]], [-strain[1, 2], strain[1, 1]]])
+    gradient_of_det = Matrix([[strain[1, 1], -strain[1, 0]], [-strain[0, 1], strain[1, 1]]])
     return 2 * (strain + (det_of_strain - 1 / det_of_strain - 1) * gradient_of_det)
 
 
-def gradient_martensite_potential(scaling_matrix: Matrix):
+def gradient_martensite_potential(scaling_matrix: Matrix) -> Callable[[Matrix], Matrix]:
     """Create gradient of the martensite potential for a given scaling matrix."""
     # chain rule
     return lambda F: gradient_austenite_potential(F @ scaling_matrix) @ scaling_matrix.transpose()
@@ -66,12 +73,12 @@ def antider_internal_energy_weight(theta):
     return (theta * (2 + theta)) / (1 + theta) - 2 * pyo.log(1 + theta)
 
 
-def inverse_2x2(F: Matrix) -> Matrix:
+def inverse_2x2(strain: Matrix) -> Matrix:
     """Compute inverse of a 2x2 matrix."""
-    if F.shape != (2, 2):
+    if strain.shape != (2, 2):
         raise ValueError("Matrix inverse currently only implemented for 2x2 matrices")
 
-    return Matrix([[F[1, 1], -F[0, 1]], [-F[1, 0], F[0, 0]]]) / F.det()
+    return Matrix([[strain[1, 1], -strain[0, 1]], [-strain[1, 0], strain[0, 0]]]) / strain.det()
 
 
 def heat_conductivity_reference(heat_conductivity: Matrix, strain: Matrix) -> Matrix:
