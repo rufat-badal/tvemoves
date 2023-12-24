@@ -239,7 +239,7 @@ class Simulation:
         )
         self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
         self._mechanical_step.solve()
-        thermal_step(
+        self._thermal_step = thermal_step(
             self._solver,
             self._grid,
             self._mechanical_step.prev_y(),
@@ -264,7 +264,7 @@ _params = SimulationParams(
     shape_memory_scaling=2.0,
     fps=1,
     regularization=0.0,
-    scale=1.0,
+    scale=0.25,
 )
 
 _square = RectangleDomain(1, 1, fix="left")

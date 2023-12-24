@@ -47,26 +47,48 @@ def _model(
     fps: int,
 ) -> pyo.ConcreteModel:
     """Create model for the thermal step without regularization."""
-    m = pyo.ConcreteModel("Mechanical Step")
+    m = pyo.ConcreteModel("Thermal Step")
 
-    # m.prev_y1 = pyo.Param(
-    #     grid.vertices,
-    #     within=pyo.Reals,
-    #     initialize=[p[0] for p in grid.points],
-    #     mutable=True,
-    # )
-    # m.prev_y2 = pyo.Param(
-    #     grid.vertices,
-    #     within=pyo.Reals,
-    #     initialize=[p[1] for p in grid.points],
-    #     mutable=True,
-    # )
-    # m.prev_theta = pyo.Param(
-    #     grid.vertices,
-    #     within=pyo.NonNegativeReals,
-    #     initialize=initial_temperature,
-    #     mutable=True,
-    # )
+    if prev_y.shape != (len(grid.vertices), 2):
+        raise ValueError(
+            f"prev_y has incorrect shape {prev_y} (should be {(len(grid.vertices), 2)}"
+        )
+    if y.shape != (len(grid.vertices), 2):
+        raise ValueError(f"y has incorrect shape {y} (should be {(len(grid.vertices), 2)}")
+
+    if prev_theta.shape != (len(grid.vertices),):
+        raise ValueError(f"y has incorrect shape {prev_theta} (should be {(len(grid.vertices),)}")
+
+    m.prev_y1 = pyo.Param(
+        grid.vertices,
+        within=pyo.Reals,
+        initialize=prev_y[:, 0],
+        mutable=True,
+    )
+    m.prev_y2 = pyo.Param(
+        grid.vertices,
+        within=pyo.Reals,
+        initialize=prev_y[:, 1],
+        mutable=True,
+    )
+    m.y1 = pyo.Param(
+        grid.vertices,
+        within=pyo.Reals,
+        initialize=y[:, 0],
+        mutable=True,
+    )
+    m.y2 = pyo.Param(
+        grid.vertices,
+        within=pyo.Reals,
+        initialize=y[:, 1],
+        mutable=True,
+    )
+    m.prev_theta = pyo.Param(
+        grid.vertices,
+        within=pyo.NonNegativeReals,
+        initialize=prev_theta,
+        mutable=True,
+    )
 
     # m.y1 = pyo.Var(grid.vertices, within=pyo.Reals)
     # m.y2 = pyo.Var(grid.vertices, within=pyo.Reals)
