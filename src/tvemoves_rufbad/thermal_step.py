@@ -29,8 +29,8 @@ class ThermalStepParams:
 
     search_radius: float
     shape_memory_scaling: float
-    regularization: float
     fps: int
+    regularization: float
 
 
 def thermal_step(
@@ -39,6 +39,7 @@ def thermal_step(
     """Mechanical step factory."""
     if params.regularization == 0.0:
         print("Not regularized thermal step needs to be implemented")
+        return
 
     if refined_grid is None:
         raise ValueError("A refined grid must be provided for a regularized model")

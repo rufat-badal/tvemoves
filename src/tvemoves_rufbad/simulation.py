@@ -7,6 +7,7 @@ import numpy as np
 import pyomo.environ as pyo
 from tvemoves_rufbad.domain import Domain, RectangleDomain, Grid, RefinedGrid
 from tvemoves_rufbad.mechanical_step import MechanicalStepParams, mechanical_step
+from tvemoves_rufbad.thermal_step import ThermalStepParams, thermal_step
 from tvemoves_rufbad.interpolation import (
     EuclideanDeformation,
     P1Interpolation,
@@ -194,10 +195,22 @@ class SimulationParams:
     def mechanical_step_params(
         self,
     ) -> MechanicalStepParams:
-        """Return subset of the parameters concerning the mechanical step only."""
+        """Return subset of the parameters needed for the mechanical step only."""
 
         return MechanicalStepParams(
             self.initial_temperature,
+            self.search_radius,
+            self.shape_memory_scaling,
+            self.fps,
+            self.regularization,
+        )
+
+    def thermal_step_params(
+        self,
+    ) -> ThermalStepParams:
+        """Return subset of the parameters needed for the mechanical step only."""
+
+        return ThermalStepParams(
             self.search_radius,
             self.shape_memory_scaling,
             self.fps,
@@ -226,6 +239,9 @@ class Simulation:
         )
         self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
         self._mechanical_step.solve()
+        thermal_step(
+            self._solver, self._grid, self.params.thermal_step_params(), self._refined_grid
+        )
 
     def _append_step(self, y_data: npt.NDArray[np.float64], theta_data: npt.NDArray[np.float64]):
         step = (
@@ -243,7 +259,6 @@ _params = SimulationParams(
     fps=1,
     regularization=0.0,
     scale=1.0,
-    # refinement_factor=1,
 )
 
 _square = RectangleDomain(1, 1, fix="left")
