@@ -112,6 +112,10 @@ class Vector:
     def __len__(self) -> int:
         return self.size
 
+    def transpose(self) -> Matrix:
+        """Transpose vector to a matrix."""
+        return Matrix([self.data])
+
 
 class BarycentricCoordinates:
     """Barycentric coordinates.

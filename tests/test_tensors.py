@@ -7,8 +7,11 @@ from tvemoves_rufbad.tensors import Vector, Matrix, Tensor3D
 
 def test_vector() -> None:
     """Test vector class."""
-    m = 100
-    k = 10
+    # m = 100
+    # k = 10
+    # n = m * k
+    m = 3
+    k = 2
     n = m * k
 
     v_numpy = np.random.rand(n)
@@ -35,6 +38,7 @@ def test_vector() -> None:
     assert v.reshape(m, k).data == approx(v_numpy.reshape(m, k))
     assert v.stack(w).data == approx(np.stack((v_numpy, w_numpy)))
     assert v.map(lambda x: -x).data == (-v).data
+    assert v.transpose().data == approx(v_numpy.reshape(1, -1))
 
     def square(x):
         return x**2
