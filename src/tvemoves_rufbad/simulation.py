@@ -5,7 +5,6 @@ from abc import ABC
 import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
-from matplotlib import pyplot as plt
 from tvemoves_rufbad.domain import Domain, RectangleDomain, Grid
 from tvemoves_rufbad.mechanical_step import MechanicalStepParams, mechanical_step
 from tvemoves_rufbad.interpolation import (
@@ -237,9 +236,9 @@ _params = SimulationParams(
     search_radius=10.0,
     shape_memory_scaling=2.0,
     fps=1,
-    regularization=1.0,
+    regularization=0.0,
     scale=1.0,
-    refinement_factor=5,
+    # refinement_factor=1,
 )
 
 _square = RectangleDomain(1, 1, fix="left")

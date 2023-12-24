@@ -1,7 +1,7 @@
 """Module providing implementation of the mechanical step of the minimizing movement scheme."""
 
 from dataclasses import dataclass
-from abc import ABC, abstractmethod
+from typing import Protocol
 import pyomo.environ as pyo
 import numpy.typing as npt
 import numpy as np
@@ -37,22 +37,18 @@ class MechanicalStepParams:
     regularization: float
 
 
-class AbstractMechanicalStep(ABC):
+class AbstractMechanicalStep(Protocol):
     """Abstract base class of a mechanical step returned by the mechanical_step factory."""
 
-    @abstractmethod
     def solve(self) -> None:
         """Solve the next mechanical step."""
 
-    @abstractmethod
     def prev_y(self) -> npt.NDArray[np.float64]:
         """Return the previous deformation as numpy array."""
 
-    @abstractmethod
     def y(self) -> npt.NDArray[np.float64]:
         """Return the current deformation as numpy array."""
 
-    @abstractmethod
     def prev_theta(self) -> npt.NDArray[np.float64]:
         """Return the previous temperature as numpy array."""
 
