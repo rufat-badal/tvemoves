@@ -66,6 +66,21 @@ def antider_internal_energy_weight(theta):
     return (theta * (2 + theta)) / (1 + theta) - 2 * pyo.log(1 + theta)
 
 
+def inverse_2x2(F: Matrix) -> Matrix:
+    """Compute inverse of a 2x2 matrix."""
+    if F.shape != (2, 2):
+        raise ValueError("Matrix inverse currently only implemented for 2x2 matrices")
+
+    return Matrix([[F[1, 1], -F[0, 1]], [-F[1, 0], F[0, 0]]]) / F.det()
+
+
+def heat_conductivity_reference(heat_conductivity: Matrix, strain: Matrix) -> Matrix:
+    """Transform heat conductivity tensor into the reference configuration."""
+    # heat conductivity is currently assumed to be independent of the the temperature
+    strain_inverse = inverse_2x2(strain)
+    return strain.det() * strain_inverse @ heat_conductivity @ strain_inverse.transpose()
+
+
 def compose_to_integrand(outer, *inner):
     """Compose an admissable integrand 'inner' with a function 'outer' to create a new integrand."""
     return lambda *args: outer(*(f(*args) for f in inner))

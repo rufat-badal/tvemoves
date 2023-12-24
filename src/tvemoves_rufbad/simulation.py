@@ -5,6 +5,7 @@ from abc import ABC
 import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
+from tvemoves_rufbad.tensors import Matrix
 from tvemoves_rufbad.domain import Domain, RectangleDomain, Grid, RefinedGrid
 from tvemoves_rufbad.mechanical_step import MechanicalStepParams, mechanical_step
 from tvemoves_rufbad.thermal_step import ThermalStepParams, thermal_step
@@ -163,6 +164,7 @@ class SimulationParams:
     shape_memory_scaling: float
     fps: int
     scale: float
+    heat_conductivity: Matrix
     regularization: float = 0.0
     refinement_factor: int = 1
 
@@ -215,6 +217,7 @@ class SimulationParams:
             self.shape_memory_scaling,
             self.fps,
             self.regularization,
+            self.heat_conductivity,
         )
 
 
@@ -263,8 +266,9 @@ _params = SimulationParams(
     search_radius=10.0,
     shape_memory_scaling=2.0,
     fps=1,
+    heat_conductivity=Matrix([[1.0, 0.0], [0.0, 1.0]]),
     regularization=0.0,
-    scale=0.25,
+    scale=1.0,
 )
 
 _square = RectangleDomain(1, 1, fix="left")

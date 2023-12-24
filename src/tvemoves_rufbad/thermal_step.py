@@ -6,6 +6,11 @@ import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
 from tvemoves_rufbad.domain import Grid, RefinedGrid
+from tvemoves_rufbad.tensors import Matrix
+from tvemoves_rufbad.interpolation import P1Interpolation, Deformation
+from tvemoves_rufbad.integrators import Integrator
+from tvemoves_rufbad.quadrature_rules import DUNAVANT2
+from tvemoves_rufbad.helpers import heat_conductivity_reference, compose_to_integrand
 
 
 class AbstractThermalStep(Protocol):
@@ -35,6 +40,17 @@ class ThermalStepParams:
     shape_memory_scaling: float
     fps: int
     regularization: float
+    heat_conductivity: Matrix
+
+
+def _energy_potential(heat_conductivity: Matrix):
+    def energy(prev_strain, strain, prev_temp, temp, temp_gradient):
+        diffusion = temp_gradient.dot(
+            heat_conductivity_reference(heat_conductivity, prev_strain).dot(temp_gradient)
+        )
+        return diffusion
+
+    return energy
 
 
 def _model(
@@ -45,6 +61,7 @@ def _model(
     search_radius: float,
     shape_memory_scaling: float,
     fps: int,
+    heat_conductivity: Matrix,
 ) -> pyo.ConcreteModel:
     """Create model for the thermal step without regularization."""
     m = pyo.ConcreteModel("Thermal Step")
@@ -90,36 +107,38 @@ def _model(
         mutable=True,
     )
 
-    # m.y1 = pyo.Var(grid.vertices, within=pyo.Reals)
-    # m.y2 = pyo.Var(grid.vertices, within=pyo.Reals)
-    # for v in grid.vertices:
-    #     m.y1[v] = m.prev_y1[v]
-    #     m.y1[v].bounds = (
-    #         m.prev_y1[v] - search_radius,
-    #         m.prev_y1[v] + search_radius,
-    #     )
-    #     m.y2[v] = m.prev_y2[v]
-    #     m.y2[v].bounds = (
-    #         m.prev_y2[v] - search_radius,
-    #         m.prev_y2[v] + search_radius,
-    #     )
+    m.theta = pyo.Var(grid.vertices, within=pyo.NonNegativeReals)
+    for v in grid.vertices:
+        m.theta[v] = m.prev_theta[v]
+        m.theta[v].bounds = (
+            m.prev_theta[v] - search_radius,
+            m.prev_theta[v] + search_radius,
+        )
 
-    # for v in grid.dirichlet_boundary.vertices:
-    #     m.y1[v].fix()
-    #     m.y2[v].fix()
+    prev_y1 = P1Interpolation(grid, m.prev_y1)
+    prev_y2 = P1Interpolation(grid, m.prev_y2)
+    prev_deform = Deformation(prev_y1, prev_y2)
 
-    # prev_y1 = P1Interpolation(grid, m.prev_y1)
-    # prev_y2 = P1Interpolation(grid, m.prev_y2)
-    # prev_deform = Deformation(prev_y1, prev_y2)
+    y1 = P1Interpolation(grid, m.y1)
+    y2 = P1Interpolation(grid, m.y2)
+    deform = Deformation(y1, y2)
 
-    # prev_temp = P1Interpolation(grid, m.prev_theta)
+    prev_temp = P1Interpolation(grid, m.prev_theta)
 
-    # y1 = P1Interpolation(grid, m.y1)
-    # y2 = P1Interpolation(grid, m.y2)
-    # deform = Deformation(y1, y2)
+    temp = P1Interpolation(grid, m.theta)
 
-    # integrator = Integrator(DUNAVANT2, grid.triangles, grid.points)
-    # integrator_for_piecewise_constant = Integrator(CENTROID, grid.triangles, grid.points)
+    integrator = Integrator(DUNAVANT2, grid.triangles, grid.points)
+
+    m.energy = integrator(
+        compose_to_integrand(
+            _energy_potential(heat_conductivity),
+            prev_deform.strain,
+            deform.strain,
+            prev_temp,
+            temp,
+            temp.gradient,
+        )
+    )
 
     # m.total_elastic_energy = integrator(
     #     _total_elastic_integrand(shape_memory_scaling, deform.strain, prev_temp)
@@ -127,7 +146,7 @@ def _model(
     # m.dissipation = integrator_for_piecewise_constant(
     #     compose_to_integrand(dissipation_potential, prev_deform.strain, deform.strain)
     # )
-    # m.objective = pyo.Objective(expr=m.total_elastic_energy + fps * m.dissipation)
+    m.objective = pyo.Objective(expr=m.energy)
 
     return m
 
@@ -145,17 +164,12 @@ class _ThermalStep(AbstractThermalStep):
         search_radius: float,
         shape_memory_scaling: float,
         fps: int,
+        heat_conductivity: Matrix,
     ):
         self._solver = solver
         self._num_vertices = len(grid.vertices)
         self._model = _model(
-            grid,
-            prev_y,
-            y,
-            prev_theta,
-            search_radius,
-            shape_memory_scaling,
-            fps,
+            grid, prev_y, y, prev_theta, search_radius, shape_memory_scaling, fps, heat_conductivity
         )
 
     # def solve(self) -> None:
@@ -201,6 +215,7 @@ def thermal_step(
             params.search_radius,
             params.shape_memory_scaling,
             params.fps,
+            params.heat_conductivity,
         )
 
     if refined_grid is None:
