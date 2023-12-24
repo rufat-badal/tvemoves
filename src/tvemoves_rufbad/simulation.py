@@ -240,7 +240,13 @@ class Simulation:
         self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
         self._mechanical_step.solve()
         thermal_step(
-            self._solver, self._grid, self.params.thermal_step_params(), self._refined_grid
+            self._solver,
+            self._grid,
+            self._mechanical_step.prev_y(),
+            self._mechanical_step.y(),
+            self._mechanical_step.prev_theta(),
+            self.params.thermal_step_params(),
+            self._refined_grid,
         )
 
     def _append_step(self, y_data: npt.NDArray[np.float64], theta_data: npt.NDArray[np.float64]):
