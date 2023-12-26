@@ -13,11 +13,9 @@ from tvemoves_rufbad.quadrature_rules import DUNAVANT2
 from tvemoves_rufbad.helpers import (
     heat_conductivity_reference,
     compose_to_integrand,
-    gradient_austenite_potential,
-    gradient_martensite_potential,
-    austenite_percentage,
     dissipation_rate,
-    symmetrized_strain_delta,
+    strain_derivative_coupling_potential,
+    HEAT_CONDUCTIVITY,
 )
 
 
@@ -45,43 +43,30 @@ class ThermalStepParams:
     """Parameters needed to perform the mechanical step."""
 
     search_radius: float
-    shape_memory_scaling: float
     fps: int
     regularization: float
-    heat_conductivity: Matrix
 
 
-def _strain_derivative_coupling_potential(scaling_matrix: Matrix):
-    grad_martensite = gradient_martensite_potential(scaling_matrix)
-    grad_austenite = gradient_austenite_potential
-
-    def derivative(strain: Matrix, theta) -> Matrix:
-        return austenite_percentage(theta) * (grad_austenite(strain) - grad_martensite(strain))
-
-    return derivative
-
-
-def _energy_potential(heat_conductivity: Matrix, scaling_matrix: Matrix, fps: float):
-    adiabatic = _strain_derivative_coupling_potential(scaling_matrix)
-
-    def energy(prev_strain, strain, prev_temp, temp, temp_gradient):
+def _energy_potential(heat_conductivity: Matrix, fps: float):
+    def energy_potential(prev_strain, strain, prev_temp, temp, temp_gradient):
         diffusion = temp_gradient.dot(
             heat_conductivity_reference(heat_conductivity, prev_strain).dot(temp_gradient)
         )
 
-        symmetrized_strain_rate = symmetrized_strain_delta(prev_strain, strain) * fps
         strain_rate = (strain - prev_strain) * fps
         heat_source_sink = (
             -(
-                dissipation_rate(symmetrized_strain_rate)
-                + adiabatic(prev_strain, prev_temp).scalar_product(strain_rate)
+                dissipation_rate(prev_strain, strain)
+                + strain_derivative_coupling_potential(prev_strain, prev_temp).scalar_product(
+                    strain_rate
+                )
             )
             * temp
         )
 
         return diffusion + heat_source_sink
 
-    return energy
+    return energy_potential
 
 
 def _model(
@@ -90,9 +75,7 @@ def _model(
     y: npt.NDArray[np.float64],
     prev_theta: npt.NDArray[np.float64],
     search_radius: float,
-    shape_memory_scaling: float,
     fps: int,
-    heat_conductivity: Matrix,
 ) -> pyo.ConcreteModel:
     """Create model for the thermal step without regularization."""
     m = pyo.ConcreteModel("Thermal Step")
@@ -160,11 +143,9 @@ def _model(
 
     integrator = Integrator(DUNAVANT2, grid.triangles, grid.points)
 
-    scaling_matrix = Matrix([[1 / shape_memory_scaling, 0], [0, 1]])
-
     m.energy = integrator(
         compose_to_integrand(
-            _energy_potential(heat_conductivity, scaling_matrix, fps),
+            _energy_potential(HEAT_CONDUCTIVITY, fps),
             prev_deform.strain,
             deform.strain,
             prev_temp,
@@ -173,12 +154,6 @@ def _model(
         )
     )
 
-    # m.total_elastic_energy = integrator(
-    #     _total_elastic_integrand(shape_memory_scaling, deform.strain, prev_temp)
-    # )
-    # m.dissipation = integrator_for_piecewise_constant(
-    #     compose_to_integrand(dissipation_potential, prev_deform.strain, deform.strain)
-    # )
     m.objective = pyo.Objective(expr=m.energy)
 
     return m
@@ -195,15 +170,11 @@ class _ThermalStep(AbstractThermalStep):
         y: npt.NDArray[np.float64],
         prev_theta: npt.NDArray[np.float64],
         search_radius: float,
-        shape_memory_scaling: float,
         fps: int,
-        heat_conductivity: Matrix,
     ):
         self._solver = solver
         self._num_vertices = len(grid.vertices)
-        self._model = _model(
-            grid, prev_y, y, prev_theta, search_radius, shape_memory_scaling, fps, heat_conductivity
-        )
+        self._model = _model(grid, prev_y, y, prev_theta, search_radius, fps)
 
     # def solve(self) -> None:
     #     self._solver.solve(self._model)
@@ -238,7 +209,7 @@ def thermal_step(
     refined_grid: RefinedGrid | None = None,
 ) -> AbstractThermalStep:
     """Mechanical step factory."""
-    if params.regularization == 0.0:
+    if params.regularization is None:
         return _ThermalStep(
             solver,
             grid,
@@ -246,9 +217,7 @@ def thermal_step(
             y,
             prev_theta,
             params.search_radius,
-            params.shape_memory_scaling,
             params.fps,
-            params.heat_conductivity,
         )
 
     if refined_grid is None:

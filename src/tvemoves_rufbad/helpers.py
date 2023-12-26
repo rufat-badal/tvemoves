@@ -3,9 +3,10 @@
 import sympy as sp
 import pyomo.environ as pyo
 from matplotlib import pyplot as plt
-from tvemoves_rufbad.tensors import Matrix, inverse_2x2
+from tvemoves_rufbad.tensors import Matrix, inverse_2x2, Tensor3D
 
 ENTROPY_CONSTANT = 10
+HEAT_CONDUCTIVITY = Matrix([[1.0, 0.0], [0.0, 1.0]])
 
 _theta, _F = sp.symbols("theta F")
 
@@ -29,14 +30,14 @@ antider_internal_energy_weight = sp.lambdify(
 )
 
 
-def dissipation_potential(symmetrized_strain_rate: Matrix):
+def dissipation_potential(prev_strain: Matrix, strain: Matrix):
     """Potential of dissipative forces."""
-    return symmetrized_strain_rate.normsqr() / 2
+    return symmetrized_strain_delta(prev_strain, strain).normsqr() / 2
 
 
-def dissipation_rate(symmetrized_strain_rate: Matrix):
+def dissipation_rate(prev_strain: Matrix, strain: Matrix):
     """Dissipation rate (twice the dissipation potential)."""
-    return dissipation_potential(symmetrized_strain_rate) * 2
+    return dissipation_potential(prev_strain, strain) * 2
 
 
 def symmetrized_strain_delta(prev_strain: Matrix, strain: Matrix) -> Matrix:
@@ -111,6 +112,14 @@ def total_elastic_potential(strain: Matrix, theta):
     return (1 - austenite_percentage(theta)) * austenite_potential(strain) + austenite_percentage(
         theta
     ) * martensite_potential(strain)
+
+
+HYPER_ELASTIC_POWER = 3
+
+
+def hyper_elastic_potential(hyperstrain: Tensor3D):
+    """Hyper elastic potential."""
+    return hyperstrain.norm() ** HYPER_ELASTIC_POWER
 
 
 def strain_derivative_coupling_potential(strain: Matrix, theta):

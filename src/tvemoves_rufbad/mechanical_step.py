@@ -12,15 +12,13 @@ from tvemoves_rufbad.interpolation import (
     Deformation,
 )
 from tvemoves_rufbad.quadrature_rules import CENTROID, DUNAVANT2, DUNAVANT5
-from tvemoves_rufbad.tensors import Matrix
 from tvemoves_rufbad.integrators import Integrator
 from tvemoves_rufbad.domain import Grid, RefinedGrid
 from tvemoves_rufbad.helpers import (
-    create_martensite_potential,
-    austenite_percentage,
-    austenite_potential,
+    total_elastic_potential,
     compose_to_integrand,
     dissipation_potential,
+    hyper_elastic_potential,
 )
 
 HYPER_STRAIN_POWER = 4
@@ -32,7 +30,6 @@ class MechanicalStepParams:
 
     initial_temperature: float
     search_radius: float
-    shape_memory_scaling: float
     fps: int
     regularization: float
 
@@ -53,25 +50,10 @@ class AbstractMechanicalStep(Protocol):
         """Return the previous temperature as numpy array."""
 
 
-def _total_elastic_integrand(shape_memory_scaling, strain, prev_temp):
-    """Construct integrand of the total elastic energy without regularizing terms."""
-
-    scaling_matrix = Matrix([[1 / shape_memory_scaling, 0], [0, 1]])
-    martensite_potential = create_martensite_potential(scaling_matrix)
-
-    def total_elastic_potential(strain, theta):
-        return austenite_percentage(theta) * austenite_potential(strain) + (
-            1 - austenite_percentage(theta)
-        ) * martensite_potential(strain)
-
-    return compose_to_integrand(total_elastic_potential, strain, prev_temp)
-
-
 def _model(
     grid: Grid,
     initial_temperature: float,
     search_radius: float,
-    shape_memory_scaling: float,
     fps: int,
 ) -> pyo.ConcreteModel:
     """Create model for the mechanical step without regularization."""
@@ -128,7 +110,7 @@ def _model(
     integrator_for_piecewise_constant = Integrator(CENTROID, grid.triangles, grid.points)
 
     m.total_elastic_energy = integrator(
-        _total_elastic_integrand(shape_memory_scaling, deform.strain, prev_temp)
+        compose_to_integrand(total_elastic_potential, deform.strain, prev_temp)
     )
     m.dissipation = integrator_for_piecewise_constant(
         compose_to_integrand(dissipation_potential, prev_deform.strain, deform.strain)
@@ -147,7 +129,6 @@ class _MechanicalStep(AbstractMechanicalStep):
         grid: Grid,
         initial_temperature: float,
         search_radius: float,
-        shape_memory_scaling: float,
         fps: int,
     ):
         self._solver = solver
@@ -156,7 +137,6 @@ class _MechanicalStep(AbstractMechanicalStep):
             grid,
             initial_temperature,
             search_radius,
-            shape_memory_scaling,
             fps,
         )
 
@@ -183,21 +163,11 @@ class _MechanicalStep(AbstractMechanicalStep):
         return np.array([self._model.prev_theta[i].value for i in range(self._num_vertices)])
 
 
-def _hyper_elastic_integrand(regularization, hyper_strain):
-    """Construct hyperelastic integrand."""
-
-    def hyper_elastic_potential(hyper_strain):
-        return regularization * hyper_strain.normsqr() ** (HYPER_STRAIN_POWER / 2)
-
-    return compose_to_integrand(hyper_elastic_potential, hyper_strain)
-
-
 def _model_regularized(
     grid: Grid,
     refined_grid: RefinedGrid,
     initial_temperature: float,
     search_radius: float,
-    shape_memory_scaling: float,
     fps: int,
     regularization: float,
 ) -> pyo.ConcreteModel:
@@ -294,16 +264,16 @@ def _model_regularized(
     integrator = Integrator(DUNAVANT5, refined_grid.triangles, refined_grid.points)
 
     m.total_elastic_energy = integrator(
-        _total_elastic_integrand(shape_memory_scaling, deform.strain, prev_temp)
+        compose_to_integrand(total_elastic_potential, deform.strain, prev_temp)
     )
     m.hyper_elastic_energy = integrator(
-        _hyper_elastic_integrand(regularization, deform.hyper_strain)
+        compose_to_integrand(hyper_elastic_potential, deform.hyper_strain)
     )
     m.dissipation = integrator(
         compose_to_integrand(dissipation_potential, prev_deform.strain, deform.strain)
     )
     m.objective = pyo.Objective(
-        expr=m.total_elastic_energy + m.hyper_elastic_energy + fps * m.dissipation
+        expr=m.total_elastic_energy + regularization * m.hyper_elastic_energy + fps * m.dissipation
     )
 
     return m
@@ -340,7 +310,6 @@ class _MechanicalStepRegularized(AbstractMechanicalStep):
         refined_grid: RefinedGrid,
         initial_temperature: float,
         search_radius: float,
-        shape_memory_scaling: float,
         fps: int,
         regularization: float,
     ):
@@ -351,7 +320,6 @@ class _MechanicalStepRegularized(AbstractMechanicalStep):
             refined_grid,
             initial_temperature,
             search_radius,
-            shape_memory_scaling,
             fps,
             regularization,
         )
@@ -404,13 +372,12 @@ def mechanical_step(
     solver, grid: Grid, params: MechanicalStepParams, refined_grid: RefinedGrid | None = None
 ) -> AbstractMechanicalStep:
     """Mechanical step factory."""
-    if params.regularization == 0.0:
+    if params.regularization is None:
         return _MechanicalStep(
             solver,
             grid,
             params.initial_temperature,
             params.search_radius,
-            params.shape_memory_scaling,
             params.fps,
         )
 
@@ -423,7 +390,6 @@ def mechanical_step(
         refined_grid,
         params.initial_temperature,
         params.search_radius,
-        params.shape_memory_scaling,
         params.fps,
         params.regularization,
     )

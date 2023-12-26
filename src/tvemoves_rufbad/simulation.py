@@ -5,7 +5,6 @@ from abc import ABC
 import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
-from tvemoves_rufbad.tensors import Matrix
 from tvemoves_rufbad.domain import Domain, RectangleDomain, Grid, RefinedGrid
 from tvemoves_rufbad.mechanical_step import MechanicalStepParams, mechanical_step
 from tvemoves_rufbad.thermal_step import ThermalStepParams, thermal_step
@@ -161,12 +160,10 @@ class SimulationParams:
 
     initial_temperature: float
     search_radius: float
-    shape_memory_scaling: float
     fps: int
     scale: float
-    heat_conductivity: Matrix
-    regularization: float = 0.0
-    refinement_factor: int = 1
+    regularization: float | None = None
+    refinement_factor: int | None = None
 
     def __post_init__(self):
         if self.initial_temperature < 0:
@@ -183,7 +180,7 @@ class SimulationParams:
         if self.fps <= 0:
             raise ValueError(f"fps must be positive but {self.fps} was provided")
 
-        if self.regularization < 0:
+        if self.regularization is not None and self.regularization < 0:
             raise ValueError(
                 f"regularization must be non-negative but {self.regularization} was provided"
             )
@@ -191,8 +188,11 @@ class SimulationParams:
         if self.scale <= 0:
             raise ValueError(f"scale must be positive but {self.scale} was provided")
 
-        if self.refinement_factor <= 0:
+        if self.refinement_factor is not None and self.refinement_factor <= 0:
             raise ValueError(f"fps must be positive but {self.refinement_factor} was provided")
+
+        if self.regularization is not None and self.refinement_factor is None:
+            raise ValueError("refinement_factor cannot be None in the regularized setting")
 
     def mechanical_step_params(
         self,
@@ -202,7 +202,6 @@ class SimulationParams:
         return MechanicalStepParams(
             self.initial_temperature,
             self.search_radius,
-            self.shape_memory_scaling,
             self.fps,
             self.regularization,
         )
@@ -214,10 +213,8 @@ class SimulationParams:
 
         return ThermalStepParams(
             self.search_radius,
-            self.shape_memory_scaling,
             self.fps,
             self.regularization,
-            self.heat_conductivity,
         )
 
 
@@ -228,11 +225,11 @@ class Simulation:
         self._domain = domain
         self._solver = pyo.SolverFactory("ipopt")
         self.params = params
+
         self._grid = self._domain.grid(self.params.scale)
-        self.regularized = self.params.regularization != 0
         self._refined_grid = (
             self._domain.refine(self._grid, self.params.refinement_factor)
-            if self.regularized
+            if self.params.regularization is not None
             else None
         )
         self.steps: list[AbstractStep] = []
@@ -242,6 +239,8 @@ class Simulation:
         )
         self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
         self._mechanical_step.solve()
+        self._mechanical_step._model.y1.display()
+        self._mechanical_step._model.y2.display()
         self._thermal_step = thermal_step(
             self._solver,
             self._grid,
@@ -255,21 +254,17 @@ class Simulation:
     def _append_step(self, y_data: npt.NDArray[np.float64], theta_data: npt.NDArray[np.float64]):
         step = (
             Step(y_data, theta_data, self._domain, self._grid)
-            if not self.regularized
+            if self.params.regularization is None
             else RegularizedStep(y_data, theta_data, self._domain, self._grid, self._refined_grid)
         )
         self.steps.append(step)
 
 
 _params = SimulationParams(
-    initial_temperature=0.1,
+    initial_temperature=0.0,
     search_radius=10.0,
-    shape_memory_scaling=2.0,
     fps=1,
-    heat_conductivity=Matrix([[1.0, 0.0], [0.0, 1.0]]),
-    regularization=0.0,
-    scale=1.0,
+    scale=0.5,
 )
-
 _square = RectangleDomain(1, 1, fix="left")
 _simulation = Simulation(_square, _params)
