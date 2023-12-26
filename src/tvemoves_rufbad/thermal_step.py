@@ -43,7 +43,7 @@ class ThermalStepParams:
     """Parameters needed to perform the mechanical step."""
 
     search_radius: float
-    fps: int
+    fps: float
     regularization: float
 
 
@@ -75,7 +75,7 @@ def _model(
     y: npt.NDArray[np.float64],
     prev_theta: npt.NDArray[np.float64],
     search_radius: float,
-    fps: int,
+    fps: float,
 ) -> pyo.ConcreteModel:
     """Create model for the thermal step without regularization."""
     m = pyo.ConcreteModel("Thermal Step")
@@ -170,7 +170,7 @@ class _ThermalStep(AbstractThermalStep):
         y: npt.NDArray[np.float64],
         prev_theta: npt.NDArray[np.float64],
         search_radius: float,
-        fps: int,
+        fps: float,
     ):
         self._solver = solver
         self._num_vertices = len(grid.vertices)

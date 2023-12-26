@@ -109,8 +109,8 @@ def derivative_martensite_potential(strain: Matrix) -> Matrix:
 
 def total_elastic_potential(strain: Matrix, theta):
     """Total elastic potential (sum of purely elastic and coupling potential) without entropy."""
-    return (1 - austenite_percentage(theta)) * austenite_potential(strain) + austenite_percentage(
-        theta
+    return austenite_percentage(theta) * austenite_potential(strain) + (
+        1 - austenite_percentage(theta)
     ) * martensite_potential(strain)
 
 

@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from abc import ABC
+from matplotlib import pyplot as plt
 import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
@@ -31,8 +32,8 @@ class AbstractStep(ABC):
         domain: Domain,
         grid: Grid,
     ):
-        self._domain = domain
-        self._plotting_grid = self._domain.refine(grid, PLOTTING_REFINEMENT_FACTOR)
+        self._domain_curves = domain.curves
+        self._grid = grid
         self._y_data = y_data
         self._theta_data = theta_deta
         self.y = y
@@ -45,15 +46,15 @@ class AbstractStep(ABC):
         return f"y:\n{str(self._y_data)}\ntheta:\n{str(self._theta_data)}"
 
     def _plot_temperature(self, ax, max_temp) -> None:
-        deformed_points = [self.y(*p) for p in self._plotting_grid.points]
+        deformed_points = [self.y(*p) for p in self._grid.points]
         x = [p[0] for p in deformed_points]
         y = [p[1] for p in deformed_points]
-        c = [self.theta(*p) for p in self._plotting_grid.points]
+        c = [self.theta(*p) for p in self._grid.points]
         ax.tripcolor(
             x,
             y,
             c,
-            triangles=self._plotting_grid.triangles,
+            triangles=self._grid.triangles,
             vmin=0.0,
             vmax=max_temp,
             cmap="plasma",
@@ -67,7 +68,7 @@ class AbstractStep(ABC):
         num_horizontal_curves: int = 0,
         num_vertical_curves: int | None = None,
     ):
-        for curve in self._domain.curves(
+        for curve in self._domain_curves(
             num_points_per_curve, num_horizontal_curves, num_vertical_curves
         ):
             deformed_curve = [self.y(*p) for p in curve]
@@ -151,7 +152,9 @@ class RegularizedStep(AbstractStep):
 
         theta = EuclideanInterpolation(P1Interpolation(refined_grid, theta_data.tolist()))
 
-        super().__init__(y_data, theta_data, y, theta, domain, refined_grid)
+        plotting_grid = domain.refine(refined_grid, PLOTTING_REFINEMENT_FACTOR)
+
+        super().__init__(y_data, theta_data, y, theta, domain, plotting_grid)
 
 
 @dataclass
@@ -160,7 +163,7 @@ class SimulationParams:
 
     initial_temperature: float
     search_radius: float
-    fps: int
+    fps: float
     scale: float
     regularization: float | None = None
     refinement_factor: int | None = None
@@ -177,7 +180,7 @@ class SimulationParams:
                 f"search radius must be positive but {self.search_radius} was provided"
             )
 
-        if self.fps <= 0:
+        if self.fps < 0:
             raise ValueError(f"fps must be positive but {self.fps} was provided")
 
         if self.regularization is not None and self.regularization < 0:
@@ -239,8 +242,9 @@ class Simulation:
         )
         self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
         self._mechanical_step.solve()
-        self._mechanical_step._model.y1.display()
-        self._mechanical_step._model.y2.display()
+        self._append_step(self._mechanical_step.y(), self._mechanical_step.prev_theta())
+        self.steps[-1].plot()
+        plt.show()
         self._thermal_step = thermal_step(
             self._solver,
             self._grid,
@@ -263,8 +267,10 @@ class Simulation:
 _params = SimulationParams(
     initial_temperature=0.0,
     search_radius=10.0,
-    fps=1,
+    fps=0.0,
     scale=0.5,
+    regularization=0.01,
+    refinement_factor=5,
 )
-_square = RectangleDomain(1, 1, fix="left")
+_square = RectangleDomain(1, 1, fix="lower")
 _simulation = Simulation(_square, _params)

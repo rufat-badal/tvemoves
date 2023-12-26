@@ -30,7 +30,7 @@ class MechanicalStepParams:
 
     initial_temperature: float
     search_radius: float
-    fps: int
+    fps: float
     regularization: float
 
 
@@ -54,7 +54,7 @@ def _model(
     grid: Grid,
     initial_temperature: float,
     search_radius: float,
-    fps: int,
+    fps: float,
 ) -> pyo.ConcreteModel:
     """Create model for the mechanical step without regularization."""
     m = pyo.ConcreteModel("Mechanical Step")
@@ -129,7 +129,7 @@ class _MechanicalStep(AbstractMechanicalStep):
         grid: Grid,
         initial_temperature: float,
         search_radius: float,
-        fps: int,
+        fps: float,
     ):
         self._solver = solver
         self._num_vertices = len(grid.vertices)
@@ -168,7 +168,7 @@ def _model_regularized(
     refined_grid: RefinedGrid,
     initial_temperature: float,
     search_radius: float,
-    fps: int,
+    fps: float,
     regularization: float,
 ) -> pyo.ConcreteModel:
     m = pyo.ConcreteModel("Mechanical Step with Regularization")
@@ -310,7 +310,7 @@ class _MechanicalStepRegularized(AbstractMechanicalStep):
         refined_grid: RefinedGrid,
         initial_temperature: float,
         search_radius: float,
-        fps: int,
+        fps: float,
         regularization: float,
     ):
         self._solver = solver
