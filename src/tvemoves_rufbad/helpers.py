@@ -1,25 +1,42 @@
 """Module providing the definitions of important potentials and modeling functions."""
 
-from typing import Callable, Any
+import sympy as sp
 import pyomo.environ as pyo
 from matplotlib import pyplot as plt
-from tvemoves_rufbad.tensors import Matrix
+from tvemoves_rufbad.tensors import Matrix, inverse_2x2
+
+ENTROPY_CONSTANT = 10
+
+_theta, _F = sp.symbols("theta F")
+
+_austenite_percentage_symbolic = _theta / (1 + _theta)
+
+austenite_percentage = sp.lambdify([_theta], _austenite_percentage_symbolic)
+
+_internal_energy_weight_symbolic = _austenite_percentage_symbolic - _theta * sp.diff(
+    _austenite_percentage_symbolic, _theta
+)
+internal_energy_weight = sp.lambdify([_theta], _internal_energy_weight_symbolic)
+
+_theta_lim = sp.Symbol("theta_lim")
+
+_antider_internal_energy_weight_symbolic = sp.integrate(
+    _internal_energy_weight_symbolic, (_theta, 0, _theta_lim)
+)
+
+antider_internal_energy_weight = sp.lambdify(
+    [_theta_lim], _antider_internal_energy_weight_symbolic, {"log": pyo.log}
+)
 
 
-def austenite_percentage(theta):
-    """Percentage of austenite in a material of temperature theta."""
-    return theta / (1 + theta)
-
-
-def dissipation_norm(symmetrized_strain_rate: Matrix):
-    """Norm of a symmetrized strain rate."""
-    # D tensor currently assumed to be the identity
+def dissipation_potential(symmetrized_strain_rate: Matrix):
+    """Potential of dissipative forces."""
     return symmetrized_strain_rate.normsqr() / 2
 
 
 def dissipation_rate(symmetrized_strain_rate: Matrix):
-    """Dissipation rate. Always twice the dissipation potential."""
-    return dissipation_norm(symmetrized_strain_rate) * 2
+    """Dissipation rate (twice the dissipation potential)."""
+    return dissipation_potential(symmetrized_strain_rate) * 2
 
 
 def symmetrized_strain_delta(prev_strain: Matrix, strain: Matrix) -> Matrix:
@@ -28,62 +45,98 @@ def symmetrized_strain_delta(prev_strain: Matrix, strain: Matrix) -> Matrix:
     return strain_delta.transpose() @ prev_strain + prev_strain.transpose() @ strain_delta
 
 
-def dissipation_potential(prev_strain: Matrix, strain: Matrix):
-    """Dissipation generated going from prev_strain to strain."""
-    return dissipation_norm(symmetrized_strain_delta(prev_strain, strain))
+_F_11, _F_12, _F_21, _F_22 = sp.symbols("F_11 F_12 F_21 F_22")
+_F = sp.Matrix([[_F_11, _F_12], [_F_21, _F_22]])
+_neo_hooke_symbolic = ((_F.T @ _F).trace() / _F.det() - 2) ** 2 + (_F.det() + 1 / _F.det() - 2) ** 4
+
+_neo_hooke_flat_input = sp.lambdify([_F_11, _F_12, _F_21, _F_22], _neo_hooke_symbolic)
 
 
-def neo_hook(strain: Matrix):
-    """Neo hook potential."""
-    trace_of_symmetrized_strain = (strain.transpose() @ strain).trace()
-    det_of_strain = strain.det()
-    return trace_of_symmetrized_strain - 2 - 2 * pyo.log(det_of_strain) + (det_of_strain - 1) ** 2
+def neo_hooke(strain: Matrix):
+    """Neo hooke potential. Minimized at SO(d) with required growth rates."""
+    return _neo_hooke_flat_input(strain[0, 0], strain[0, 1], strain[1, 0], strain[1, 1])
+
+
+_derivative_neo_hooke_symbolic = [
+    [sp.diff(_neo_hooke_symbolic, _F[i, j]) for j in range(2)] for i in range(2)
+]
+_derivative_neo_hooke_flat_input = sp.lambdify(
+    [_F_11, _F_12, _F_21, _F_22], _derivative_neo_hooke_symbolic
+)
+
+
+def derivative_neo_hooke(strain: Matrix) -> Matrix:
+    """Gradient of the Neo Hooke potential."""
+    return Matrix(
+        _derivative_neo_hooke_flat_input(strain[0, 0], strain[0, 1], strain[1, 0], strain[1, 1])
+    )
 
 
 def austenite_potential(strain: Matrix):
     """Austenite potential."""
-    return neo_hook(strain)
+    return neo_hooke(strain)
 
 
-def create_martensite_potential(scaling_matrix: Matrix) -> Callable[[Matrix], Any]:
-    """Create martensite potential for a given scaling matrix."""
-    return lambda strain: austenite_potential(strain @ scaling_matrix)
+def derivative_austenite_potential(strain: Matrix):
+    """Derivative of the Austenite potential."""
+    return derivative_neo_hooke(strain)
 
 
-def gradient_austenite_potential(strain: Matrix) -> Matrix:
-    """Gradient of the austenite potential."""
-    det_of_strain = strain.det()
-    gradient_of_det = Matrix([[strain[1, 1], -strain[1, 0]], [-strain[0, 1], strain[1, 1]]])
-    return 2 * (strain + (det_of_strain - 1 / det_of_strain - 1) * gradient_of_det)
+FIRST_MARTENSITE_WELL_INVERSE = Matrix([[1.0, -0.5], [0.0, 1.0]])
+SECOND_MARTENSITE_WELL_INVERSE = Matrix([[1.0, 0.5], [0.0, 1.0]])
 
 
-def gradient_martensite_potential(scaling_matrix: Matrix) -> Callable[[Matrix], Matrix]:
-    """Create gradient of the martensite potential for a given scaling matrix."""
-    # chain rule
-    return lambda F: gradient_austenite_potential(F @ scaling_matrix) @ scaling_matrix.transpose()
+def martensite_potential(strain: Matrix):
+    """Martensite potential."""
+    return neo_hooke(strain @ FIRST_MARTENSITE_WELL_INVERSE) * neo_hooke(
+        strain @ SECOND_MARTENSITE_WELL_INVERSE
+    )
 
 
-def internal_energy_weight(theta):
-    """a(θ) - θ a'(θ) where a(θ) is the austenite percentage"""
-    return theta**2 / ((1 + theta) ** 2)
+def derivative_martensite_potential(strain: Matrix) -> Matrix:
+    """Derivative of the Martensite potential."""
+    # Product rule
+    return (
+        derivative_neo_hooke(strain @ FIRST_MARTENSITE_WELL_INVERSE)
+        @ FIRST_MARTENSITE_WELL_INVERSE.transpose()
+        * neo_hooke(strain @ SECOND_MARTENSITE_WELL_INVERSE)
+        + neo_hooke(strain @ FIRST_MARTENSITE_WELL_INVERSE)
+        * derivative_neo_hooke(strain @ SECOND_MARTENSITE_WELL_INVERSE)
+        @ SECOND_MARTENSITE_WELL_INVERSE.transpose()
+    )
 
 
-def antider_internal_energy_weight(theta):
-    """Integral of a(s) - s a'(s) from s = 0 to s = θ"""
-    return (theta * (2 + theta)) / (1 + theta) - 2 * pyo.log(1 + theta)
+def total_elastic_potential(strain: Matrix, theta):
+    """Total elastic potential (sum of purely elastic and coupling potential) without entropy."""
+    return (1 - austenite_percentage(theta)) * austenite_potential(strain) + austenite_percentage(
+        theta
+    ) * martensite_potential(strain)
 
 
-def inverse_2x2(strain: Matrix) -> Matrix:
-    """Compute inverse of a 2x2 matrix."""
-    if strain.shape != (2, 2):
-        raise ValueError("Matrix inverse currently only implemented for 2x2 matrices")
+def strain_derivative_coupling_potential(strain: Matrix, theta):
+    """F-derivative of the coupling potential."""
+    return austenite_percentage(theta) * (
+        derivative_austenite_potential(strain) - derivative_martensite_potential(strain)
+    )
 
-    return Matrix([[strain[1, 1], -strain[0, 1]], [-strain[1, 0], strain[0, 0]]]) / strain.det()
+
+def internal_energy(strain: Matrix, theta):
+    """Internal energy."""
+    return (
+        internal_energy_weight(theta) * (austenite_potential(strain) - martensite_potential(strain))
+        + ENTROPY_CONSTANT * theta
+    )
+
+
+def temp_antrider_internal_energy_no_entropy(strain: Matrix, theta):
+    """Antiderivative in temperature of the internal energy without the entropy term."""
+    return antider_internal_energy_weight(theta) * (
+        austenite_potential(strain) - martensite_potential(strain)
+    )
 
 
 def heat_conductivity_reference(heat_conductivity: Matrix, strain: Matrix) -> Matrix:
     """Transform heat conductivity tensor into the reference configuration."""
-    # heat conductivity is currently assumed to be independent of the the temperature
     strain_inverse = inverse_2x2(strain)
     return strain.det() * strain_inverse @ heat_conductivity @ strain_inverse.transpose()
 
