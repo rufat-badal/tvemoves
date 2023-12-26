@@ -458,3 +458,11 @@ class Tensor3D:
     def numpy(self) -> npt.NDArray:
         """Return copy of the tensor as numpy array."""
         return np.array(self.data)
+
+
+def inverse_2x2(strain: Matrix) -> Matrix:
+    """Compute inverse of a 2x2 matrix."""
+    if strain.shape != (2, 2):
+        raise ValueError("Matrix inverse currently only implemented for 2x2 matrices")
+
+    return Matrix([[strain[1, 1], -strain[0, 1]], [-strain[1, 0], strain[0, 0]]]) / strain.det()
