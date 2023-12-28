@@ -3,7 +3,7 @@
 import random
 from pytest import approx
 from tvemoves_rufbad.tensors import Vector
-from tvemoves_rufbad.domain import RectangleDomain, Grid, BarycentricPoint
+from tvemoves_rufbad.domain import RectangleDomain, Grid, BarycentricPoint, RefinedGrid
 from .helpers import random_barycentric_coordinates
 
 
@@ -165,13 +165,21 @@ def test_equilateral_grid_refine() -> None:
     eps = 1e-15
 
     square = RectangleDomain(1, 1, fix="left")
-    # refinement_factor = 5
-    # coarse_scale = 0.25
-    refinement_factor = 2
-    coarse_scale = 1
+    refinement_factor = 3
+    coarse_scale = 0.5
     grid = square.grid(coarse_scale)
+
     refined_grid = square.refine(grid, refinement_factor)
     refine_grid_target = square.grid(coarse_scale / refinement_factor)
+    check_refinement(refined_grid, refine_grid_target, eps)
+
+    refined_grid_2x = square.refine(refined_grid, refinement_factor)
+    refined_grid_2x_target = square.grid(coarse_scale / (refinement_factor**2))
+    check_refinement(refined_grid_2x, refined_grid_2x_target, eps)
+
+
+def check_refinement(refined_grid: RefinedGrid, refine_grid_target: Grid, eps: float):
+    """Check a single refinement of `coarse_grid` to `refined_grid` with target `refined_grid_target`."""
     assert refined_grid == refine_grid_target
 
     coarse_grid = refined_grid.coarse()
