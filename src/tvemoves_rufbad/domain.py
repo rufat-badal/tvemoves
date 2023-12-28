@@ -48,13 +48,15 @@ def _sign(triangle_vertices: TriangleVertices):
 
 def _triangle_contains_point(triangle_vertices: TriangleVertices, p: Vector) -> bool:
     """Determine if a point is contained in a triangle."""
+    eps = 1e-10
+
     p1, p2, p3 = triangle_vertices
     d1 = _sign((p, p1, p2))
     d2 = _sign((p, p2, p3))
     d3 = _sign((p, p3, p1))
 
-    has_neg = (d1 < 0) or (d2 < 0) or (d3 < 0)
-    has_pos = (d1 > 0) or (d2 > 0) or (d3 > 0)
+    has_neg = (d1 < -eps) or (d2 < -eps) or (d3 < -eps)
+    has_pos = (d1 > eps) or (d2 > eps) or (d3 > eps)
 
     return not (has_neg and has_pos)
 
