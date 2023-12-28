@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from abc import ABC
-from matplotlib import pyplot as plt
 import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
@@ -242,9 +241,6 @@ class Simulation:
         )
         self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
         self._mechanical_step.solve()
-        self._append_step(self._mechanical_step.y(), self._mechanical_step.prev_theta())
-        self.steps[-1].plot()
-        plt.show()
         self._thermal_step = thermal_step(
             self._solver,
             self._grid,
@@ -267,10 +263,10 @@ class Simulation:
 _params = SimulationParams(
     initial_temperature=0.0,
     search_radius=10.0,
-    fps=0.0,
-    scale=0.5,
-    regularization=0.01,
-    refinement_factor=5,
+    fps=1.0,
+    scale=0.25,
+    regularization=None,
+    refinement_factor=None,
 )
 _square = RectangleDomain(1, 1, fix="lower")
 _simulation = Simulation(_square, _params)
