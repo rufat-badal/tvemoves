@@ -111,6 +111,21 @@ def _add_objective(
     m.objective = pyo.Objective(expr=m.energy + fps * m.dissipation)
 
 
+def _check_prev_step_data(
+    y_data_shape: tuple[int, ...],
+    theta_data_shape: tuple[int, ...],
+    prev_y: npt.NDArray[np.float64],
+    y: npt.NDArray[np.float64],
+    prev_theta: npt.NDArray[np.float64],
+):
+    if prev_y.shape != y_data_shape:
+        raise ValueError(f"prev_y has incorrect shape {prev_y.shape} (should be {y_data_shape}")
+    if y.shape != y_data_shape:
+        raise ValueError(f"y has incorrect shape {y.shape} (should be {y_data_shape}")
+    if prev_theta.shape != theta_data_shape:
+        raise ValueError(f"y has incorrect shape {prev_theta.shape} (should be {theta_data_shape}")
+
+
 def _model(
     grid: Grid,
     prev_y: npt.NDArray[np.float64],
@@ -122,15 +137,7 @@ def _model(
     """Create model for the thermal step without regularization."""
     m = pyo.ConcreteModel("Thermal Step")
 
-    if prev_y.shape != (len(grid.vertices), 2):
-        raise ValueError(
-            f"prev_y has incorrect shape {prev_y} (should be {(len(grid.vertices), 2)}"
-        )
-    if y.shape != (len(grid.vertices), 2):
-        raise ValueError(f"y has incorrect shape {y} (should be {(len(grid.vertices), 2)}")
-
-    if prev_theta.shape != (len(grid.vertices),):
-        raise ValueError(f"y has incorrect shape {prev_theta} (should be {(len(grid.vertices),)}")
+    _check_prev_step_data((len(grid.vertices), 2), (len(grid.vertices),), prev_y, y, prev_theta)
 
     m.prev_y1 = pyo.Param(
         grid.vertices,
@@ -202,15 +209,9 @@ def _model_regularized(
 ) -> pyo.ConcreteModel:
     m = pyo.ConcreteModel("Thermal Step with Regularization")
 
-    y_data_shape = (len(grid.vertices), 2, 6)
-    if prev_y.shape != y_data_shape:
-        raise ValueError(f"prev_y has incorrect shape {prev_y} (should be {y_data_shape}")
-    if y.shape != y_data_shape:
-        raise ValueError(f"y has incorrect shape {y} (should be {y_data_shape}")
-
-    temp_data_shape = (len(refined_grid.vertices),)
-    if prev_theta.shape != temp_data_shape:
-        raise ValueError(f"y has incorrect shape {prev_theta} (should be {temp_data_shape}")
+    _check_prev_step_data(
+        (len(grid.vertices), 2, 6), (len(refined_grid.vertices),), prev_y, y, prev_theta
+    )
 
     return m
 
@@ -237,10 +238,12 @@ class _ThermalStep(AbstractThermalStep):
 
     def prev_y(self) -> npt.NDArray[np.float64]:
         """Return the previous deformation as Nx2 numpy array, where N is the number of vertices."""
-        return np.array([
-            [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
-            for i in range(self._num_vertices)
-        ])
+        return np.array(
+            [
+                [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
+                for i in range(self._num_vertices)
+            ]
+        )
 
     def y(self) -> npt.NDArray[np.float64]:
         """Return the current deformation as Nx2 numpy array, where N is the number of vertices."""

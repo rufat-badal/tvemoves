@@ -249,8 +249,6 @@ class Simulation:
         )
         self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
         self._mechanical_step.solve()
-        print(self._mechanical_step.prev_y().shape)
-        print(self._mechanical_step.prev_theta().shape)
         self._thermal_step: AbstractThermalStep = thermal_step(
             self._solver,
             self._grid,
