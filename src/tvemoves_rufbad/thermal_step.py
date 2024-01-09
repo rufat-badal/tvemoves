@@ -6,7 +6,13 @@ import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
 from tvemoves_rufbad.domain import Grid, RefinedGrid
-from tvemoves_rufbad.interpolation import P1Interpolation, Deformation, Interpolation
+from tvemoves_rufbad.interpolation import (
+    P1Interpolation,
+    RefinedInterpolation,
+    C1Interpolation,
+    Deformation,
+    Interpolation,
+)
 from tvemoves_rufbad.integrators import Integrator
 from tvemoves_rufbad.quadrature_rules import DUNAVANT2
 from tvemoves_rufbad.helpers import (
@@ -257,6 +263,22 @@ def _model_regularized(
             m.prev_theta[i] - search_radius,
             m.prev_theta[i] + search_radius,
         )
+
+    prev_y1_params = [[m.prev_y1[i, j] for j in list(m.c1_indices)] for i in list(m.vertices)]
+    prev_y1 = RefinedInterpolation(C1Interpolation(grid, prev_y1_params), refined_grid)
+    prev_y2_params = [[m.prev_y2[i, j] for j in list(m.c1_indices)] for i in list(m.vertices)]
+    prev_y2 = RefinedInterpolation(C1Interpolation(grid, prev_y2_params), refined_grid)
+    prev_deform = Deformation(prev_y1, prev_y2)
+
+    y1_params = [[m.y1[i, j] for j in list(m.c1_indices)] for i in list(m.vertices)]
+    y1 = RefinedInterpolation(C1Interpolation(grid, y1_params), refined_grid)
+    y2_params = [[m.y2[i, j] for j in list(m.c1_indices)] for i in list(m.vertices)]
+    y2 = RefinedInterpolation(C1Interpolation(grid, y2_params), refined_grid)
+    deform = Deformation(y1, y2)
+
+    prev_temp = P1Interpolation(refined_grid, [m.prev_theta[i] for i in list(m.refined_vertices)])
+
+    prev_temp = P1Interpolation(refined_grid, [m.theta[i] for i in list(m.refined_vertices)])
 
     return m
 
