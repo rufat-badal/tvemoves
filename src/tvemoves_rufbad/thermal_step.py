@@ -251,7 +251,7 @@ def _model_regularized(
 
     m.theta = pyo.Var(m.refined_vertices, within=pyo.NonNegativeReals)
 
-    for i in m.refined_vertices:
+    for i in list(m.refined_vertices):
         m.theta[i] = m.prev_theta[i]
         m.theta[i].bounds = (
             m.prev_theta[i] - search_radius,
