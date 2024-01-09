@@ -258,7 +258,7 @@ class Simulation:
             self.params.thermal_step_params(),
             self._refined_grid,
         )
-        # self._thermal_step.solve()
+        self._thermal_step.solve()
         # self._append_step(self._thermal_step.y(), self._thermal_step.theta())
         # print(self._thermal_step.theta())
         # self.steps[-1].plot(max_temp=1.0)
