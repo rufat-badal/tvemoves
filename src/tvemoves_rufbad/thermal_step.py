@@ -213,6 +213,42 @@ def _model_regularized(
         (len(grid.vertices), 2, 6), (len(refined_grid.vertices),), prev_y, y, prev_theta
     )
 
+    m.vertices = pyo.RangeSet(len(grid.vertices))
+    m.c1_indices = pyo.RangeSet(6)
+    m.deformation_indices = m.vertices * m.c1_indices
+    m.refined_vertices = pyo.RangeSet(len(refined_grid.vertices))
+
+    m.prev_y1 = pyo.Param(
+        m.deformation_indices,
+        within=pyo.Reals,
+        initialize=lambda model, i, j: prev_y[i - 1, 0, j - 1],
+        mutable=True,
+    )
+    m.prev_y2 = pyo.Param(
+        m.deformation_indices,
+        within=pyo.Reals,
+        initialize=lambda model, i, j: prev_y[i - 1, 1, j - 1],
+        mutable=True,
+    )
+    m.y1 = pyo.Param(
+        m.deformation_indices,
+        within=pyo.Reals,
+        initialize=lambda model, i, j: y[i - 1, 0, j - 1],
+        mutable=True,
+    )
+    m.y2 = pyo.Param(
+        m.deformation_indices,
+        within=pyo.Reals,
+        initialize=lambda model, i, j: y[i - 1, 1, j - 1],
+        mutable=True,
+    )
+    m.prev_theta = pyo.Param(
+        m.refined_vertices,
+        within=pyo.NonNegativeReals,
+        initialize=lambda model, i: prev_theta[i - 1],
+        mutable=True,
+    )
+
     return m
 
 
