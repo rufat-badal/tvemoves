@@ -14,7 +14,7 @@ from tvemoves_rufbad.interpolation import (
     Interpolation,
 )
 from tvemoves_rufbad.integrators import Integrator
-from tvemoves_rufbad.quadrature_rules import DUNAVANT2
+from tvemoves_rufbad.quadrature_rules import DUNAVANT2, DUNAVANT5
 from tvemoves_rufbad.helpers import (
     heat_conductivity_reference,
     dissipation_rate,
@@ -211,7 +211,6 @@ def _model_regularized(
     prev_theta: npt.NDArray[np.float64],
     search_radius: float,
     fps: float,
-    regularization: float,
 ) -> pyo.ConcreteModel:
     m = pyo.ConcreteModel("Thermal Step with Regularization")
 
@@ -278,7 +277,11 @@ def _model_regularized(
 
     prev_temp = P1Interpolation(refined_grid, [m.prev_theta[i] for i in list(m.refined_vertices)])
 
-    prev_temp = P1Interpolation(refined_grid, [m.theta[i] for i in list(m.refined_vertices)])
+    temp = P1Interpolation(refined_grid, [m.theta[i] for i in list(m.refined_vertices)])
+
+    integrator = Integrator(DUNAVANT5, grid.triangles, grid.points)
+
+    _add_objective(m, integrator, prev_deform, deform, prev_temp, temp, fps)
 
     return m
 
@@ -338,12 +341,17 @@ class _ThermalStepRegularized(AbstractThermalStep):
         prev_theta: npt.NDArray[np.float64],
         search_radius: float,
         fps: float,
-        regularization: float,
     ):
         self._solver = solver
         self._num_vertices = len(grid.vertices)
         self._model = _model_regularized(
-            grid, refined_grid, prev_y, y, prev_theta, search_radius, fps, regularization
+            grid,
+            refined_grid,
+            prev_y,
+            y,
+            prev_theta,
+            search_radius,
+            fps,
         )
 
     def solve(self) -> None:
@@ -383,5 +391,4 @@ def thermal_step(
         prev_theta,
         params.search_radius,
         params.fps,
-        params.regularization,
     )
