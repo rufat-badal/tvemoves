@@ -6,7 +6,7 @@ import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
 from tvemoves_rufbad.domain import Grid, RefinedGrid
-from tvemoves_rufbad.interpolation import P1Interpolation, Deformation
+from tvemoves_rufbad.interpolation import P1Interpolation, Deformation, Interpolation
 from tvemoves_rufbad.integrators import Integrator
 from tvemoves_rufbad.quadrature_rules import DUNAVANT2
 from tvemoves_rufbad.helpers import (
@@ -76,6 +76,39 @@ def _dissipation_potential(prev_strain, strain, prev_temp, temp):
     )
 
     return l2_dissipation + internal_energy_dissipation
+
+
+def _add_objective(
+    m,
+    integrator: Integrator,
+    prev_deform: Deformation,
+    deform: Deformation,
+    prev_temp: Interpolation,
+    temp: Interpolation,
+    fps: float,
+):
+    m.energy = integrator(
+        compose_to_integrand(
+            _energy_potential(fps),
+            prev_deform.strain,
+            deform.strain,
+            prev_temp,
+            temp,
+            temp.gradient,
+        )
+    )
+
+    m.dissipation = integrator(
+        compose_to_integrand(
+            _dissipation_potential,
+            prev_deform.strain,
+            deform.strain,
+            prev_temp,
+            temp,
+        )
+    )
+
+    m.objective = pyo.Objective(expr=m.energy + fps * m.dissipation)
 
 
 def _model(
@@ -152,28 +185,7 @@ def _model(
 
     integrator = Integrator(DUNAVANT2, grid.triangles, grid.points)
 
-    m.energy = integrator(
-        compose_to_integrand(
-            _energy_potential(fps),
-            prev_deform.strain,
-            deform.strain,
-            prev_temp,
-            temp,
-            temp.gradient,
-        )
-    )
-
-    m.dissipation = integrator(
-        compose_to_integrand(
-            _dissipation_potential,
-            prev_deform.strain,
-            deform.strain,
-            prev_temp,
-            temp,
-        )
-    )
-
-    m.objective = pyo.Objective(expr=m.energy + fps * m.dissipation)
+    _add_objective(m, integrator, prev_deform, deform, prev_temp, temp, fps)
 
     return m
 
