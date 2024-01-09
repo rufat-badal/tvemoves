@@ -363,7 +363,7 @@ class _MechanicalStepRegularized(AbstractMechanicalStep):
 
 
 def mechanical_step(
-    solver, grid: Grid, params: MechanicalStepParams, refined_grid: RefinedGrid | None = None
+    solver, grid: Grid, params: MechanicalStepParams, refined_grid: RefinedGrid | None
 ) -> AbstractMechanicalStep:
     """Mechanical step factory."""
     if params.regularization is None:

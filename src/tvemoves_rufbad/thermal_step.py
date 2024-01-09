@@ -79,7 +79,7 @@ def _dissipation_potential(prev_strain, strain, prev_temp, temp):
 
 
 def _add_objective(
-    m,
+    m: pyo.ConcreteModel,
     integrator: Integrator,
     prev_deform: Deformation,
     deform: Deformation,
@@ -190,6 +190,31 @@ def _model(
     return m
 
 
+def _model_regularized(
+    grid: Grid,
+    refined_grid: RefinedGrid,
+    prev_y: npt.NDArray[np.float64],
+    y: npt.NDArray[np.float64],
+    prev_theta: npt.NDArray[np.float64],
+    search_radius: float,
+    fps: float,
+    regularization: float,
+) -> pyo.ConcreteModel:
+    m = pyo.ConcreteModel("Thermal Step with Regularization")
+
+    y_data_shape = (len(grid.vertices), 2, 6)
+    if prev_y.shape != y_data_shape:
+        raise ValueError(f"prev_y has incorrect shape {prev_y} (should be {y_data_shape}")
+    if y.shape != y_data_shape:
+        raise ValueError(f"y has incorrect shape {y} (should be {y_data_shape}")
+
+    temp_data_shape = (len(refined_grid.vertices),)
+    if prev_theta.shape != temp_data_shape:
+        raise ValueError(f"y has incorrect shape {prev_theta} (should be {temp_data_shape}")
+
+    return m
+
+
 class _ThermalStep(AbstractThermalStep):
     """Thermal step without regularization using P1 finite elements for the deformation."""
 
@@ -232,6 +257,31 @@ class _ThermalStep(AbstractThermalStep):
         return np.array([self._model.theta[i].value for i in range(self._num_vertices)])
 
 
+class _ThermalStepRegularized(AbstractThermalStep):
+    """Thermal step without regularization using P1 finite elements for the deformation."""
+
+    def __init__(
+        self,
+        solver,
+        grid: Grid,
+        refined_grid: RefinedGrid,
+        prev_y: npt.NDArray[np.float64],
+        y: npt.NDArray[np.float64],
+        prev_theta: npt.NDArray[np.float64],
+        search_radius: float,
+        fps: float,
+        regularization: float,
+    ):
+        self._solver = solver
+        self._num_vertices = len(grid.vertices)
+        self._model = _model_regularized(
+            grid, refined_grid, prev_y, y, prev_theta, search_radius, fps, regularization
+        )
+
+    def solve(self) -> None:
+        self._solver.solve(self._model)
+
+
 def thermal_step(
     solver,
     grid: Grid,
@@ -256,4 +306,14 @@ def thermal_step(
     if refined_grid is None:
         raise ValueError("A refined grid must be provided for a regularized model")
 
-    print("Regularized thermal step needs to be implemented")
+    return _ThermalStepRegularized(
+        solver,
+        grid,
+        refined_grid,
+        prev_y,
+        y,
+        prev_theta,
+        params.search_radius,
+        params.fps,
+        params.regularization,
+    )
