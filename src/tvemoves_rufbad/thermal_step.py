@@ -279,7 +279,7 @@ def _model_regularized(
 
     temp = P1Interpolation(refined_grid, [m.theta[i] for i in list(m.refined_vertices)])
 
-    integrator = Integrator(DUNAVANT5, grid.triangles, grid.points)
+    integrator = Integrator(DUNAVANT5, refined_grid.triangles, refined_grid.points)
 
     _add_objective(m, integrator, prev_deform, deform, prev_temp, temp, fps)
 
