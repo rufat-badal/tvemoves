@@ -5,6 +5,7 @@ from abc import ABC
 import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
+from matplotlib import pyplot as plt
 from tvemoves_rufbad.domain import Domain, RectangleDomain, Grid, RefinedGrid
 from tvemoves_rufbad.mechanical_step import (
     MechanicalStepParams,
@@ -258,7 +259,9 @@ class Simulation:
             self._refined_grid,
         )
         self._thermal_step.solve()
-        print(self._thermal_step.theta())
+        self._append_step(self._thermal_step.y(), self._thermal_step.theta())
+        self.steps[-1].plot(max_temp=0.001)
+        plt.show()
 
     def _append_step(self, y_data: npt.NDArray[np.float64], theta_data: npt.NDArray[np.float64]):
         step = (
