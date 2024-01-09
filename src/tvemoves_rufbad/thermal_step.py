@@ -45,7 +45,7 @@ class ThermalStepParams:
 
     search_radius: float
     fps: float
-    regularization: float
+    regularization: float | None
 
 
 def _energy_potential(fps: float):

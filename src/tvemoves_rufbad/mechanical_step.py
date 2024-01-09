@@ -31,7 +31,7 @@ class MechanicalStepParams:
     initial_temperature: float
     search_radius: float
     fps: float
-    regularization: float
+    regularization: float | None
 
 
 class AbstractMechanicalStep(Protocol):
@@ -145,12 +145,10 @@ class _MechanicalStep(AbstractMechanicalStep):
 
     def prev_y(self) -> npt.NDArray[np.float64]:
         """Return the previous deformation as Nx2 numpy array, where N is the number of vertices."""
-        return np.array(
-            [
-                [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
-                for i in range(self._num_vertices)
-            ]
-        )
+        return np.array([
+            [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
+            for i in range(self._num_vertices)
+        ])
 
     def y(self) -> npt.NDArray[np.float64]:
         """Return the current deformation as Nx2 numpy array, where N is the number of vertices."""
@@ -333,15 +331,13 @@ class _MechanicalStepRegularized(AbstractMechanicalStep):
         m = self._model
         c1_indices = list(m.c1_indices)
         vertices = list(m.vertices)
-        return np.array(
+        return np.array([
             [
-                [
-                    [m.prev_y1[i, j].value for j in c1_indices],
-                    [m.prev_y2[i, j].value for j in c1_indices],
-                ]
-                for i in vertices
+                [m.prev_y1[i, j].value for j in c1_indices],
+                [m.prev_y2[i, j].value for j in c1_indices],
             ]
-        )
+            for i in vertices
+        ])
 
     def y(self) -> npt.NDArray[np.float64]:
         """Return the current deformation as a Nx2x6 numpy array, where N is the number of
@@ -349,15 +345,13 @@ class _MechanicalStepRegularized(AbstractMechanicalStep):
         m = self._model
         c1_indices = list(m.c1_indices)
         vertices = list(m.vertices)
-        return np.array(
+        return np.array([
             [
-                [
-                    [m.y1[i, j].value for j in c1_indices],
-                    [m.y2[i, j].value for j in c1_indices],
-                ]
-                for i in vertices
+                [m.y1[i, j].value for j in c1_indices],
+                [m.y2[i, j].value for j in c1_indices],
             ]
-        )
+            for i in vertices
+        ])
 
     def prev_theta(self) -> npt.NDArray[np.float64]:
         """Return the previous temperature as a vector of length N_ref, where N_ref is the number of

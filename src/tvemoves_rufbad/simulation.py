@@ -200,6 +200,9 @@ class SimulationParams:
         if self.regularization is not None and self.refinement_factor is None:
             raise ValueError("refinement_factor cannot be None in the regularized setting")
 
+        if self.regularization is None and self.refinement_factor is not None:
+            self.refinement_factor = None
+
     def mechanical_step_params(
         self,
     ) -> MechanicalStepParams:
@@ -235,7 +238,7 @@ class Simulation:
         self._grid = self._domain.grid(self.params.scale)
         self._refined_grid = (
             self._domain.refine(self._grid, self.params.refinement_factor)
-            if self.params.regularization is not None
+            if self.params.refinement_factor is not None
             else None
         )
         self.steps: list[AbstractStep] = []
