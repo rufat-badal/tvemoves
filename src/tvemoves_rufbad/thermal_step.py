@@ -249,6 +249,15 @@ def _model_regularized(
         mutable=True,
     )
 
+    m.theta = pyo.Var(m.refined_vertices, within=pyo.NonNegativeReals)
+
+    for i in m.refined_vertices:
+        m.theta[i] = m.prev_theta[i]
+        m.theta[i].bounds = (
+            m.prev_theta[i] - search_radius,
+            m.prev_theta[i] + search_radius,
+        )
+
     return m
 
 
@@ -274,12 +283,10 @@ class _ThermalStep(AbstractThermalStep):
 
     def prev_y(self) -> npt.NDArray[np.float64]:
         """Return the previous deformation as Nx2 numpy array, where N is the number of vertices."""
-        return np.array(
-            [
-                [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
-                for i in range(self._num_vertices)
-            ]
-        )
+        return np.array([
+            [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
+            for i in range(self._num_vertices)
+        ])
 
     def y(self) -> npt.NDArray[np.float64]:
         """Return the current deformation as Nx2 numpy array, where N is the number of vertices."""
