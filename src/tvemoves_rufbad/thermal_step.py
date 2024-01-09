@@ -6,16 +6,17 @@ import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
 from tvemoves_rufbad.domain import Grid, RefinedGrid
-from tvemoves_rufbad.tensors import Matrix
 from tvemoves_rufbad.interpolation import P1Interpolation, Deformation
 from tvemoves_rufbad.integrators import Integrator
 from tvemoves_rufbad.quadrature_rules import DUNAVANT2
 from tvemoves_rufbad.helpers import (
     heat_conductivity_reference,
-    compose_to_integrand,
     dissipation_rate,
     strain_derivative_coupling_potential,
-    HEAT_CONDUCTIVITY,
+    compose_to_integrand,
+    ENTROPY_CONSTANT,
+    internal_energy_no_entropy,
+    temp_antrider_internal_energy_no_entropy,
 )
 
 
@@ -47,11 +48,9 @@ class ThermalStepParams:
     regularization: float
 
 
-def _energy_potential(heat_conductivity: Matrix, fps: float):
+def _energy_potential(fps: float):
     def energy_potential(prev_strain, strain, prev_temp, temp, temp_gradient):
-        diffusion = temp_gradient.dot(
-            heat_conductivity_reference(heat_conductivity, prev_strain).dot(temp_gradient)
-        )
+        diffusion = temp_gradient.dot(heat_conductivity_reference(prev_strain).dot(temp_gradient))
 
         strain_rate = (strain - prev_strain) * fps
         heat_source_sink = (
@@ -67,6 +66,16 @@ def _energy_potential(heat_conductivity: Matrix, fps: float):
         return diffusion + heat_source_sink
 
     return energy_potential
+
+
+def _dissipation_potential(prev_strain, strain, prev_temp, temp):
+    l2_dissipation = ENTROPY_CONSTANT / 2 * (temp - prev_temp) ** 2
+    internal_energy_dissipation = (
+        temp_antrider_internal_energy_no_entropy(strain, temp)
+        - internal_energy_no_entropy(prev_strain, prev_temp) * temp
+    )
+
+    return l2_dissipation + internal_energy_dissipation
 
 
 def _model(
@@ -145,7 +154,7 @@ def _model(
 
     m.energy = integrator(
         compose_to_integrand(
-            _energy_potential(HEAT_CONDUCTIVITY, fps),
+            _energy_potential(fps),
             prev_deform.strain,
             deform.strain,
             prev_temp,
@@ -154,7 +163,17 @@ def _model(
         )
     )
 
-    m.objective = pyo.Objective(expr=m.energy)
+    m.dissipation = integrator(
+        compose_to_integrand(
+            _dissipation_potential,
+            prev_deform.strain,
+            deform.strain,
+            prev_temp,
+            temp,
+        )
+    )
+
+    m.objective = pyo.Objective(expr=m.energy + fps * m.dissipation)
 
     return m
 
@@ -176,27 +195,29 @@ class _ThermalStep(AbstractThermalStep):
         self._num_vertices = len(grid.vertices)
         self._model = _model(grid, prev_y, y, prev_theta, search_radius, fps)
 
-    # def solve(self) -> None:
-    #     self._solver.solve(self._model)
+    def solve(self) -> None:
+        self._solver.solve(self._model)
 
-    # def prev_y(self) -> npt.NDArray[np.float64]:
-    #     """Return the previous deformation as Nx2 numpy array, where N is the number of vertices."""
-    #     return np.array(
-    #         [
-    #             [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
-    #             for i in range(self._num_vertices)
-    #         ]
-    #     )
+    def prev_y(self) -> npt.NDArray[np.float64]:
+        """Return the previous deformation as Nx2 numpy array, where N is the number of vertices."""
+        return np.array([
+            [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
+            for i in range(self._num_vertices)
+        ])
 
-    # def y(self) -> npt.NDArray[np.float64]:
-    #     """Return the current deformation as Nx2 numpy array, where N is the number of vertices."""
-    #     return np.array(
-    #         [[self._model.y1[i].value, self._model.y2[i].value] for i in range(self._num_vertices)]
-    #     )
+    def y(self) -> npt.NDArray[np.float64]:
+        """Return the current deformation as Nx2 numpy array, where N is the number of vertices."""
+        return np.array(
+            [[self._model.y1[i].value, self._model.y2[i].value] for i in range(self._num_vertices)]
+        )
 
-    # def prev_theta(self) -> npt.NDArray[np.float64]:
-    #     """Return the previous temperature as vector of length N, where N is the number of vertices."""
-    #     return np.array([self._model.prev_theta[i].value for i in range(self._num_vertices)])
+    def prev_theta(self) -> npt.NDArray[np.float64]:
+        """Return the previous temperature as vector of length N, where N is the number of vertices."""
+        return np.array([self._model.prev_theta[i].value for i in range(self._num_vertices)])
+
+    def theta(self) -> npt.NDArray[np.float64]:
+        """Return the current temperature as vector of length N, where N is the number of vertices."""
+        return np.array([self._model.theta[i].value for i in range(self._num_vertices)])
 
 
 def thermal_step(

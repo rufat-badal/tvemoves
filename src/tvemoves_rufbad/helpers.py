@@ -129,12 +129,16 @@ def strain_derivative_coupling_potential(strain: Matrix, theta):
     )
 
 
+def internal_energy_no_entropy(strain: Matrix, theta):
+    """Internal energy without the entropy term."""
+    return internal_energy_weight(theta) * (
+        austenite_potential(strain) - martensite_potential(strain)
+    )
+
+
 def internal_energy(strain: Matrix, theta):
     """Internal energy."""
-    return (
-        internal_energy_weight(theta) * (austenite_potential(strain) - martensite_potential(strain))
-        + ENTROPY_CONSTANT * theta
-    )
+    return internal_energy_no_entropy(strain, theta) + ENTROPY_CONSTANT * theta
 
 
 def temp_antrider_internal_energy_no_entropy(strain: Matrix, theta):
@@ -144,10 +148,10 @@ def temp_antrider_internal_energy_no_entropy(strain: Matrix, theta):
     )
 
 
-def heat_conductivity_reference(heat_conductivity: Matrix, strain: Matrix) -> Matrix:
+def heat_conductivity_reference(strain: Matrix) -> Matrix:
     """Transform heat conductivity tensor into the reference configuration."""
     strain_inverse = inverse_2x2(strain)
-    return strain.det() * strain_inverse @ heat_conductivity @ strain_inverse.transpose()
+    return strain.det() * strain_inverse @ HEAT_CONDUCTIVITY @ strain_inverse.transpose()
 
 
 def compose_to_integrand(outer, *inner):

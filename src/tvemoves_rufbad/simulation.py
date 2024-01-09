@@ -6,8 +6,12 @@ import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
 from tvemoves_rufbad.domain import Domain, RectangleDomain, Grid, RefinedGrid
-from tvemoves_rufbad.mechanical_step import MechanicalStepParams, mechanical_step
-from tvemoves_rufbad.thermal_step import ThermalStepParams, thermal_step
+from tvemoves_rufbad.mechanical_step import (
+    MechanicalStepParams,
+    AbstractMechanicalStep,
+    mechanical_step,
+)
+from tvemoves_rufbad.thermal_step import ThermalStepParams, AbstractThermalStep, thermal_step
 from tvemoves_rufbad.interpolation import (
     EuclideanDeformation,
     P1Interpolation,
@@ -236,12 +240,12 @@ class Simulation:
         )
         self.steps: list[AbstractStep] = []
 
-        self._mechanical_step = mechanical_step(
+        self._mechanical_step: AbstractMechanicalStep = mechanical_step(
             self._solver, self._grid, self.params.mechanical_step_params(), self._refined_grid
         )
         self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
         self._mechanical_step.solve()
-        self._thermal_step = thermal_step(
+        self._thermal_step: AbstractThermalStep = thermal_step(
             self._solver,
             self._grid,
             self._mechanical_step.prev_y(),
@@ -250,6 +254,8 @@ class Simulation:
             self.params.thermal_step_params(),
             self._refined_grid,
         )
+        self._thermal_step.solve()
+        print(self._thermal_step.theta())
 
     def _append_step(self, y_data: npt.NDArray[np.float64], theta_data: npt.NDArray[np.float64]):
         step = (
@@ -265,8 +271,6 @@ _params = SimulationParams(
     search_radius=10.0,
     fps=1.0,
     scale=0.25,
-    regularization=None,
-    refinement_factor=None,
 )
 _square = RectangleDomain(1, 1, fix="lower")
 _simulation = Simulation(_square, _params)
