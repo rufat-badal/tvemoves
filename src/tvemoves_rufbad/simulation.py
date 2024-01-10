@@ -259,6 +259,11 @@ class Simulation:
         )
         self._thermal_step.solve()
         self._append_step(self._thermal_step.y(), self._thermal_step.theta())
+        self._update_mechanical_step()
+
+    def _update_mechanical_step(self):
+        self._mechanical_step.update_prev_y(self._thermal_step.y())
+        self._mechanical_step.update_prev_theta(self._thermal_step.theta())
 
     def _append_step(self, y_data: npt.NDArray[np.float64], theta_data: npt.NDArray[np.float64]):
         step = (
@@ -269,6 +274,14 @@ class Simulation:
         self.steps.append(step)
 
 
+# _params = SimulationParams(
+#     initial_temperature=0.0,
+#     search_radius=5.0,
+#     fps=10.0,
+#     scale=1,
+# )
+# _square = RectangleDomain(1, 1, fix="lower")
+# _simulation = Simulation(_square, _params)
 _params = SimulationParams(
     initial_temperature=0.0,
     search_radius=5.0,

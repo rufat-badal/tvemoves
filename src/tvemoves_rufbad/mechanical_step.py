@@ -49,6 +49,19 @@ class AbstractMechanicalStep(Protocol):
     def prev_theta(self) -> npt.NDArray[np.float64]:
         """Return the previous temperature as numpy array."""
 
+    def update_prev_y(self, new_prev_y: npt.NDArray[np.float64]) -> None:
+        """Update the previous deformation of the model. Automatically also updates the starting
+        guess for y1 and y2 as well as the search range.
+
+        new_prev_y should be of the same format as returned by self.prev_y().
+        """
+
+    def update_prev_theta(self, new_prev_theta: npt.NDArray[np.float64]) -> None:
+        """Update the previous temperature of the model.
+
+        new_prev_theta should be of the same format as returned by self.prev_theta().
+        """
+
 
 def _model(
     grid: Grid,
@@ -133,6 +146,7 @@ class _MechanicalStep(AbstractMechanicalStep):
     ):
         self._solver = solver
         self._num_vertices = len(grid.vertices)
+        self._search_radius = search_radius
         self._model = _model(
             grid,
             initial_temperature,
@@ -159,6 +173,41 @@ class _MechanicalStep(AbstractMechanicalStep):
     def prev_theta(self) -> npt.NDArray[np.float64]:
         """Return the previous temperature as vector of length N, where N is the number of vertices."""
         return np.array([self._model.prev_theta[i].value for i in range(self._num_vertices)])
+
+    def update_prev_y(self, new_prev_y: npt.NDArray[np.float64]) -> None:
+        if new_prev_y.shape != (self._num_vertices, 2):
+            raise ValueError(
+                f"Input array has incorrect shape {new_prev_y.shape} (should be"
+                f" {(self._num_vertices, 2)})"
+            )
+
+        new_prev_y1 = new_prev_y[:, 0]
+        new_prev_y2 = new_prev_y[:, 1]
+        m = self._model
+        for i in range(self._num_vertices):
+            m.prev_y1[i] = new_prev_y1[i]
+            m.prev_y2[i] = new_prev_y2[i]
+
+            m.y1[i] = new_prev_y1[i]
+            m.y1[i].bounds = (
+                new_prev_y1[i] - self._search_radius,
+                new_prev_y1[i] + self._search_radius,
+            )
+            m.y2[i] = new_prev_y2[i]
+            m.y2[i].bounds = (
+                new_prev_y2[i] - self._search_radius,
+                new_prev_y2[i] + self._search_radius,
+            )
+
+    def update_prev_theta(self, new_prev_theta: npt.NDArray[np.float64]) -> None:
+        if new_prev_theta.shape != (self._num_vertices,):
+            raise ValueError(
+                f"Input array has incorrect shape {new_prev_theta.shape} (should be"
+                f" {(self._num_vertices,)})"
+            )
+
+        for i in range(self._num_vertices):
+            self._model.prev_theta[i] = new_prev_theta[i]
 
 
 def _model_regularized(
@@ -313,6 +362,7 @@ class _MechanicalStepRegularized(AbstractMechanicalStep):
     ):
         self._solver = solver
         self._num_vertices = len(grid.vertices)
+        self._search_radius = search_radius
         self._model = _model_regularized(
             grid,
             refined_grid,
@@ -360,6 +410,46 @@ class _MechanicalStepRegularized(AbstractMechanicalStep):
         return np.array(
             [self._model.prev_theta[i].value for i in list(self._model.refined_vertices)]
         )
+
+    def update_prev_y(self, new_prev_y: npt.NDArray[np.float64]) -> None:
+        m = self._model
+        c1_indices = list(m.c1_indices)
+        vertices = list(m.vertices)
+
+        if new_prev_y.shape != (len(vertices), 2, 6):
+            raise ValueError(
+                f"Input array has incorrect shape {new_prev_y.shape} (should be"
+                f" {(len(vertices), 2, 6)})"
+            )
+
+        new_prev_y1 = new_prev_y[:, 0, :]
+        new_prev_y2 = new_prev_y[:, 1, :]
+        for i in vertices:
+            for j in c1_indices:
+                m.prev_y1[i, j] = new_prev_y1[i - 1, j - 1]
+                m.prev_y2[i, j] = new_prev_y2[i - 1, j - 1]
+
+                m.y1[i, j] = new_prev_y1[i - 1, j - 1]
+                m.y1[i, j].bounds = (
+                    new_prev_y1[i - 1, j - 1] - self._search_radius,
+                    new_prev_y1[i - 1, j - 1] + self._search_radius,
+                )
+                m.y2[i, j] = new_prev_y2[i - 1, j - 1]
+                m.y2[i, j].bounds = (
+                    new_prev_y2[i - 1, j - 1] - self._search_radius,
+                    new_prev_y2[i - 1, j - 1] + self._search_radius,
+                )
+
+    def update_prev_theta(self, new_prev_theta: npt.NDArray[np.float64]) -> None:
+        refined_vertices = list(self._model.refined_vertices)
+        if new_prev_theta.shape != (len(refined_vertices),):
+            raise ValueError(
+                f"Input array has incorrect shape {new_prev_theta.shape} (should be"
+                f" {(len(refined_vertices),)})"
+            )
+
+        for i in refined_vertices:
+            self._model.prev_theta[i] = new_prev_theta[i - 1]
 
 
 def mechanical_step(
