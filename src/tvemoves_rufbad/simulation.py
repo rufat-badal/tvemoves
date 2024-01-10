@@ -259,10 +259,10 @@ class Simulation:
             self._refined_grid,
         )
         self._thermal_step.solve()
-        # self._append_step(self._thermal_step.y(), self._thermal_step.theta())
-        # print(self._thermal_step.theta())
-        # self.steps[-1].plot(max_temp=1.0)
-        # plt.show()
+        self._append_step(self._thermal_step.y(), self._thermal_step.theta())
+        print(self._thermal_step.theta())
+        self.steps[-1].plot(max_temp=1.0)
+        plt.show()
 
     def _append_step(self, y_data: npt.NDArray[np.float64], theta_data: npt.NDArray[np.float64]):
         step = (

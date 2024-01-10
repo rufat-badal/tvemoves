@@ -357,6 +357,48 @@ class _ThermalStepRegularized(AbstractThermalStep):
     def solve(self) -> None:
         self._solver.solve(self._model)
 
+    def prev_y(self) -> npt.NDArray[np.float64]:
+        """Return the previous deformation as a Nx2x6 numpy array, where N is the number of
+        vertices."""
+        m = self._model
+        c1_indices = list(m.c1_indices)
+        vertices = list(m.vertices)
+        return np.array([
+            [
+                [m.prev_y1[i, j].value for j in c1_indices],
+                [m.prev_y2[i, j].value for j in c1_indices],
+            ]
+            for i in vertices
+        ])
+
+    def y(self) -> npt.NDArray[np.float64]:
+        """Return the current deformation as a Nx2x6 numpy array, where N is the number of
+        vertices."""
+        m = self._model
+        c1_indices = list(m.c1_indices)
+        vertices = list(m.vertices)
+        return np.array([
+            [
+                [m.y1[i, j].value for j in c1_indices],
+                [m.y2[i, j].value for j in c1_indices],
+            ]
+            for i in vertices
+        ])
+
+    def prev_theta(self) -> npt.NDArray[np.float64]:
+        """Return the previous temperature as a vector of length N_ref, where N_ref is the number of
+        vertices of the refined grid.
+        """
+        return np.array(
+            [self._model.prev_theta[i].value for i in list(self._model.refined_vertices)]
+        )
+
+    def theta(self) -> npt.NDArray[np.float64]:
+        """Return the current temperature as a vector of length N_ref, where N_ref is the number of
+        vertices of the refined grid.
+        """
+        return np.array([self._model.theta[i].value for i in list(self._model.refined_vertices)])
+
 
 def thermal_step(
     solver,
