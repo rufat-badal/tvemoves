@@ -246,8 +246,10 @@ class Simulation:
         self._mechanical_step: AbstractMechanicalStep = mechanical_step(
             self._solver, self._grid, self.params.mechanical_step_params(), self._refined_grid
         )
+        print("Set up the variational problem of the mechanical step.")
         self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
         self._mechanical_step.solve()
+        print("Performed the first mechanical step.")
         self._thermal_step: AbstractThermalStep = thermal_step(
             self._solver,
             self._grid,
@@ -257,9 +259,10 @@ class Simulation:
             self.params.thermal_step_params(),
             self._refined_grid,
         )
+        print("Set up the variational problem of the thermal step.")
         self._thermal_step.solve()
+        print("Performed the first thermal step.")
         self._append_step(self._thermal_step.y(), self._thermal_step.theta())
-        self._update_mechanical_step()
 
     def _update_mechanical_step(self):
         self._mechanical_step.update_prev_y(self._thermal_step.y())
@@ -273,22 +276,34 @@ class Simulation:
         )
         self.steps.append(step)
 
+    def run(self, num_steps: int = 1) -> None:
+        """Run one or more steps of the staggered scheme. In each step first a mechanical and then a
+        thermal step is performed."""
+        if num_steps <= 0:
+            raise ValueError("Invalid number of steps.")
+
+        self._update_mechanical_step()
+        self._mechanical_step.solve()
+
+
+_params = SimulationParams(
+    initial_temperature=0.0,
+    search_radius=5.0,
+    fps=10.0,
+    scale=0.2,
+)
+_square = RectangleDomain(1, 1, fix="lower")
+_simulation = Simulation(_square, _params)
+_simulation.run()
 
 # _params = SimulationParams(
 #     initial_temperature=0.0,
 #     search_radius=5.0,
 #     fps=10.0,
 #     scale=1,
+#     regularization=1.0,
+#     refinement_factor=2,
 # )
 # _square = RectangleDomain(1, 1, fix="lower")
 # _simulation = Simulation(_square, _params)
-_params = SimulationParams(
-    initial_temperature=0.0,
-    search_radius=5.0,
-    fps=10.0,
-    scale=1,
-    regularization=1.0,
-    refinement_factor=2,
-)
-_square = RectangleDomain(1, 1, fix="lower")
-_simulation = Simulation(_square, _params)
+# _simulation.run()
