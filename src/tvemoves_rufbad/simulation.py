@@ -7,7 +7,7 @@ import numpy as np
 import pyomo.environ as pyo
 from matplotlib import pyplot as plt
 from tqdm import tqdm
-from tvemoves_rufbad.domain import Domain, RectangleDomain, Grid, RefinedGrid
+from tvemoves_rufbad.domain import Domain, Grid, RefinedGrid
 from tvemoves_rufbad.mechanical_step import (
     MechanicalStepParams,
     AbstractMechanicalStep,
@@ -310,26 +310,3 @@ class Simulation:
 
         if self._debug:
             plt.show()
-
-
-# _params = SimulationParams(
-#     initial_temperature=0.0,
-#     search_radius=10.0,
-#     fps=0.25,
-#     scale=0.25,
-# )
-# _square = RectangleDomain(1, 1, fix="right")
-# _simulation = Simulation(_square, _params, debug=True)
-# _simulation.run(120)
-
-_params = SimulationParams(
-    initial_temperature=0.0,
-    search_radius=5.0,
-    fps=0.25,
-    scale=1,
-    regularization=0.1,
-    refinement_factor=2,
-)
-_square = RectangleDomain(1, 1, fix="right")
-_simulation = Simulation(_square, _params, debug=True)
-_simulation.run(120)
