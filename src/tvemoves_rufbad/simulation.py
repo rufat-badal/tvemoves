@@ -6,6 +6,7 @@ import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
 from matplotlib import pyplot as plt
+from tqdm import tqdm
 from tvemoves_rufbad.domain import Domain, RectangleDomain, Grid, RefinedGrid
 from tvemoves_rufbad.mechanical_step import (
     MechanicalStepParams,
@@ -83,7 +84,7 @@ class AbstractStep(ABC):
     def plot(
         self,
         ax=None,
-        max_temp: float = 1.0,
+        max_temp: float = 0.1,
         num_points_per_curve: int = 100,
         num_horizontal_curves: int = 2,
         num_vertical_curves: int = 2,
@@ -284,8 +285,15 @@ class Simulation:
         self.steps.append(step)
         if self._debug:
             self._ax.clear()
-            self.steps[-1].plot(self._ax)
+            self.steps[-1].plot(self._ax, num_horizontal_curves=10, num_vertical_curves=10)
             plt.pause(0.05)
+
+    def _run_single_step(self):
+        self._update_mechanical_step()
+        self._mechanical_step.solve()
+        self._update_thermal_step()
+        self._thermal_step.solve()
+        self._append_step(self._thermal_step.y(), self._thermal_step.theta())
 
     def run(self, num_steps: int = 1) -> None:
         """Run one or more steps of the staggered scheme. In each step first a mechanical and then a
@@ -293,22 +301,26 @@ class Simulation:
         if num_steps <= 0:
             raise ValueError("Invalid number of steps.")
 
-        self._update_mechanical_step()
-        self._mechanical_step.solve()
-        self._update_thermal_step()
-        self._thermal_step.solve()
-        self._append_step(self._thermal_step.y(), self._thermal_step.theta())
+        if num_steps == 1:
+            self._run_single_step()
+            return
+
+        for _ in tqdm(range(num_steps)):
+            self._run_single_step()
+
+        if self._debug:
+            plt.show()
 
 
 _params = SimulationParams(
     initial_temperature=0.0,
-    search_radius=5.0,
-    fps=0.05,
-    scale=0.2,
+    search_radius=10.0,
+    fps=0.25,
+    scale=0.25,
 )
-_square = RectangleDomain(1, 1, fix="lower")
+_square = RectangleDomain(1, 1, fix="right")
 _simulation = Simulation(_square, _params, debug=True)
-_simulation.run()
+_simulation.run(120)
 
 # _params = SimulationParams(
 #     initial_temperature=0.0,
