@@ -44,6 +44,25 @@ class AbstractThermalStep(Protocol):
     def theta(self) -> npt.NDArray[np.float64]:
         """Return the current temperature as numpy array."""
 
+    def update_prev_y(self, new_prev_y: npt.NDArray[np.float64]) -> None:
+        """Update the previous deformation of the model.
+
+        new_prev_y should be of the same format as returned by self.prev_y().
+        """
+
+    def update_prev_theta(self, new_prev_theta: npt.NDArray[np.float64]) -> None:
+        """Update the previous temperature of the model. Automatically also updates the starting
+        guess for theta and changes the search range.
+
+        new_prev_theta should be of the same format as returned by self.prev_theta().
+        """
+
+    def update_y(self, new_y: npt.NDArray[np.float64]) -> None:
+        """Update the current deformation of the model.
+
+        new_y should be of the same format as returned by self.y().
+        """
+
 
 @dataclass
 class ThermalStepParams:
@@ -302,6 +321,7 @@ class _ThermalStep(AbstractThermalStep):
         self._solver = solver
         self._num_vertices = len(grid.vertices)
         self._model = _model(grid, prev_y, y, prev_theta, search_radius, fps)
+        self._search_radius = search_radius
 
     def solve(self) -> None:
         self._solver.solve(self._model)
@@ -326,6 +346,50 @@ class _ThermalStep(AbstractThermalStep):
     def theta(self) -> npt.NDArray[np.float64]:
         """Return the current temperature as vector of length N, where N is the number of vertices."""
         return np.array([self._model.theta[i].value for i in range(self._num_vertices)])
+
+    def update_prev_y(self, new_prev_y: npt.NDArray[np.float64]) -> None:
+        if new_prev_y.shape != (self._num_vertices, 2):
+            raise ValueError(
+                f"Input array has incorrect shape {new_prev_y.shape} (should be"
+                f" {(self._num_vertices, 2)})"
+            )
+
+        new_prev_y1 = new_prev_y[:, 0]
+        new_prev_y2 = new_prev_y[:, 1]
+        m = self._model
+        for i in range(self._num_vertices):
+            m.prev_y1[i] = new_prev_y1[i]
+            m.prev_y2[i] = new_prev_y2[i]
+
+    def update_y(self, new_y: npt.NDArray[np.float64]) -> None:
+        if new_y.shape != (self._num_vertices, 2):
+            raise ValueError(
+                f"Input array has incorrect shape {new_y.shape} (should be"
+                f" {(self._num_vertices, 2)})"
+            )
+
+        new_y1 = new_y[:, 0]
+        new_y2 = new_y[:, 1]
+        m = self._model
+        for i in range(self._num_vertices):
+            m.y1[i] = new_y1[i]
+            m.prev_y2[i] = new_y2[i]
+
+    def update_prev_theta(self, new_prev_theta: npt.NDArray[np.float64]) -> None:
+        if new_prev_theta.shape != (self._num_vertices,):
+            raise ValueError(
+                f"Input array has incorrect shape {new_prev_theta.shape} (should be"
+                f" {(self._num_vertices,)})"
+            )
+
+        m = self._model
+        for i in range(self._num_vertices):
+            m.prev_theta[i] = new_prev_theta[i]
+            m.theta[i] = new_prev_theta[i]
+            m.theta[i].bounds = (
+                new_prev_theta[i] - self._search_radius,
+                new_prev_theta[i] + self._search_radius,
+            )
 
 
 class _ThermalStepRegularized(AbstractThermalStep):
