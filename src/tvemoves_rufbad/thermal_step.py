@@ -408,6 +408,7 @@ class _ThermalStepRegularized(AbstractThermalStep):
     ):
         self._solver = solver
         self._num_vertices = len(grid.vertices)
+        self._search_radius = search_radius
         self._model = _model_regularized(
             grid,
             refined_grid,
@@ -462,6 +463,57 @@ class _ThermalStepRegularized(AbstractThermalStep):
         vertices of the refined grid.
         """
         return np.array([self._model.theta[i].value for i in list(self._model.refined_vertices)])
+
+    def update_prev_y(self, new_prev_y: npt.NDArray[np.float64]) -> None:
+        m = self._model
+        c1_indices = list(m.c1_indices)
+        vertices = list(m.vertices)
+
+        if new_prev_y.shape != (len(vertices), 2, 6):
+            raise ValueError(
+                f"Input array has incorrect shape {new_prev_y.shape} (should be"
+                f" {(len(vertices), 2, 6)})"
+            )
+
+        new_prev_y1 = new_prev_y[:, 0, :]
+        new_prev_y2 = new_prev_y[:, 1, :]
+        for i in vertices:
+            for j in c1_indices:
+                m.prev_y1[i, j] = new_prev_y1[i - 1, j - 1]
+                m.prev_y2[i, j] = new_prev_y2[i - 1, j - 1]
+
+    def update_prev_theta(self, new_prev_theta: npt.NDArray[np.float64]) -> None:
+        refined_vertices = list(self._model.refined_vertices)
+        if new_prev_theta.shape != (len(refined_vertices),):
+            raise ValueError(
+                f"Input array has incorrect shape {new_prev_theta.shape} (should be"
+                f" {(len(refined_vertices),)})"
+            )
+        m = self._model
+        for i in refined_vertices:
+            m.prev_theta[i] = new_prev_theta[i - 1]
+            m.theta[i] = new_prev_theta[i - 1]
+            m.theta[i].bounds = (
+                new_prev_theta[i - 1] - self._search_radius,
+                new_prev_theta[i - 1] + self._search_radius,
+            )
+
+    def update_y(self, new_y: npt.NDArray[np.float64]) -> None:
+        m = self._model
+        c1_indices = list(m.c1_indices)
+        vertices = list(m.vertices)
+
+        if new_y.shape != (len(vertices), 2, 6):
+            raise ValueError(
+                f"Input array has incorrect shape {new_y.shape} (should be {(len(vertices), 2, 6)})"
+            )
+
+        new_y1 = new_y[:, 0, :]
+        new_y2 = new_y[:, 1, :]
+        for i in vertices:
+            for j in c1_indices:
+                m.y1[i, j] = new_y1[i - 1, j - 1]
+                m.y2[i, j] = new_y2[i - 1, j - 1]
 
 
 def thermal_step(

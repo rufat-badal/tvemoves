@@ -312,24 +312,24 @@ class Simulation:
             plt.show()
 
 
+# _params = SimulationParams(
+#     initial_temperature=0.0,
+#     search_radius=10.0,
+#     fps=0.25,
+#     scale=0.25,
+# )
+# _square = RectangleDomain(1, 1, fix="right")
+# _simulation = Simulation(_square, _params, debug=True)
+# _simulation.run(120)
+
 _params = SimulationParams(
     initial_temperature=0.0,
-    search_radius=10.0,
+    search_radius=5.0,
     fps=0.25,
-    scale=0.25,
+    scale=1,
+    regularization=0.1,
+    refinement_factor=2,
 )
 _square = RectangleDomain(1, 1, fix="right")
 _simulation = Simulation(_square, _params, debug=True)
 _simulation.run(120)
-
-# _params = SimulationParams(
-#     initial_temperature=0.0,
-#     search_radius=5.0,
-#     fps=10.0,
-#     scale=1,
-#     regularization=1.0,
-#     refinement_factor=2,
-# )
-# _square = RectangleDomain(1, 1, fix="lower")
-# _simulation = Simulation(_square, _params)
-# _simulation.run()
