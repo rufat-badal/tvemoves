@@ -246,10 +246,8 @@ class Simulation:
         self._mechanical_step: AbstractMechanicalStep = mechanical_step(
             self._solver, self._grid, self.params.mechanical_step_params(), self._refined_grid
         )
-        print("Set up the variational problem of the mechanical step.")
         self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
         self._mechanical_step.solve()
-        print("Performed the first mechanical step.")
         self._thermal_step: AbstractThermalStep = thermal_step(
             self._solver,
             self._grid,
@@ -259,9 +257,7 @@ class Simulation:
             self.params.thermal_step_params(),
             self._refined_grid,
         )
-        print("Set up the variational problem of the thermal step.")
         self._thermal_step.solve()
-        print("Performed the first thermal step.")
         self._append_step(self._thermal_step.y(), self._thermal_step.theta())
 
     def _update_mechanical_step(self):
