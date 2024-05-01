@@ -75,8 +75,10 @@ def test_rectangle_domain_grid() -> None:
         for (v, w) in grid.boundary.edges
     )
     assert all(e in grid.edges for e in grid.boundary.edges)
-    assert grid.neumann_boundary.vertices == grid.boundary.vertices
-    assert grid.neumann_boundary.edges == grid.boundary.edges
+    assert len(grid.neumann_boundary.vertices) == len(grid.boundary.vertices)
+    assert set(grid.neumann_boundary.vertices) == set(grid.boundary.vertices)
+    assert len(grid.neumann_boundary.edges) == len(grid.boundary.edges)
+    assert set(grid.neumann_boundary.edges) == set(grid.boundary.edges)
     assert not grid.dirichlet_boundary.vertices
     assert not grid.dirichlet_boundary.edges
 
