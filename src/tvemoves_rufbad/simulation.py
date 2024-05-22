@@ -253,6 +253,7 @@ class Simulation:
         self._mechanical_step: AbstractMechanicalStep = mechanical_step(
             self._solver, self._grid, self.params.mechanical_step_params(), self._refined_grid
         )
+        self._max_temp = 0.0
         self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
         self._mechanical_step.solve()
         self._thermal_step: AbstractThermalStep = thermal_step(
@@ -267,6 +268,14 @@ class Simulation:
         self._thermal_step.solve()
         self._append_step(self._thermal_step.y(), self._thermal_step.theta())
 
+    def max_temp(self):
+        return self._max_temp
+
+    def plot_step(self, i: int):
+        if i < -len(self.steps) or i >= len(self.steps):
+            return
+        self.steps[i].plot(max_temp=self.max_temp())
+
     def _update_mechanical_step(self):
         self._mechanical_step.update_prev_y(self._thermal_step.y())
         self._mechanical_step.update_prev_theta(self._thermal_step.theta())
@@ -277,6 +286,7 @@ class Simulation:
         self._thermal_step.update_y(self._mechanical_step.y())
 
     def _append_step(self, y_data: npt.NDArray[np.float64], theta_data: npt.NDArray[np.float64]):
+        self._max_temp = max(self._max_temp, np.max(theta_data))
         step = (
             Step(y_data, theta_data, self._domain, self._grid)
             if self.params.regularization is None
