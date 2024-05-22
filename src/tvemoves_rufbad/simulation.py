@@ -232,12 +232,7 @@ class SimulationParams:
 class Simulation:
     """Class implementing the minimizing movement scheme with or without regularization."""
 
-    def __init__(self, domain: Domain, params: SimulationParams, debug: bool = False):
-        self._debug = debug
-        if self._debug:
-            plt.axis()
-            self._ax = plt.gca()
-            self._ax.set_aspect(1)
+    def __init__(self, domain: Domain, params: SimulationParams):
         self._domain = domain
         self._solver = pyo.SolverFactory("ipopt")
         self.params = params
@@ -293,10 +288,6 @@ class Simulation:
             else RegularizedStep(y_data, theta_data, self._domain, self._grid, self._refined_grid)
         )
         self.steps.append(step)
-        if self._debug:
-            self._ax.clear()
-            self.steps[-1].plot(self._ax, num_horizontal_curves=10, num_vertical_curves=10)
-            plt.pause(0.05)
 
     def _run_single_step(self):
         self._update_mechanical_step()
@@ -317,6 +308,3 @@ class Simulation:
 
         for _ in tqdm(range(num_steps)):
             self._run_single_step()
-
-        if self._debug:
-            plt.show()
