@@ -86,8 +86,8 @@ class AbstractStep(ABC):
         ax=None,
         max_temp: float = 0.1,
         num_points_per_curve: int = 100,
-        num_horizontal_curves: int = 2,
-        num_vertical_curves: int = 2,
+        num_horizontal_curves: int = 5,
+        num_vertical_curves: int = 5,
     ):
         """Plot step."""
         if ax is None:
