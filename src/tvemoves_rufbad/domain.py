@@ -607,7 +607,7 @@ class RectangleDomain(Domain):
 
         return horizontal_curves + vertical_curves
 
-    def plot(self, ax):
+    def plot(self, ax=None):
         if ax is None:
             ax = axis()
 
