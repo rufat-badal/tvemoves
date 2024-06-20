@@ -2,7 +2,7 @@
 
 from typing import Protocol
 from tvemoves_rufbad.tensors import Vector, BarycentricCoordinates, Matrix, Tensor3D
-from tvemoves_rufbad.domain import BarycentricPoint, Grid, Triangle, Edge, RefinedGrid
+from tvemoves_rufbad.domain import BarycentricPoint, Grid, Boundary, Triangle, Edge, RefinedGrid
 from tvemoves_rufbad.bell_finite_element import (
     bell_interpolation,
     bell_interpolation_gradient,
@@ -32,6 +32,20 @@ class Interpolation(Protocol):
         self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
     ) -> Matrix:
         """Compute the hessian of the interpolation in a triangle."""
+
+
+class P1BoundaryInterpolation:
+    """Piecewise affine interpolation on boundary edges."""
+
+    def __init__(self, boundary: Boundary, params: dict):
+        if len(params) != len(boundary.vertices):
+            raise ValueError("number of params must equal to the number of vertices")
+        self.boundary = boundary
+        self._params = params
+
+    def __call__(self, edge: Edge, t: float):
+        i1, i2 = edge
+        return t * self._params[i1] + (1 - t) * self._params[i2]
 
 
 class P1Interpolation(Interpolation):

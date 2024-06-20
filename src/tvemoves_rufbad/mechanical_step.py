@@ -7,12 +7,14 @@ import numpy.typing as npt
 import numpy as np
 from tvemoves_rufbad.interpolation import (
     P1Interpolation,
+    P1BoundaryInterpolation,
     C1Interpolation,
     RefinedInterpolation,
     Deformation,
 )
 from tvemoves_rufbad.quadrature_rules import CENTROID, DUNAVANT2, DUNAVANT5
-from tvemoves_rufbad.integrators import Integrator
+from tvemoves_rufbad.integrators import Integrator, BoundaryIntegrator
+from tvemoves_rufbad.tensors import Vector
 from tvemoves_rufbad.domain import Grid, RefinedGrid
 from tvemoves_rufbad.helpers import (
     total_elastic_potential,
@@ -137,8 +139,15 @@ def _model(
     y2 = P1Interpolation(grid, m.y2)
     deform = Deformation(y1, y2)
 
+    g1 = P1BoundaryInterpolation(grid.neumann_boundary, m.g1)
+    g2 = P1BoundaryInterpolation(grid.neumann_boundary, m.g2)
+
+    def boundary_traction(edge, t):
+        return Vector([g1(edge, t), g2(edge, t)])
+
     integrator = Integrator(DUNAVANT2, grid.triangles, grid.points)
     integrator_for_piecewise_constant = Integrator(CENTROID, grid.triangles, grid.points)
+    neumann_boundary_integrator = BoundaryIntegrator(1, grid.neumann_boundary.edges, grid.points)
 
     m.total_elastic_energy = integrator(
         compose_to_integrand(total_elastic_potential, deform.strain, prev_temp)
