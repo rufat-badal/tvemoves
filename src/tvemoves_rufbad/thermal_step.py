@@ -13,7 +13,7 @@ from tvemoves_rufbad.interpolation import (
     Deformation,
     Interpolation,
 )
-from tvemoves_rufbad.integrators import Integrator
+from tvemoves_rufbad.integrators import Integrator, BoundaryIntegrator
 from tvemoves_rufbad.quadrature_rules import DUNAVANT2, DUNAVANT5
 from tvemoves_rufbad.helpers import (
     heat_conductivity_reference,
@@ -21,6 +21,7 @@ from tvemoves_rufbad.helpers import (
     strain_derivative_coupling_potential,
     compose_to_integrand,
     ENTROPY_CONSTANT,
+    HEAT_TRANSFER_COEFFICIENT,
     internal_energy_no_entropy,
     temp_antrider_internal_energy_no_entropy,
 )
@@ -103,6 +104,13 @@ def _dissipation_potential(prev_strain, strain, prev_temp, temp):
     return l2_dissipation + internal_energy_dissipation
 
 
+def _boundary_potential(heat_transfer_coefficient: float, external_temp: float):
+    def boundary_potential(temp):
+        return heat_transfer_coefficient / 2 * (temp - external_temp) ** 2
+
+    return boundary_potential
+
+
 def _add_objective(
     m: pyo.ConcreteModel,
     integrator: Integrator,
@@ -111,6 +119,8 @@ def _add_objective(
     prev_temp: Interpolation,
     temp: Interpolation,
     fps: float,
+    boundary_integrator: BoundaryIntegrator | None = None,
+    external_temperature: float = 0.0,
 ):
     m.energy = integrator(
         compose_to_integrand(
@@ -133,7 +143,15 @@ def _add_objective(
         )
     )
 
-    m.objective = pyo.Objective(expr=m.energy + fps * m.dissipation)
+    m.boundary_heat_transfer = 0.0
+    if boundary_integrator is not None:
+        m.boundary_heat_transfer = boundary_integrator(
+            compose_to_integrand(
+                _boundary_potential(HEAT_TRANSFER_COEFFICIENT, external_temperature), temp.on_edge
+            )
+        )
+
+    m.objective = pyo.Objective(expr=m.energy + m.boundary_heat_transfer + fps * m.dissipation)
 
 
 def _check_prev_step_data(
@@ -158,6 +176,7 @@ def _model(
     prev_theta: npt.NDArray[np.float64],
     search_radius: float,
     fps: float,
+    external_temperature: float = 0.0,
 ) -> pyo.ConcreteModel:
     """Create model for the thermal step without regularization."""
     m = pyo.ConcreteModel("Thermal Step")
@@ -217,7 +236,19 @@ def _model(
 
     integrator = Integrator(DUNAVANT2, grid.triangles, grid.points)
 
-    _add_objective(m, integrator, prev_deform, deform, prev_temp, temp, fps)
+    boundary_integrator = BoundaryIntegrator(1, grid.boundary.edges, grid.points)
+
+    _add_objective(
+        m,
+        integrator,
+        prev_deform,
+        deform,
+        prev_temp,
+        temp,
+        fps,
+        boundary_integrator,
+        external_temperature,
+    )
 
     return m
 
