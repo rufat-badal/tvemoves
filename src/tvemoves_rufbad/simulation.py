@@ -269,7 +269,8 @@ class Simulation:
         )
         self._thermal_step.solve()
         self._append_step(self._thermal_step.y(), self._thermal_step.theta())
-        self._current_time = self.params.fps
+        self._tau = 1 / self.params.fps
+        self._current_time = self._tau
 
     def max_temp(self):
         return self._max_temp
@@ -304,7 +305,7 @@ class Simulation:
         self._update_thermal_step()
         self._thermal_step.solve()
         self._append_step(self._thermal_step.y(), self._thermal_step.theta())
-        self._current_time += 1 / self.params.fps
+        self._current_time += self._tau
 
     def run(self, num_steps: int = 1) -> None:
         """Run one or more steps of the staggered scheme. In each step first a mechanical and then a
