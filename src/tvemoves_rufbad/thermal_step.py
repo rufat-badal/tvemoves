@@ -430,7 +430,7 @@ class _ThermalStep(AbstractThermalStep):
                 new_prev_theta[i] + self._search_radius,
             )
 
-    def update_external_temperate(self, current_time: float) -> None:
+    def update_external_temperature(self, current_time: float) -> None:
         self._model.external_temperature = self._external_temperature(current_time)
 
 
