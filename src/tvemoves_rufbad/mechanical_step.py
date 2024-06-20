@@ -1,7 +1,7 @@
 """Module providing implementation of the mechanical step of the minimizing movement scheme."""
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, Callable
 import pyomo.environ as pyo
 import numpy.typing as npt
 import numpy as np
@@ -68,32 +68,50 @@ def _model(
     initial_temperature: float,
     search_radius: float,
     fps: float,
+    boundary_traction: Callable[[float, float], list[float]],
 ) -> pyo.ConcreteModel:
     """Create model for the mechanical step without regularization."""
     m = pyo.ConcreteModel("Mechanical Step")
 
+    m.vertices = pyo.Set(initialize=grid.vertices, dimen=1)
+    m.neumann_vertices = pyo.Set(initialize=grid.neumann_boundary.vertices, dimen=1)
+    m.dirichlet_vertices = pyo.Set(initialize=grid.dirichlet_boundary.vertices, dimen=1)
+
     m.prev_y1 = pyo.Param(
-        grid.vertices,
+        m.vertices,
         within=pyo.Reals,
-        initialize=[p[0] for p in grid.points],
+        initialize=lambda _, i: grid.points[i][0],
         mutable=True,
     )
     m.prev_y2 = pyo.Param(
-        grid.vertices,
+        m.vertices,
         within=pyo.Reals,
-        initialize=[p[1] for p in grid.points],
+        initialize=lambda _, i: grid.points[i][1],
         mutable=True,
     )
     m.prev_theta = pyo.Param(
-        grid.vertices,
+        m.vertices,
         within=pyo.NonNegativeReals,
         initialize=initial_temperature,
         mutable=True,
     )
 
-    m.y1 = pyo.Var(grid.vertices, within=pyo.Reals)
-    m.y2 = pyo.Var(grid.vertices, within=pyo.Reals)
-    for v in grid.vertices:
+    m.g1 = pyo.Param(
+        m.neumann_vertices,
+        within=pyo.Reals,
+        initialize=lambda _, i: boundary_traction(*grid.points[i])[0],
+        mutable=True,
+    )
+    m.g2 = pyo.Param(
+        m.neumann_vertices,
+        within=pyo.Reals,
+        initialize=lambda _, i: boundary_traction(*grid.points[i])[1],
+        mutable=True,
+    )
+
+    m.y1 = pyo.Var(m.vertices, within=pyo.Reals)
+    m.y2 = pyo.Var(m.vertices, within=pyo.Reals)
+    for v in m.vertices:
         m.y1[v] = m.prev_y1[v]
         m.y1[v].bounds = (
             m.prev_y1[v] - search_radius,
@@ -105,7 +123,7 @@ def _model(
             m.prev_y2[v] + search_radius,
         )
 
-    for v in grid.dirichlet_boundary.vertices:
+    for v in m.dirichlet_vertices:
         m.y1[v].fix()
         m.y2[v].fix()
 
@@ -143,16 +161,15 @@ class _MechanicalStep(AbstractMechanicalStep):
         initial_temperature: float,
         search_radius: float,
         fps: float,
+        boundary_traction: Callable[[float, float, float], list[float]],
     ):
         self._solver = solver
         self._num_vertices = len(grid.vertices)
         self._search_radius = search_radius
         self._model = _model(
-            grid,
-            initial_temperature,
-            search_radius,
-            fps,
+            grid, initial_temperature, search_radius, fps, lambda x, y: boundary_traction(0, x, y)
         )
+        self._boundary_stress = boundary_traction
 
     def solve(self) -> None:
         self._solver.solve(self._model)
@@ -453,7 +470,11 @@ class _MechanicalStepRegularized(AbstractMechanicalStep):
 
 
 def mechanical_step(
-    solver, grid: Grid, params: MechanicalStepParams, refined_grid: RefinedGrid | None
+    solver,
+    grid: Grid,
+    params: MechanicalStepParams,
+    refined_grid: RefinedGrid | None,
+    boundary_traction: Callable[[float, float, float], list[float]],
 ) -> AbstractMechanicalStep:
     """Mechanical step factory."""
     if params.regularization is None:
@@ -463,6 +484,7 @@ def mechanical_step(
             params.initial_temperature,
             params.search_radius,
             params.fps,
+            boundary_traction,
         )
 
     if refined_grid is None:

@@ -238,6 +238,10 @@ class Simulation:
         domain: Domain,
         params: SimulationParams,
         external_temperature: Callable[[float], float] = lambda t: 0.0,
+        boundary_traction: Callable[[float, float, float], list[float]] = lambda t, x, y: [
+            0.0,
+            0.0,
+        ],
     ):
         self._domain = domain
         self._solver = pyo.SolverFactory("ipopt")
@@ -252,7 +256,11 @@ class Simulation:
         self.steps: list[AbstractStep] = []
 
         self._mechanical_step: AbstractMechanicalStep = mechanical_step(
-            self._solver, self._grid, self.params.mechanical_step_params(), self._refined_grid
+            self._solver,
+            self._grid,
+            self.params.mechanical_step_params(),
+            self._refined_grid,
+            boundary_traction,
         )
         self._max_temp = 0.0
         self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())

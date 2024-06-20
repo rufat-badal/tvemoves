@@ -231,12 +231,10 @@ class EuclideanDeformation:
         return self._y[i]
 
     def __call__(self, x: float, y: float) -> Vector:
-        return Vector(
-            [
-                self._y[0](x, y),
-                self._y[1](x, y),
-            ]
-        )
+        return Vector([
+            self._y[0](x, y),
+            self._y[1](x, y),
+        ])
 
     def strain(self, x: float, y: float) -> Matrix:
         """Compute the strain of the deformation in a triangle."""
@@ -264,12 +262,10 @@ class Deformation:
         triangle: Triangle,
         barycentric_coordinates: BarycentricCoordinates,
     ) -> Vector:
-        return Vector(
-            [
-                self._y[0](triangle, barycentric_coordinates),
-                self._y[1](triangle, barycentric_coordinates),
-            ]
-        )
+        return Vector([
+            self._y[0](triangle, barycentric_coordinates),
+            self._y[1](triangle, barycentric_coordinates),
+        ])
 
     def strain(
         self,
@@ -285,12 +281,10 @@ class Deformation:
 
     def on_edge(self, edge: Edge, t: float):
         """Compute the deformation on an edge."""
-        return Vector(
-            [
-                self._y[0].on_edge(edge, t),
-                self._y[1].on_edge(edge, t),
-            ]
-        )
+        return Vector([
+            self._y[0].on_edge(edge, t),
+            self._y[1].on_edge(edge, t),
+        ])
 
     def hyper_strain(
         self, triangle: Triangle, barycentric_coordinates: BarycentricCoordinates
