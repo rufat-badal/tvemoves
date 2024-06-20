@@ -51,12 +51,12 @@ class AbstractStep(ABC):
     def __str__(self):
         return f"y:\n{str(self._y_data)}\ntheta:\n{str(self._theta_data)}"
 
-    def _plot_temperature(self, ax, max_temp) -> None:
+    def _plot_temperature(self, max_temp) -> None:
         deformed_points = [self.y(*p) for p in self._grid.points]
         x = [p[0] for p in deformed_points]
         y = [p[1] for p in deformed_points]
         c = [self.theta(*p) for p in self._grid.points]
-        ax.tripcolor(
+        plt.tripcolor(
             x,
             y,
             c,
@@ -69,7 +69,6 @@ class AbstractStep(ABC):
 
     def _plot_deformation_curves(
         self,
-        ax,
         num_points_per_curve: int,
         num_horizontal_curves: int = 0,
         num_vertical_curves: int | None = None,
@@ -80,22 +79,25 @@ class AbstractStep(ABC):
             deformed_curve = [self.y(*p) for p in curve]
             x = [p[0] for p in deformed_curve]
             y = [p[1] for p in deformed_curve]
-            ax.plot(x, y, color="gray", linewidth=1)
+            plt.plot(x, y, color="gray", linewidth=1)
 
     def plot(
         self,
-        ax=None,
-        max_temp: float = 0.1,
+        max_temp: float,
+        xlims: tuple[float, float],
+        ylims: tuple[float, float],
         num_points_per_curve: int = 100,
         num_horizontal_curves: int = 5,
         num_vertical_curves: int = 5,
     ):
         """Plot step."""
-        if ax is None:
-            ax = axis()
-        self._plot_temperature(ax, max_temp)
+        plt.axis("off")
+        plt.gca().set_aspect("equal")
+        plt.xlim(*xlims)
+        plt.ylim(*ylims)
+        self._plot_temperature(max_temp)
         self._plot_deformation_curves(
-            ax, num_points_per_curve, num_horizontal_curves, num_vertical_curves
+            num_points_per_curve, num_horizontal_curves, num_vertical_curves
         )
 
 
@@ -263,8 +265,13 @@ class Simulation:
             boundary_traction,
         )
         self._max_temp = 0.0
+        x_coords = self._mechanical_step.prev_y()[:, 0]
+        y_coords = self._mechanical_step.prev_y()[:, 1]
+        self._xlims = (np.min(x_coords), np.max(x_coords))
+        self._ylims = (np.min(y_coords) - 0.05, np.max(y_coords))
         self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
         self._mechanical_step.solve()
+
         self._thermal_step: AbstractThermalStep = thermal_step(
             self._solver,
             self._grid,
@@ -283,10 +290,26 @@ class Simulation:
     def max_temp(self):
         return self._max_temp
 
-    def plot_step(self, i: int):
+    def _plot_step(self, i: int) -> bool:
         if i < -len(self.steps) or i >= len(self.steps):
-            return
-        self.steps[i].plot(max_temp=self.max_temp())
+            return False
+        self.steps[i].plot(self.max_temp(), self._xlims, self._ylims)
+        return True
+
+    def plot_step(self, i: int):
+        if self._plot_step(i):
+            plt.show()
+
+    def save_step(self, i: int, path: str = "step"):
+        if self._plot_step(i):
+            step_index = i if i >= 0 else len(self.steps) + i
+            plt.savefig(
+                f"{path}_{step_index}.png",
+                bbox_inches="tight",
+                transparent="True",
+                pad_inches=0,
+                dpi=300,
+            )
 
     def _update_mechanical_step(self):
         self._mechanical_step.update_prev_y(self._thermal_step.y())
@@ -300,6 +323,10 @@ class Simulation:
 
     def _append_step(self, y_data: npt.NDArray[np.float64], theta_data: npt.NDArray[np.float64]):
         self._max_temp = max(self._max_temp, np.max(theta_data))
+        x_coords = y_data[:, 0]
+        y_coords = y_data[:, 1]
+        self._xlims = (min(self._xlims[0], np.min(x_coords)), max(self._xlims[1], np.max(x_coords)))
+        self._ylims = (min(self._ylims[0], np.min(y_coords)), max(self._ylims[1], np.max(y_coords)))
         step = (
             Step(y_data, theta_data, self._domain, self._grid)
             if self.params.regularization is None

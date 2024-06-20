@@ -163,8 +163,8 @@ def compose_to_integrand(outer, *inner):
 
 def axis():
     """Create a single axis with no ticks and labels."""
-    _, ax = plt.subplots()
+    fig, ax = plt.subplots()
     ax.axis("off")
     ax.set_aspect(1)
 
-    return ax
+    return fig, ax

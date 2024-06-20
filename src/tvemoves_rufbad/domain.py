@@ -151,7 +151,7 @@ class Grid(ABC):
     def plot(self, ax):
         """Returns matplotlib plot of the grid."""
         if ax is None:
-            ax = axis()
+            _, ax = axis()
 
         new_xlim = (-PLOT_BORDER, max(p[0] for p in self.points) + PLOT_BORDER)
         _adjust_xlim(ax, new_xlim)
@@ -615,7 +615,7 @@ class RectangleDomain(Domain):
 
     def plot(self, ax=None):
         if ax is None:
-            ax = axis()
+            _, ax = axis()
 
         plt.xlim(-PLOT_BORDER, self.width + PLOT_BORDER)
         plt.ylim(-PLOT_BORDER, self.height + PLOT_BORDER)
