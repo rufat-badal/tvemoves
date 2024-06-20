@@ -36,9 +36,9 @@ def dissipation_potential(prev_strain: Matrix, strain: Matrix):
     return symmetrized_strain_delta(prev_strain, strain).normsqr() / 2
 
 
-def dissipation_rate(prev_strain: Matrix, strain: Matrix):
+def dissipation_rate(prev_strain: Matrix, strain: Matrix, fps: float):
     """Dissipation rate (twice the dissipation potential)."""
-    return dissipation_potential(prev_strain, strain) * 2
+    return dissipation_potential(prev_strain, strain) * 2 * fps**2
 
 
 def symmetrized_strain_delta(prev_strain: Matrix, strain: Matrix) -> Matrix:

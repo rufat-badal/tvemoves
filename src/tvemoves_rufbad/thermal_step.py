@@ -81,7 +81,7 @@ def _energy_potential(fps: float):
         strain_rate = (strain - prev_strain) * fps
         heat_source_sink = (
             -(
-                dissipation_rate(prev_strain, strain)
+                dissipation_rate(prev_strain, strain, fps)
                 + strain_derivative_coupling_potential(prev_strain, prev_temp).scalar_product(
                     strain_rate
                 )
