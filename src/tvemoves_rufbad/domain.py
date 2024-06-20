@@ -510,9 +510,9 @@ class RectangleDomain(Domain):
         )
         boundary = Boundary(boundary_vertices, boundary_edges)
 
-        dirichlet_vertices = set()
+        # 1 / 0 => Neumann, 0 / -1 => Dirichlet
+        boundary_vertices_tags = {i: 1 for i in boundary_vertices}
         dirichlet_edges = set()
-        neumann_vertices = set(boundary_vertices)
         neumann_edges = set(boundary_edges)
 
         if self.fix is not None:
@@ -523,28 +523,34 @@ class RectangleDomain(Domain):
             for fix in fixes:
                 match fix:
                     case "lower":
-                        dirichlet_vertices.update(lower_boundary_vertices)
+                        for i in lower_boundary_vertices:
+                            boundary_vertices_tags[i] -= 1
                         dirichlet_edges.update(lower_boundary_edges)
-                        neumann_vertices.difference_update(lower_boundary_vertices)
                         neumann_edges.difference_update(lower_boundary_edges)
                     case "right":
-                        dirichlet_vertices.update(right_boundary_vertices)
+                        for i in right_boundary_vertices:
+                            boundary_vertices_tags[i] -= 1
                         dirichlet_edges.update(right_boundary_edges)
-                        neumann_vertices.difference_update(right_boundary_vertices)
                         neumann_edges.difference_update(right_boundary_edges)
                     case "upper":
-                        dirichlet_vertices.update(upper_boundary_vertices)
+                        for i in upper_boundary_vertices:
+                            boundary_vertices_tags[i] -= 1
                         dirichlet_edges.update(upper_boundary_edges)
-                        neumann_vertices.difference_update(upper_boundary_vertices)
                         neumann_edges.difference_update(upper_boundary_edges)
                     case "left":
-                        dirichlet_vertices.update(left_boundary_vertices)
+                        for i in left_boundary_vertices:
+                            boundary_vertices_tags[i] -= 1
                         dirichlet_edges.update(left_boundary_edges)
-                        neumann_vertices.difference_update(left_boundary_vertices)
                         neumann_edges.difference_update(left_boundary_edges)
-
-        dirichlet_boundary = Boundary(list(dirichlet_vertices), list(dirichlet_edges))
-        neumann_boundary = Boundary(list(neumann_vertices), list(neumann_edges))
+        dirichlet_vertices = []
+        neumann_vertices = []
+        for i, tag in boundary_vertices_tags.items():
+            if tag >= 0:
+                neumann_vertices.append(i)
+            if tag <= 0:
+                dirichlet_vertices.append(i)
+        dirichlet_boundary = Boundary(dirichlet_vertices, list(dirichlet_edges))
+        neumann_boundary = Boundary(neumann_vertices, list(neumann_edges))
 
         points = [
             Vector([
