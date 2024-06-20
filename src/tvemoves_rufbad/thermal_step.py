@@ -1,7 +1,7 @@
 """Module providing implementation of the thermal step of the minimizing movement scheme."""
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, Callable
 import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
@@ -64,6 +64,9 @@ class AbstractThermalStep(Protocol):
         new_y should be of the same format as returned by self.y().
         """
 
+    def update_external_temperature(self, current_time: float) -> None:
+        """Update the external temperature."""
+
 
 @dataclass
 class ThermalStepParams:
@@ -120,7 +123,6 @@ def _add_objective(
     temp: Interpolation,
     fps: float,
     boundary_integrator: BoundaryIntegrator | None = None,
-    external_temperature: float = 0.0,
 ):
     m.energy = integrator(
         compose_to_integrand(
@@ -147,7 +149,7 @@ def _add_objective(
     if boundary_integrator is not None:
         m.boundary_heat_transfer = boundary_integrator(
             compose_to_integrand(
-                _boundary_potential(HEAT_TRANSFER_COEFFICIENT, external_temperature), temp.on_edge
+                _boundary_potential(HEAT_TRANSFER_COEFFICIENT, m.external_temperature), temp.on_edge
             )
         )
 
@@ -176,7 +178,7 @@ def _model(
     prev_theta: npt.NDArray[np.float64],
     search_radius: float,
     fps: float,
-    external_temperature: float = 0.0,
+    external_temperature: float,
 ) -> pyo.ConcreteModel:
     """Create model for the thermal step without regularization."""
     m = pyo.ConcreteModel("Thermal Step")
@@ -213,6 +215,9 @@ def _model(
         initialize=prev_theta,
         mutable=True,
     )
+    m.external_temperature = pyo.Param(
+        within=pyo.NonNegativeReals, initialize=external_temperature, mutable=True
+    )
 
     m.theta = pyo.Var(grid.vertices, within=pyo.NonNegativeReals)
     for v in grid.vertices:
@@ -247,7 +252,6 @@ def _model(
         temp,
         fps,
         boundary_integrator,
-        external_temperature,
     )
 
     return m
@@ -348,11 +352,15 @@ class _ThermalStep(AbstractThermalStep):
         prev_theta: npt.NDArray[np.float64],
         search_radius: float,
         fps: float,
+        external_temperature: Callable[[float], float],
     ):
         self._solver = solver
         self._num_vertices = len(grid.vertices)
-        self._model = _model(grid, prev_y, y, prev_theta, search_radius, fps)
+        self._model = _model(
+            grid, prev_y, y, prev_theta, search_radius, fps, external_temperature(0)
+        )
         self._search_radius = search_radius
+        self._external_temperature = external_temperature
 
     def solve(self) -> None:
         self._solver.solve(self._model)
@@ -421,6 +429,9 @@ class _ThermalStep(AbstractThermalStep):
                 new_prev_theta[i] - self._search_radius,
                 new_prev_theta[i] + self._search_radius,
             )
+
+    def update_external_temperate(self, current_time: float) -> None:
+        self._model.external_temperature = self._external_temperature(current_time)
 
 
 class _ThermalStepRegularized(AbstractThermalStep):
@@ -554,6 +565,7 @@ def thermal_step(
     y: npt.NDArray[np.float64],
     prev_theta: npt.NDArray[np.float64],
     params: ThermalStepParams,
+    external_temperature: Callable[[float], float],
     refined_grid: RefinedGrid | None = None,
 ) -> AbstractThermalStep:
     """Mechanical step factory."""
@@ -566,6 +578,7 @@ def thermal_step(
             prev_theta,
             params.search_radius,
             params.fps,
+            external_temperature,
         )
 
     if refined_grid is None:

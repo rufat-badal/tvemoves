@@ -7,7 +7,7 @@ from tvemoves_rufbad.tensors import Matrix, inverse_2x2, Tensor3D
 
 ENTROPY_CONSTANT = 10
 HEAT_CONDUCTIVITY = Matrix([[1.0, 0.0], [0.0, 1.0]])
-HEAT_TRANSFER_COEFFICIENT = 1.0
+HEAT_TRANSFER_COEFFICIENT = 10.0
 
 _theta, _F = sp.symbols("theta F")
 
@@ -38,6 +38,7 @@ def dissipation_potential(prev_strain: Matrix, strain: Matrix):
 
 def dissipation_rate(prev_strain: Matrix, strain: Matrix, fps: float):
     """Dissipation rate (twice the dissipation potential)."""
+    # remove factor 10
     return dissipation_potential(prev_strain, strain) * 2 * fps**2
 
 

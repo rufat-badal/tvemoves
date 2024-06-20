@@ -7,6 +7,7 @@ import numpy as np
 import pyomo.environ as pyo
 from matplotlib import pyplot as plt
 from tqdm import tqdm
+from typing import Callable
 from tvemoves_rufbad.domain import Domain, Grid, RefinedGrid
 from tvemoves_rufbad.mechanical_step import (
     MechanicalStepParams,
@@ -232,7 +233,12 @@ class SimulationParams:
 class Simulation:
     """Class implementing the minimizing movement scheme with or without regularization."""
 
-    def __init__(self, domain: Domain, params: SimulationParams):
+    def __init__(
+        self,
+        domain: Domain,
+        params: SimulationParams,
+        external_temperature: Callable[[float], float] = lambda t: 0.0,
+    ):
         self._domain = domain
         self._solver = pyo.SolverFactory("ipopt")
         self.params = params
@@ -258,10 +264,12 @@ class Simulation:
             self._mechanical_step.y(),
             self._mechanical_step.prev_theta(),
             self.params.thermal_step_params(),
+            external_temperature,
             self._refined_grid,
         )
         self._thermal_step.solve()
         self._append_step(self._thermal_step.y(), self._thermal_step.theta())
+        self._current_time = self.params.fps
 
     def max_temp(self):
         return self._max_temp
@@ -279,6 +287,7 @@ class Simulation:
         self._thermal_step.update_prev_y(self._mechanical_step.prev_y())
         self._thermal_step.update_prev_theta(self._mechanical_step.prev_theta())
         self._thermal_step.update_y(self._mechanical_step.y())
+        self._thermal_step.update_external_temperature(self._current_time)
 
     def _append_step(self, y_data: npt.NDArray[np.float64], theta_data: npt.NDArray[np.float64]):
         self._max_temp = max(self._max_temp, np.max(theta_data))
@@ -295,6 +304,7 @@ class Simulation:
         self._update_thermal_step()
         self._thermal_step.solve()
         self._append_step(self._thermal_step.y(), self._thermal_step.theta())
+        self._current_time += 1 / self.params.fps
 
     def run(self, num_steps: int = 1) -> None:
         """Run one or more steps of the staggered scheme. In each step first a mechanical and then a
