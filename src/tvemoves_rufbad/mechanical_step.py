@@ -155,9 +155,18 @@ def _model(
     m.dissipation = integrator_for_piecewise_constant(
         compose_to_integrand(dissipation_potential, prev_deform.strain, deform.strain)
     )
-    m.objective = pyo.Objective(expr=m.total_elastic_energy + fps * m.dissipation)
+    m.boundary_traction_energy = neumann_boundary_integrator(
+        compose_to_integrand(boundary_traction_potential, boundary_traction, deform.on_edge)
+    )
+    m.objective = pyo.Objective(
+        expr=m.total_elastic_energy - m.boundary_traction_energy + fps * m.dissipation
+    )
 
     return m
+
+
+def boundary_traction_potential(boundary_traction, deform):
+    return boundary_traction.dot(deform)
 
 
 class _MechanicalStep(AbstractMechanicalStep):
