@@ -64,6 +64,9 @@ class AbstractMechanicalStep(Protocol):
         new_prev_theta should be of the same format as returned by self.prev_theta().
         """
 
+    def update_boundary_traction(self, current_time: float) -> None:
+        """Update the forces acting on the boundary."""
+
 
 def _model(
     grid: Grid,
@@ -187,27 +190,25 @@ class _MechanicalStep(AbstractMechanicalStep):
         self._model = _model(
             grid, initial_temperature, search_radius, fps, lambda x, y: boundary_traction(0, x, y)
         )
-        self._boundary_stress = boundary_traction
+        self._boundary_traction = boundary_traction
 
     def solve(self) -> None:
         self._solver.solve(self._model)
 
     def prev_y(self) -> npt.NDArray[np.float64]:
         """Return the previous deformation as Nx2 numpy array, where N is the number of vertices."""
-        return np.array([
-            [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
-            for i in range(self._num_vertices)
-        ])
+        m = self._model
+        return np.array([[m.prev_y1[i].value, m.prev_y2[i].value] for i in m.vertices])
 
     def y(self) -> npt.NDArray[np.float64]:
         """Return the current deformation as Nx2 numpy array, where N is the number of vertices."""
-        return np.array(
-            [[self._model.y1[i].value, self._model.y2[i].value] for i in range(self._num_vertices)]
-        )
+        m = self._model
+        return np.array([[m.y1[i].value, m.y2[i].value] for i in m.vertices])
 
     def prev_theta(self) -> npt.NDArray[np.float64]:
         """Return the previous temperature as vector of length N, where N is the number of vertices."""
-        return np.array([self._model.prev_theta[i].value for i in range(self._num_vertices)])
+        m = self._model
+        return np.array([m.prev_theta[i].value for i in m.vertices])
 
     def update_prev_y(self, new_prev_y: npt.NDArray[np.float64]) -> None:
         if new_prev_y.shape != (self._num_vertices, 2):
@@ -219,7 +220,7 @@ class _MechanicalStep(AbstractMechanicalStep):
         new_prev_y1 = new_prev_y[:, 0]
         new_prev_y2 = new_prev_y[:, 1]
         m = self._model
-        for i in range(self._num_vertices):
+        for i in m.vertices:
             m.prev_y1[i] = new_prev_y1[i]
             m.prev_y2[i] = new_prev_y2[i]
 
@@ -241,8 +242,12 @@ class _MechanicalStep(AbstractMechanicalStep):
                 f" {(self._num_vertices,)})"
             )
 
-        for i in range(self._num_vertices):
-            self._model.prev_theta[i] = new_prev_theta[i]
+        m = self._model
+        for i in m.vertices:
+            m.prev_theta[i] = new_prev_theta[i]
+
+    def update_boundary_traction(self, current_time: float) -> None:
+        pass
 
 
 def _model_regularized(

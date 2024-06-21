@@ -314,6 +314,7 @@ class Simulation:
     def _update_mechanical_step(self):
         self._mechanical_step.update_prev_y(self._thermal_step.y())
         self._mechanical_step.update_prev_theta(self._thermal_step.theta())
+        self._mechanical_step.update_boundary_traction(self._current_time)
 
     def _update_thermal_step(self):
         self._thermal_step.update_prev_y(self._mechanical_step.prev_y())
@@ -322,11 +323,13 @@ class Simulation:
         self._thermal_step.update_external_temperature(self._current_time)
 
     def _append_step(self, y_data: npt.NDArray[np.float64], theta_data: npt.NDArray[np.float64]):
+        # Update variables required for plotting
         self._max_temp = max(self._max_temp, np.max(theta_data))
         x_coords = y_data[:, 0]
         y_coords = y_data[:, 1]
         self._xlims = (min(self._xlims[0], np.min(x_coords)), max(self._xlims[1], np.max(x_coords)))
         self._ylims = (min(self._ylims[0], np.min(y_coords)), max(self._ylims[1], np.max(y_coords)))
+
         step = (
             Step(y_data, theta_data, self._domain, self._grid)
             if self.params.regularization is None
