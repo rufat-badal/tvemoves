@@ -87,9 +87,6 @@ class AbstractStep(ABC):
         max_temp: float,
         xlims: tuple[float, float],
         ylims: tuple[float, float],
-        num_points_per_curve: int = 100,
-        num_horizontal_curves: int = 0,
-        num_vertical_curves: int = 0,
     ):
         """Plot step."""
         plt.axis("off")
