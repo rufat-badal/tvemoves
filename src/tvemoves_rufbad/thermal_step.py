@@ -185,47 +185,53 @@ def _model(
 
     _check_prev_step_data((len(grid.vertices), 2), (len(grid.vertices),), prev_y, y, prev_theta)
 
+    m.vertices = pyo.Set(initialize=grid.vertices, dimen=1)
+    m.boundary_vertices = pyo.Set(initialize=grid.boundary.vertices, dimen=1)
+
     m.prev_y1 = pyo.Param(
-        grid.vertices,
+        m.vertices,
         within=pyo.Reals,
-        initialize=prev_y[:, 0],
+        initialize=lambda _, i: prev_y[i, 0],
         mutable=True,
     )
     m.prev_y2 = pyo.Param(
-        grid.vertices,
+        m.vertices,
         within=pyo.Reals,
-        initialize=prev_y[:, 1],
+        initialize=lambda _, i: prev_y[i, 1],
         mutable=True,
     )
+
     m.y1 = pyo.Param(
-        grid.vertices,
+        m.vertices,
         within=pyo.Reals,
-        initialize=y[:, 0],
+        initialize=lambda _, i: y[i, 0],
         mutable=True,
     )
     m.y2 = pyo.Param(
-        grid.vertices,
+        m.vertices,
         within=pyo.Reals,
-        initialize=y[:, 1],
+        initialize=lambda _, i: y[i, 1],
         mutable=True,
     )
+
     m.prev_theta = pyo.Param(
-        grid.vertices,
+        m.vertices,
         within=pyo.NonNegativeReals,
         initialize=prev_theta,
         mutable=True,
     )
-    m.external_temperature = pyo.Param(
-        within=pyo.NonNegativeReals, initialize=external_temperature, mutable=True
-    )
 
-    m.theta = pyo.Var(grid.vertices, within=pyo.NonNegativeReals)
-    for v in grid.vertices:
+    m.theta = pyo.Var(m.vertices, within=pyo.NonNegativeReals)
+    for v in m.vertices:
         m.theta[v] = m.prev_theta[v]
         m.theta[v].bounds = (
             m.prev_theta[v] - search_radius,
             m.prev_theta[v] + search_radius,
         )
+
+    m.external_temperature = pyo.Param(
+        within=pyo.NonNegativeReals, initialize=external_temperature, mutable=True
+    )
 
     prev_y1 = P1Interpolation(grid, m.prev_y1)
     prev_y2 = P1Interpolation(grid, m.prev_y2)
@@ -367,24 +373,23 @@ class _ThermalStep(AbstractThermalStep):
 
     def prev_y(self) -> npt.NDArray[np.float64]:
         """Return the previous deformation as Nx2 numpy array, where N is the number of vertices."""
-        return np.array([
-            [self._model.prev_y1[i].value, self._model.prev_y2[i].value]
-            for i in range(self._num_vertices)
-        ])
+        m = self._model
+        return np.array([[m.prev_y1[i].value, m.prev_y2[i].value] for i in m.vertices])
 
     def y(self) -> npt.NDArray[np.float64]:
         """Return the current deformation as Nx2 numpy array, where N is the number of vertices."""
-        return np.array(
-            [[self._model.y1[i].value, self._model.y2[i].value] for i in range(self._num_vertices)]
-        )
+        m = self._model
+        return np.array([[m.y1[i].value, m.y2[i].value] for i in m.vertices])
 
     def prev_theta(self) -> npt.NDArray[np.float64]:
         """Return the previous temperature as vector of length N, where N is the number of vertices."""
-        return np.array([self._model.prev_theta[i].value for i in range(self._num_vertices)])
+        m = self._model
+        return np.array([m.prev_theta[i].value for i in m.vertices])
 
     def theta(self) -> npt.NDArray[np.float64]:
         """Return the current temperature as vector of length N, where N is the number of vertices."""
-        return np.array([self._model.theta[i].value for i in range(self._num_vertices)])
+        m = self._model
+        return np.array([m.theta[i].value for i in m.vertices])
 
     def update_prev_y(self, new_prev_y: npt.NDArray[np.float64]) -> None:
         if new_prev_y.shape != (self._num_vertices, 2):
@@ -396,7 +401,7 @@ class _ThermalStep(AbstractThermalStep):
         new_prev_y1 = new_prev_y[:, 0]
         new_prev_y2 = new_prev_y[:, 1]
         m = self._model
-        for i in range(self._num_vertices):
+        for i in m.vertices:
             m.prev_y1[i] = new_prev_y1[i]
             m.prev_y2[i] = new_prev_y2[i]
 
@@ -410,7 +415,7 @@ class _ThermalStep(AbstractThermalStep):
         new_y1 = new_y[:, 0]
         new_y2 = new_y[:, 1]
         m = self._model
-        for i in range(self._num_vertices):
+        for i in m.vertices:
             m.y1[i] = new_y1[i]
             m.y2[i] = new_y2[i]
 
@@ -422,7 +427,7 @@ class _ThermalStep(AbstractThermalStep):
             )
 
         m = self._model
-        for i in range(self._num_vertices):
+        for i in m.vertices:
             m.prev_theta[i] = new_prev_theta[i]
             m.theta[i] = new_prev_theta[i]
             m.theta[i].bounds = (
