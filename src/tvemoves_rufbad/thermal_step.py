@@ -235,27 +235,26 @@ def _model(
 
     prev_y1 = P1Interpolation(grid, m.prev_y1)
     prev_y2 = P1Interpolation(grid, m.prev_y2)
-    prev_deform = Deformation(prev_y1, prev_y2)
+    m.prev_deform = Deformation(prev_y1, prev_y2)
 
     y1 = P1Interpolation(grid, m.y1)
     y2 = P1Interpolation(grid, m.y2)
-    deform = Deformation(y1, y2)
+    m.deform = Deformation(y1, y2)
 
-    prev_temp = P1Interpolation(grid, m.prev_theta)
+    m.prev_temp = P1Interpolation(grid, m.prev_theta)
 
-    temp = P1Interpolation(grid, m.theta)
+    m.temp = P1Interpolation(grid, m.theta)
 
     integrator = Integrator(DUNAVANT2, grid.triangles, grid.points)
-
     boundary_integrator = BoundaryIntegrator(1, grid.boundary.edges, grid.points)
 
     _add_objective(
         m,
         integrator,
-        prev_deform,
-        deform,
-        prev_temp,
-        temp,
+        m.prev_deform,
+        m.deform,
+        m.prev_temp,
+        m.temp,
         fps,
         boundary_integrator,
     )
