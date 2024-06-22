@@ -247,15 +247,14 @@ class Simulation:
         self._domain = domain
         self._solver = pyo.SolverFactory("ipopt")
         self.params = params
-
         self._grid = self._domain.grid(self.params.scale)
         self._refined_grid = (
             self._domain.refine(self._grid, self.params.refinement_factor)
             if self.params.refinement_factor is not None
             else None
         )
-        self.steps: list[AbstractStep] = []
 
+        # Init and solve first mechanical step
         self._mechanical_step: AbstractMechanicalStep = mechanical_step(
             self._solver,
             self._grid,
@@ -263,14 +262,18 @@ class Simulation:
             self._refined_grid,
             boundary_traction,
         )
-        self._max_temp = 0.0
-        x_coords = self._mechanical_step.prev_y()[:, 0]
-        y_coords = self._mechanical_step.prev_y()[:, 1]
-        self._xlims = (np.min(x_coords), np.max(x_coords))
-        self._ylims = (np.min(y_coords) - 0.05, np.max(y_coords))
-        self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
         self._mechanical_step.solve()
 
+        # Add initial step
+        self.steps: list[AbstractStep] = []
+        self._tau = 1 / self.params.fps
+        self._current_time = -self._tau
+        self._max_temp = 0
+        self._xlims = (float("inf"), float("-inf"))
+        self._ylims = (float("inf"), float("-inf"))
+        self._append_step(self._mechanical_step.prev_y(), self._mechanical_step.prev_theta())
+
+        # Init and solve first thermal step
         self._thermal_step: AbstractThermalStep = thermal_step(
             self._solver,
             self._grid,
@@ -283,8 +286,6 @@ class Simulation:
         )
         self._thermal_step.solve()
         self._append_step(self._thermal_step.y(), self._thermal_step.theta())
-        self._tau = 1 / self.params.fps
-        self._current_time = self._tau
 
     def max_temp(self):
         return self._max_temp
@@ -333,6 +334,7 @@ class Simulation:
         self._xlims = (min(self._xlims[0], np.min(x_coords)), max(self._xlims[1], np.max(x_coords)))
         self._ylims = (min(self._ylims[0], np.min(y_coords)), max(self._ylims[1], np.max(y_coords)))
 
+        # Add newest step
         step = (
             Step(y_data, theta_data, self._domain, self._grid)
             if self.params.regularization is None
@@ -340,13 +342,15 @@ class Simulation:
         )
         self.steps.append(step)
 
+        # Update time
+        self._current_time += self._tau
+
     def _run_single_step(self):
         self._update_mechanical_step()
         self._mechanical_step.solve()
         self._update_thermal_step()
         self._thermal_step.solve()
         self._append_step(self._thermal_step.y(), self._thermal_step.theta())
-        self._current_time += self._tau
 
     def run(self, num_steps: int = 1) -> None:
         """Run one or more steps of the staggered scheme. In each step first a mechanical and then a
