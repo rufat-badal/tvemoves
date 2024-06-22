@@ -83,8 +83,7 @@ def dissipation_potential(prev_strain: Matrix, strain: Matrix):
 
 def dissipation_rate(prev_strain: Matrix, strain: Matrix, fps: float):
     """Dissipation rate (twice the dissipation potential)."""
-    # This strays away from our paper (no prefactor in front of the potential)
-    return 10 * dissipation_potential(prev_strain, strain) * 2 * fps**2
+    return dissipation_potential(prev_strain, strain) * 2 * fps**2
 
 
 def symmetrized_strain_delta(prev_strain: Matrix, strain: Matrix) -> Matrix:
