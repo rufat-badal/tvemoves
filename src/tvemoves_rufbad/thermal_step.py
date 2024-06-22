@@ -412,7 +412,7 @@ class _ThermalStep(AbstractThermalStep):
         m = self._model
         for i in range(self._num_vertices):
             m.y1[i] = new_y1[i]
-            m.prev_y2[i] = new_y2[i]
+            m.y2[i] = new_y2[i]
 
     def update_prev_theta(self, new_prev_theta: npt.NDArray[np.float64]) -> None:
         if new_prev_theta.shape != (self._num_vertices,):
