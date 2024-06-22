@@ -7,12 +7,18 @@ from tvemoves_rufbad.tensors import Matrix, inverse_2x2, Tensor3D
 
 ENTROPY_CONSTANT = 10
 HEAT_CONDUCTIVITY = Matrix([[1.0, 0.0], [0.0, 1.0]])
-HEAT_TRANSFER_COEFFICIENT = 0.5
+HEAT_TRANSFER_COEFFICIENT = 1
+HYPER_ELASTIC_POWER = 3
+MARTENSITE_POS_SHEAR = 0.5
+FIRST_MARTENSITE_WELL_INVERSE = Matrix([[1.0, -MARTENSITE_POS_SHEAR], [0.0, 1.0]])
+SECOND_MARTENSITE_WELL_INVERSE = Matrix([[1.0, MARTENSITE_POS_SHEAR], [0.0, 1.0]])
+C1 = 15.037 / 2
+D1 = 29.190 / 2
 
-_theta, _F = sp.symbols("theta F")
+
+_theta = sp.symbols("theta")
 
 _austenite_percentage_symbolic = _theta / (1 + _theta)
-
 austenite_percentage = sp.lambdify([_theta], _austenite_percentage_symbolic)
 
 _internal_energy_weight_symbolic = _austenite_percentage_symbolic - _theta * sp.diff(
@@ -21,13 +27,52 @@ _internal_energy_weight_symbolic = _austenite_percentage_symbolic - _theta * sp.
 internal_energy_weight = sp.lambdify([_theta], _internal_energy_weight_symbolic)
 
 _theta_lim = sp.Symbol("theta_lim")
-
 _antider_internal_energy_weight_symbolic = sp.integrate(
     _internal_energy_weight_symbolic, (_theta, 0, _theta_lim)
 )
-
 antider_internal_energy_weight = sp.lambdify(
     [_theta_lim], _antider_internal_energy_weight_symbolic, {"log": pyo.log}
+)
+
+_F_11, _F_12, _F_21, _F_22 = sp.symbols("F_11 F_12 F_21 F_22")
+_F = sp.Matrix([[_F_11, _F_12], [_F_21, _F_22]])
+
+# see https://en.wikipedia.org/wiki/Neo-Hookean_solid
+_I1 = (_F.T @ _F).trace()
+_J = _F.det()
+# alternative definition of the Neo hooke
+# _austenite_potential_symbolic = C1 * (_I1 - 2 - 2 * sp.log(_J)) + D1 * (_J - 1) ** 2
+_austenite_potential_symbolic = C1 * (_I1 - 2) + (C1 / 6 + D1 / 4) * (_J**2 + 1 / (_J**2) - 2) ** 2
+_austenite_potential_flat_input = sp.lambdify(
+    [_F_11, _F_12, _F_21, _F_22], _austenite_potential_symbolic, modules=[{"log": pyo.log}]
+)
+
+_derivative_austenite_potential_symbolic = [
+    [sp.diff(_austenite_potential_symbolic, _F[i, j]) for j in range(2)] for i in range(2)
+]
+_derivative_austenite_potential_flat_input = sp.lambdify(
+    [_F_11, _F_12, _F_21, _F_22], _derivative_austenite_potential_symbolic
+)
+
+# Squaring the first term is not standard
+# Think about a more physical choice later on
+_u = sp.symbols("u")
+# alternative double well that has quadratic growth at infinity
+# _double_well = _u**2 / (1 + _u)
+_double_well = _u**2
+_martensite_potential_symbolic = (
+    C1 * _double_well.subs(_u, _I1 - 2 - MARTENSITE_POS_SHEAR**2)
+    + (C1 / 6 + D1 / 4) * (_J**2 + 1 / (_J**2) - 2) ** 2
+)
+_martensite_potential_flat_input = sp.lambdify(
+    [_F_11, _F_12, _F_21, _F_22], _martensite_potential_symbolic, modules=[{"log": pyo.log}]
+)
+
+_derivative_martensite_potential_symbolic = [
+    [sp.diff(_martensite_potential_symbolic, _F[i, j]) for j in range(2)] for i in range(2)
+]
+_derivative_martensite_potential_flat_input = sp.lambdify(
+    [_F_11, _F_12, _F_21, _F_22], _derivative_martensite_potential_symbolic
 )
 
 
@@ -38,8 +83,8 @@ def dissipation_potential(prev_strain: Matrix, strain: Matrix):
 
 def dissipation_rate(prev_strain: Matrix, strain: Matrix, fps: float):
     """Dissipation rate (twice the dissipation potential)."""
-    # remove factor 10
-    return dissipation_potential(prev_strain, strain) * 2 * fps**2
+    # This strays away from our paper (no prefactor in front of the potential)
+    return 10 * dissipation_potential(prev_strain, strain) * 2 * fps**2
 
 
 def symmetrized_strain_delta(prev_strain: Matrix, strain: Matrix) -> Matrix:
@@ -48,64 +93,32 @@ def symmetrized_strain_delta(prev_strain: Matrix, strain: Matrix) -> Matrix:
     return strain_delta.transpose() @ prev_strain + prev_strain.transpose() @ strain_delta
 
 
-_F_11, _F_12, _F_21, _F_22 = sp.symbols("F_11 F_12 F_21 F_22")
-_F = sp.Matrix([[_F_11, _F_12], [_F_21, _F_22]])
-_neo_hooke_symbolic = ((_F.T @ _F).trace() / _F.det() - 2) ** 2 + (_F.det() + 1 / _F.det() - 2) ** 4
-
-_neo_hooke_flat_input = sp.lambdify([_F_11, _F_12, _F_21, _F_22], _neo_hooke_symbolic)
-
-
-def neo_hooke(strain: Matrix):
-    """Neo hooke potential. Minimized at SO(d) with required growth rates."""
-    return _neo_hooke_flat_input(strain[0, 0], strain[0, 1], strain[1, 0], strain[1, 1])
-
-
-_derivative_neo_hooke_symbolic = [
-    [sp.diff(_neo_hooke_symbolic, _F[i, j]) for j in range(2)] for i in range(2)
-]
-_derivative_neo_hooke_flat_input = sp.lambdify(
-    [_F_11, _F_12, _F_21, _F_22], _derivative_neo_hooke_symbolic
-)
-
-
-def derivative_neo_hooke(strain: Matrix) -> Matrix:
-    """Gradient of the Neo Hooke potential."""
-    return Matrix(
-        _derivative_neo_hooke_flat_input(strain[0, 0], strain[0, 1], strain[1, 0], strain[1, 1])
-    )
-
-
 def austenite_potential(strain: Matrix):
     """Austenite potential."""
-    return neo_hooke(strain)
+    return _austenite_potential_flat_input(strain[0, 0], strain[0, 1], strain[1, 0], strain[1, 1])
 
 
 def derivative_austenite_potential(strain: Matrix):
     """Derivative of the Austenite potential."""
-    return derivative_neo_hooke(strain)
-
-
-FIRST_MARTENSITE_WELL_INVERSE = Matrix([[1.0, -0.5], [0.0, 1.0]])
-SECOND_MARTENSITE_WELL_INVERSE = Matrix([[1.0, 0.5], [0.0, 1.0]])
+    return Matrix(
+        _derivative_austenite_potential_flat_input(
+            strain[0, 0], strain[0, 1], strain[1, 0], strain[1, 1]
+        )
+    )
 
 
 def martensite_potential(strain: Matrix):
     """Martensite potential."""
-    return neo_hooke(strain @ FIRST_MARTENSITE_WELL_INVERSE) * neo_hooke(
-        strain @ SECOND_MARTENSITE_WELL_INVERSE
-    )
+    return _martensite_potential_flat_input(strain[0, 0], strain[0, 1], strain[1, 0], strain[1, 1])
 
 
 def derivative_martensite_potential(strain: Matrix) -> Matrix:
     """Derivative of the Martensite potential."""
     # Product rule
-    return (
-        derivative_neo_hooke(strain @ FIRST_MARTENSITE_WELL_INVERSE)
-        @ FIRST_MARTENSITE_WELL_INVERSE.transpose()
-        * neo_hooke(strain @ SECOND_MARTENSITE_WELL_INVERSE)
-        + neo_hooke(strain @ FIRST_MARTENSITE_WELL_INVERSE)
-        * derivative_neo_hooke(strain @ SECOND_MARTENSITE_WELL_INVERSE)
-        @ SECOND_MARTENSITE_WELL_INVERSE.transpose()
+    return Matrix(
+        _derivative_martensite_potential_flat_input(
+            strain[0, 0], strain[0, 1], strain[1, 0], strain[1, 1]
+        )
     )
 
 
@@ -114,9 +127,6 @@ def total_elastic_potential(strain: Matrix, theta):
     return austenite_percentage(theta) * austenite_potential(strain) + (
         1 - austenite_percentage(theta)
     ) * martensite_potential(strain)
-
-
-HYPER_ELASTIC_POWER = 3
 
 
 def hyper_elastic_potential(hyperstrain: Tensor3D):
