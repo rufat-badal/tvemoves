@@ -64,7 +64,8 @@ class AbstractStep(ABC):
             vmin=0.0,
             vmax=max_temp,
             cmap="plasma",
-            shading="gouraud",
+            # shading="gouraud",
+            edgecolors="black",
         )
 
     def _plot_deformation_curves(
@@ -79,7 +80,7 @@ class AbstractStep(ABC):
             deformed_curve = [self.y(*p) for p in curve]
             x = [p[0] for p in deformed_curve]
             y = [p[1] for p in deformed_curve]
-            plt.plot(x, y, color="gray", linewidth=1)
+            plt.plot(x, y, color="gray", linewidth=0.5)
 
     def plot(
         self,
@@ -87,8 +88,8 @@ class AbstractStep(ABC):
         xlims: tuple[float, float],
         ylims: tuple[float, float],
         num_points_per_curve: int = 100,
-        num_horizontal_curves: int = 5,
-        num_vertical_curves: int = 5,
+        num_horizontal_curves: int = 0,
+        num_vertical_curves: int = 0,
     ):
         """Plot step."""
         plt.axis("off")
@@ -96,9 +97,6 @@ class AbstractStep(ABC):
         plt.xlim(*xlims)
         plt.ylim(*ylims)
         self._plot_temperature(max_temp)
-        self._plot_deformation_curves(
-            num_points_per_curve, num_horizontal_curves, num_vertical_curves
-        )
 
 
 class Step(AbstractStep):
@@ -293,7 +291,11 @@ class Simulation:
     def _plot_step(self, i: int) -> bool:
         if i < -len(self.steps) or i >= len(self.steps):
             return False
-        self.steps[i].plot(self.max_temp(), self._xlims, self._ylims)
+        self.steps[i].plot(
+            self.max_temp(),
+            self._xlims,
+            self._ylims,
+        )
         return True
 
     def plot_step(self, i: int):
