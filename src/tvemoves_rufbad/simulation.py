@@ -140,11 +140,15 @@ class RegularizedStep(AbstractStep):
             raise ValueError("refined grid is required in the regularized setting")
         # last dimension correspond to the degrees of freedom of the C1 interpolation
         if y_data.shape != (len(grid.vertices), 2, 6):
-            raise ValueError(f"incorrectly shaped y_data of shape = {y_data.shape} provided")
+            raise ValueError(
+                f"incorrectly shaped y_data of shape = {y_data.shape} provided (should be"
+                f" {(len(grid.vertices), 2, 6)})"
+            )
 
         if theta_data.shape != (len(refined_grid.vertices),):
             raise ValueError(
                 f"incorrectly shaped theta_data provided of shape = {theta_data.shape} provided"
+                f" (should be {(len(refined_grid.vertices),)})"
             )
 
         y1_params = y_data[:, 0, :].tolist()
