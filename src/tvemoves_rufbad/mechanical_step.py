@@ -191,6 +191,7 @@ class _MechanicalStep(AbstractMechanicalStep):
             grid, initial_temperature, search_radius, fps, lambda x, y: boundary_traction(0, x, y)
         )
         self._boundary_traction = boundary_traction
+        self._grid = grid
 
     def solve(self) -> None:
         self._solver.solve(self._model)
@@ -247,7 +248,9 @@ class _MechanicalStep(AbstractMechanicalStep):
             m.prev_theta[i] = new_prev_theta[i]
 
     def update_boundary_traction(self, current_time: float) -> None:
-        pass
+        m = self._model
+        for i in m.neumann_vertices:
+            m.g1[i], m.g2[i] = self._boundary_traction(current_time, *self._grid.points[i])
 
 
 def _model_regularized(
