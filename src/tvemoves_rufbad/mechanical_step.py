@@ -134,32 +134,31 @@ def _model(
 
     prev_y1 = P1Interpolation(grid, m.prev_y1)
     prev_y2 = P1Interpolation(grid, m.prev_y2)
-    prev_deform = Deformation(prev_y1, prev_y2)
+    m.prev_deform = Deformation(prev_y1, prev_y2)
 
-    prev_temp = P1Interpolation(grid, m.prev_theta)
+    m.prev_temp = P1Interpolation(grid, m.prev_theta)
 
     y1 = P1Interpolation(grid, m.y1)
     y2 = P1Interpolation(grid, m.y2)
-    deform = Deformation(y1, y2)
+    m.deform = Deformation(y1, y2)
 
-    g1 = P1BoundaryInterpolation(grid.neumann_boundary, m.g1)
-    g2 = P1BoundaryInterpolation(grid.neumann_boundary, m.g2)
+    g1_inter = P1BoundaryInterpolation(grid.neumann_boundary, m.g1)
+    g2_inter = P1BoundaryInterpolation(grid.neumann_boundary, m.g2)
 
-    def boundary_traction(edge, t):
-        return Vector([g1(edge, t), g2(edge, t)])
+    m.boundary_traction = lambda edge, t: Vector([g1_inter(edge, t), g2_inter(edge, t)])
 
     integrator = Integrator(DUNAVANT2, grid.triangles, grid.points)
     integrator_for_piecewise_constant = Integrator(CENTROID, grid.triangles, grid.points)
     neumann_boundary_integrator = BoundaryIntegrator(1, grid.neumann_boundary.edges, grid.points)
 
     m.total_elastic_energy = integrator(
-        compose_to_integrand(total_elastic_potential, deform.strain, prev_temp)
+        compose_to_integrand(total_elastic_potential, m.deform.strain, m.prev_temp)
     )
     m.dissipation = integrator_for_piecewise_constant(
-        compose_to_integrand(dissipation_potential, prev_deform.strain, deform.strain)
+        compose_to_integrand(dissipation_potential, m.prev_deform.strain, m.deform.strain)
     )
     m.boundary_traction_energy = neumann_boundary_integrator(
-        compose_to_integrand(boundary_traction_potential, boundary_traction, deform.on_edge)
+        compose_to_integrand(boundary_traction_potential, m.boundary_traction, m.deform.on_edge)
     )
     m.objective = pyo.Objective(
         expr=m.total_elastic_energy - m.boundary_traction_energy + fps * m.dissipation
