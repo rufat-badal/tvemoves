@@ -7,7 +7,7 @@ from copy import deepcopy
 from matplotlib import pyplot as plt
 from matplotlib import patches
 from tvemoves_rufbad.tensors import Vector, BarycentricCoordinates
-from tvemoves_rufbad.helpers import axis
+from tvemoves_rufbad.helpers import fig_axis
 
 PLOT_BORDER = 0.05
 PLOT_LINEWIDTH = 1.5
@@ -615,10 +615,9 @@ class RectangleDomain(Domain):
 
     def plot(self, ax=None):
         if ax is None:
-            _, ax = axis()
-
-        plt.xlim(-PLOT_BORDER, self.width + PLOT_BORDER)
-        plt.ylim(-PLOT_BORDER, self.height + PLOT_BORDER)
+            xlims = (-PLOT_BORDER, self.width + PLOT_BORDER)
+            ylims = (-PLOT_BORDER, self.height + PLOT_BORDER)
+            _, ax = fig_axis(xlims, ylims)
 
         rectangle = patches.Rectangle(
             (0, 0),

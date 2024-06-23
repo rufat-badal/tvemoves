@@ -6,6 +6,7 @@ import numpy.typing as npt
 import numpy as np
 import pyomo.environ as pyo
 from matplotlib import pyplot as plt
+from matplotlib import animation
 from tqdm import tqdm
 from typing import Callable
 from tvemoves_rufbad.domain import Domain, Grid, RefinedGrid
@@ -21,7 +22,7 @@ from tvemoves_rufbad.interpolation import (
     C1Interpolation,
     EuclideanInterpolation,
 )
-from tvemoves_rufbad.helpers import axis
+from tvemoves_rufbad.helpers import fig_axis
 
 PLOTTING_REFINEMENT_FACTOR = 5
 
@@ -51,12 +52,12 @@ class AbstractStep(ABC):
     def __str__(self):
         return f"y:\n{str(self._y_data)}\ntheta:\n{str(self._theta_data)}"
 
-    def _plot_temperature(self, max_temp) -> None:
+    def _plot_temperature(self, ax, max_temp: float) -> None:
         deformed_points = [self.y(*p) for p in self._grid.points]
         x = [p[0] for p in deformed_points]
         y = [p[1] for p in deformed_points]
         c = [self.theta(*p) for p in self._grid.points]
-        plt.tripcolor(
+        ax.tripcolor(
             x,
             y,
             c,
@@ -84,16 +85,10 @@ class AbstractStep(ABC):
 
     def plot(
         self,
+        ax,
         max_temp: float,
-        xlims: tuple[float, float],
-        ylims: tuple[float, float],
     ):
-        """Plot step."""
-        plt.axis("off")
-        plt.gca().set_aspect("equal")
-        plt.xlim(*xlims)
-        plt.ylim(*ylims)
-        self._plot_temperature(max_temp)
+        return self._plot_temperature(ax, max_temp)
 
 
 class Step(AbstractStep):
@@ -290,30 +285,30 @@ class Simulation:
     def max_temp(self):
         return self._max_temp
 
-    def _plot_step(self, i: int) -> bool:
-        if i < -len(self.steps) or i >= len(self.steps):
-            return False
-        self.steps[i].plot(
-            self.max_temp(),
-            self._xlims,
-            self._ylims,
-        )
-        return True
-
     def plot_step(self, i: int):
-        if self._plot_step(i):
-            plt.show()
+        if i < -len(self.steps) or i >= len(self.steps):
+            return None
+        fig, ax = fig_axis(self._xlims, self._ylims)
+        self.steps[i].plot(
+            ax,
+            self.max_temp(),
+        )
+        return fig
 
     def save_step(self, i: int, path: str = "step"):
-        if self._plot_step(i):
+        fig = self._plot_step(i)
+        if fig is not None:
             step_index = i if i >= 0 else len(self.steps) + i
-            plt.savefig(
+            fig.savefig(
                 f"{path}_{step_index}.png",
                 bbox_inches="tight",
                 transparent="True",
                 pad_inches=0,
                 dpi=300,
             )
+
+    def save_animation(self, path: str = "animation"):
+        pass
 
     def _update_mechanical_step(self):
         self._mechanical_step.update_prev_y(self._thermal_step.y())
