@@ -178,9 +178,12 @@ def compose_to_integrand(outer, *inner):
 def fig_axis(xlims: tuple[float, float], ylims: tuple[float, float]):
     """Create a single axis with no ticks and labels."""
     fig, ax = plt.subplots()
+    setup_axis(ax, xlims, ylims)
+    return fig, ax
+
+
+def setup_axis(ax, xlims: tuple[float, float], ylims: tuple[float, float]):
     ax.axis("off")
     ax.set_xlim(xlims)
     ax.set_ylim(ylims)
     ax.set_aspect(1)
-
-    return fig, ax
