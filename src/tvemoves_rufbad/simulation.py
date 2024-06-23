@@ -22,7 +22,7 @@ from tvemoves_rufbad.interpolation import (
     C1Interpolation,
     EuclideanInterpolation,
 )
-from tvemoves_rufbad.helpers import fig_axis
+from tvemoves_rufbad.helpers import fig_axis, setup_axis
 
 PLOTTING_REFINEMENT_FACTOR = 5
 
@@ -88,7 +88,7 @@ class AbstractStep(ABC):
         ax,
         max_temp: float,
     ):
-        return self._plot_temperature(ax, max_temp)
+        self._plot_temperature(ax, max_temp)
 
 
 class Step(AbstractStep):
@@ -307,8 +307,16 @@ class Simulation:
                 dpi=300,
             )
 
-    def save_animation(self, path: str = "animation"):
-        pass
+    def save_animation(self, filename: str = "animation"):
+        fig, ax = fig_axis(self._xlims, self._ylims)
+
+        def animate_frame(i):
+            ax.clear()
+            setup_axis(ax, self._xlims, self._ylims)
+            self.steps[i].plot(ax, self._max_temp)
+
+        anim = animation.FuncAnimation(fig, animate_frame, frames=len(self.steps))
+        anim.save(filename + ".mp4", fps=30, extra_args=["-vcodec", "libx264"])
 
     def _update_mechanical_step(self):
         self._mechanical_step.update_prev_y(self._thermal_step.y())
