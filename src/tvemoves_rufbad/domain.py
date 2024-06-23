@@ -151,7 +151,7 @@ class Grid(ABC):
     def plot(self, ax):
         """Returns matplotlib plot of the grid."""
         if ax is None:
-            _, ax = axis()
+            _, ax = fig_axis()
 
         new_xlim = (-PLOT_BORDER, max(p[0] for p in self.points) + PLOT_BORDER)
         _adjust_xlim(ax, new_xlim)
