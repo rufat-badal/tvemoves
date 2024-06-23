@@ -18,20 +18,25 @@ D1 = 29.190 / 2
 
 _theta = sp.symbols("theta")
 
-_austenite_percentage_symbolic = _theta / (1 + _theta)
-austenite_percentage = sp.lambdify([_theta], _austenite_percentage_symbolic)
+# _austenite_percentage_symbolic = _theta / (1 + _theta)
+_austenite_percentage_symbolic = 1 - sp.exp(-5 * _theta)
+austenite_percentage = sp.lambdify(
+    [_theta], _austenite_percentage_symbolic, modules={"exp": pyo.exp}
+)
 
 _internal_energy_weight_symbolic = _austenite_percentage_symbolic - _theta * sp.diff(
     _austenite_percentage_symbolic, _theta
 )
-internal_energy_weight = sp.lambdify([_theta], _internal_energy_weight_symbolic)
+internal_energy_weight = sp.lambdify(
+    [_theta], _internal_energy_weight_symbolic, modules={"exp": pyo.exp}
+)
 
 _theta_lim = sp.Symbol("theta_lim")
 _antider_internal_energy_weight_symbolic = sp.integrate(
     _internal_energy_weight_symbolic, (_theta, 0, _theta_lim)
 )
 antider_internal_energy_weight = sp.lambdify(
-    [_theta_lim], _antider_internal_energy_weight_symbolic, {"log": pyo.log}
+    [_theta_lim], _antider_internal_energy_weight_symbolic, modules={"exp": pyo.exp}
 )
 
 _F_11, _F_12, _F_21, _F_22 = sp.symbols("F_11 F_12 F_21 F_22")
@@ -170,10 +175,12 @@ def compose_to_integrand(outer, *inner):
     return lambda *args: outer(*(f(*args) for f in inner))
 
 
-def axis():
+def fig_axis(xlims: tuple[float, float], ylims: tuple[float, float]):
     """Create a single axis with no ticks and labels."""
     fig, ax = plt.subplots()
     ax.axis("off")
+    ax.set_xlim(xlims)
+    ax.set_ylim(ylims)
     ax.set_aspect(1)
 
     return fig, ax
