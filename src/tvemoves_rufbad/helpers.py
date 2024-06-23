@@ -7,11 +7,12 @@ from tvemoves_rufbad.tensors import Matrix, inverse_2x2, Tensor3D
 
 ENTROPY_CONSTANT = 10
 HEAT_CONDUCTIVITY = Matrix([[1.0, 0.0], [0.0, 1.0]])
-HEAT_TRANSFER_COEFFICIENT = 1
+HEAT_TRANSFER_COEFFICIENT = 0.5
 HYPER_ELASTIC_POWER = 3
 MARTENSITE_POS_SHEAR = 0.5
 FIRST_MARTENSITE_WELL_INVERSE = Matrix([[1.0, -MARTENSITE_POS_SHEAR], [0.0, 1.0]])
 SECOND_MARTENSITE_WELL_INVERSE = Matrix([[1.0, MARTENSITE_POS_SHEAR], [0.0, 1.0]])
+# material parameters for Nitinol
 C1 = 15.037 / 2
 D1 = 29.190 / 2
 
@@ -46,8 +47,8 @@ _F = sp.Matrix([[_F_11, _F_12], [_F_21, _F_22]])
 _I1 = (_F.T @ _F).trace()
 _J = _F.det()
 # alternative definition of the Neo hooke
-# _austenite_potential_symbolic = C1 * (_I1 - 2 - 2 * sp.log(_J)) + D1 * (_J - 1) ** 2
-_austenite_potential_symbolic = C1 * (_I1 - 2) + (C1 / 6 + D1 / 4) * (_J**2 + 1 / (_J**2) - 2) ** 2
+# _austenite_potential_symbolic = _I1 / _J - 2 + (_J**2 + 1 / (_J**2) - 2) ** 2
+_austenite_potential_symbolic = _I1 - 2 - 2 * sp.log(_J) + (_J - 1) ** 2
 _austenite_potential_flat_input = sp.lambdify(
     [_F_11, _F_12, _F_21, _F_22], _austenite_potential_symbolic, modules=[{"log": pyo.log}]
 )
@@ -66,8 +67,7 @@ _u = sp.symbols("u")
 # _double_well = _u**2 / (1 + _u)
 _double_well = _u**2
 _martensite_potential_symbolic = (
-    C1 * _double_well.subs(_u, _I1 - 2 - MARTENSITE_POS_SHEAR**2)
-    + (C1 / 6 + D1 / 4) * (_J**2 + 1 / (_J**2) - 2) ** 2
+    _double_well.subs(_u, _I1 / _J - 2 - MARTENSITE_POS_SHEAR**2) + (_J**2 + 1 / (_J**2) - 2) ** 2
 )
 _martensite_potential_flat_input = sp.lambdify(
     [_F_11, _F_12, _F_21, _F_22], _martensite_potential_symbolic, modules=[{"log": pyo.log}]
@@ -183,7 +183,7 @@ def fig_axis(xlims: tuple[float, float], ylims: tuple[float, float]):
 
 
 def setup_axis(ax, xlims: tuple[float, float], ylims: tuple[float, float]):
-    ax.axis("off")
+    # ax.axis("off")
     ax.set_xlim(xlims)
     ax.set_ylim(ylims)
     ax.set_aspect(1)
