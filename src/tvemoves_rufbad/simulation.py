@@ -316,7 +316,7 @@ class Simulation:
             self.steps[i].plot(ax, self._max_temp)
 
         anim = animation.FuncAnimation(fig, animate_frame, frames=len(self.steps))
-        anim.save(filename + ".mp4", fps=30, extra_args=["-vcodec", "libx264"])
+        anim.save(filename + ".mp4", fps=30, dpi=300, extra_args=["-vcodec", "libx264"])
 
     def _update_mechanical_step(self):
         self._mechanical_step.update_prev_y(self._thermal_step.y())
