@@ -80,12 +80,10 @@ class Vector:
         """Vertically stack two vectors to create a matrix with two rows."""
         if self.size != other.size:
             raise ValueError(f"cannot stack vectors of sizes {self.size} and {other.size}")
-        return Matrix(
-            [
-                self.data,
-                other.data,
-            ]
-        )
+        return Matrix([
+            self.data,
+            other.data,
+        ])
 
     def __iter__(self) -> Iterator:
         return iter(self.data)
@@ -235,39 +233,31 @@ class Matrix:
     def __add__(self, other: Matrix) -> Matrix:
         if self.shape != other.shape:
             raise ValueError(f"matrices of shapes {self.shape} and {other.shape} cannot be added")
-        return Matrix(
-            [
-                [x + y for x, y in zip(row, other_row)]
-                for row, other_row in zip(self.data, other.data)
-            ]
-        )
+        return Matrix([
+            [x + y for x, y in zip(row, other_row)] for row, other_row in zip(self.data, other.data)
+        ])
 
     def __sub__(self, other: Matrix) -> Matrix:
         if self.shape != other.shape:
             raise ValueError(
                 f"matrices of shapes {self.shape} and {other.shape} cannot be subtracted"
             )
-        return Matrix(
-            [
-                [x - y for x, y in zip(row, other_row)]
-                for row, other_row in zip(self.data, other.data)
-            ]
-        )
+        return Matrix([
+            [x - y for x, y in zip(row, other_row)] for row, other_row in zip(self.data, other.data)
+        ])
 
     def __matmul__(self, other: Matrix) -> Matrix:
         if self.shape[1] != other.shape[0]:
             raise ValueError(
                 f"matrices of shapes {self.shape} and {other.shape} cannot be multiplied"
             )
-        return Matrix(
+        return Matrix([
             [
-                [
-                    sum(self.data[i][k] * other.data[k][j] for k in range(self.shape[1]))
-                    for j in range(other.shape[1])
-                ]
-                for i in range(self.shape[0])
+                sum(self.data[i][k] * other.data[k][j] for k in range(self.shape[1]))
+                for j in range(other.shape[1])
             ]
-        )
+            for i in range(self.shape[0])
+        ])
 
     def transpose(self) -> Matrix:
         """Compute the transpose of a matrix."""
@@ -333,12 +323,9 @@ class Matrix:
             raise ValueError(
                 f"cannot multiply a matrix of shape {self.shape} with a vector of size {v.size}"
             )
-        return Vector(
-            [
-                sum(self.data[i][j] * v[j] for j in range(self.shape[1]))
-                for i in range(self.shape[0])
-            ]
-        )
+        return Vector([
+            sum(self.data[i][j] * v[j] for j in range(self.shape[1])) for i in range(self.shape[0])
+        ])
 
     def map(self, f: Callable) -> Matrix:
         """Applies map f to each entry of the matrix."""
@@ -348,12 +335,10 @@ class Matrix:
         """Stack two matrices to a 3-d tensor."""
         if self.shape[0] != other.shape[0]:
             raise ValueError(f"matrices of shapes {self.shape} and {other.shape} cannot be stacked")
-        return Tensor3D(
-            [
-                self.data,
-                other.data,
-            ]
-        )
+        return Tensor3D([
+            self.data,
+            other.data,
+        ])
 
     def numpy(self) -> npt.NDArray:
         """Return copy of the matrix as numpy array."""
@@ -418,30 +403,26 @@ class Tensor3D:
     def __add__(self, other: Tensor3D) -> Tensor3D:
         if self.shape != other.shape:
             raise ValueError(f"tensors of shapes {self.shape} and {other.shape} cannot be added")
-        return Tensor3D(
+        return Tensor3D([
             [
-                [
-                    [x + y for x, y in zip(row, other_row)]
-                    for row, other_row in zip(matrix, other_matrix)
-                ]
-                for matrix, other_matrix in zip(self.data, other.data)
+                [x + y for x, y in zip(row, other_row)]
+                for row, other_row in zip(matrix, other_matrix)
             ]
-        )
+            for matrix, other_matrix in zip(self.data, other.data)
+        ])
 
     def __sub__(self, other: Tensor3D) -> Tensor3D:
         if self.shape != other.shape:
             raise ValueError(
                 f"tensors of shapes {self.shape} and {other.shape} cannot be subtracted"
             )
-        return Tensor3D(
+        return Tensor3D([
             [
-                [
-                    [x - y for x, y in zip(row, other_row)]
-                    for row, other_row in zip(matrix, other_matrix)
-                ]
-                for matrix, other_matrix in zip(self.data, other.data)
+                [x - y for x, y in zip(row, other_row)]
+                for row, other_row in zip(matrix, other_matrix)
             ]
-        )
+            for matrix, other_matrix in zip(self.data, other.data)
+        ])
 
     def normsqr(self):
         """Compute square of the Euclidean norm of the tensor."""
