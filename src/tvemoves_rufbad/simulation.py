@@ -285,7 +285,7 @@ class Simulation:
     def max_temp(self):
         return self._max_temp
 
-    def plot_step(self, i: int):
+    def _plot_step(self, i: int):
         if i < -len(self.steps) or i >= len(self.steps):
             return None
         fig, ax = fig_axis(self._xlims, self._ylims)
@@ -294,6 +294,9 @@ class Simulation:
             self.max_temp(),
         )
         return fig
+
+    def plot_step(self, i: int):
+        self._plot_step(i)
 
     def save_step(self, i: int, path: str = "step"):
         fig = self._plot_step(i)
